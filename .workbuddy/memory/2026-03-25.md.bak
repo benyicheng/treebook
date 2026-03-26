@@ -1,0 +1,64 @@
+## 2026-03-25 工作记录
+
+### 问题诊断与修复
+
+#### 1. CMS 控制器修复
+- **文件**: `api/src/controllers/cmsController.ts`
+- **问题**: 
+  - Prisma 查询语法错误 (`prisma.siteConfig.findMany()`)
+  - 代码逻辑混乱，片段不完整
+  - 缺少必要的变量声明
+- **修复**:
+  - 完全重写控制器文件
+  - 正确使用 `@prisma/client` 的 PrismaClient
+  - 实现完整的获取和更新站点配置功能
+  - 添加完善的错误处理和日志
+
+#### 2. 前端 Store 修复
+- **文件**: `src/stores/useSiteConfigStore.ts`
+- **问题**:
+  - Zustand 的 persist 中间件使用不正确
+  - 类型定义混乱
+  - fetchConfig 和 updateConfig 方法实现错误
+- **修复**:
+  - 正确使用 Zustand 的 `create()` 和 `persist()`
+  - 清晰定义 `SiteConfig` 和 `SiteConfigStore` 接口
+  - 完善配置获取和更新的逻辑
+  - 添加完整的错误处理
+
+#### 3. 后端服务启动修复
+- **文件**: `api/src/index.ts`
+- **问题**:
+  - Prisma 客户端导入错误 (`import prisma from './prisma'`)
+  - HTTP 服务器和 Socket.IO 初始化混乱
+  - 路由配置不完整
+  - 缺少健康检查接口
+- **修复**:
+  - 正确使用 `@prisma/client` 导入和初始化 PrismaClient
+  - 简化 CORS 配置
+  - 添加 `/api/health` 健康检查接口
+  - 完善错误处理和 404 响应
+  - 添加优雅关闭处理
+
+#### 4. 依赖问题修复
+- **问题**: 缺少 `@vitejs/plugin-react-swc` 插件
+- **修复**: 安装缺失的 Vite SWC 插件
+
+#### 5. 项目启动验证
+- **前端服务**: http://localhost:5173
+- **后端服务**: http://localhost:3001
+- **健康检查**: http://localhost:3001/api/health
+
+### 待办事项
+1. ✅ 清理并重新启动前端和后端服务
+2. ⏳ 验证前端页面是否可以访问
+3. ⏳ 测试后端 API 接口是否正常返回数据
+4. ⏳ 修复所有发现的 BUG
+5. ⏳ 更新项目文档
+
+### 备注
+- CMS 系统需要修复前端页面的配置加载和保存功能
+- 前端使用 Vite + React + TypeScript + Tailwind CSS
+- 后端使用 Express + Prisma + SQLite + Socket.IO
+- 状态管理使用 Zustand
+- 前端和后端通过 Vite 代理连接（`/api` -> `http://localhost:3001`）
