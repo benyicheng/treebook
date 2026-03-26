@@ -1,13 +1,30 @@
 # 平行宇宙写作平台 (Parallel Universe Writing Platform)
 
-这是一个创新型多人协作写作环境，支持主线、分支、番外、书单四种故事路径。通过图形化的“平行宇宙树”展示故事的多样性。
+这是一个创新型多人协作写作环境，支持主线、分支、番外、书单四种故事路径。通过图形化的"平行宇宙树"展示故事的多样性。
+
+[![GitHub Repo](https://img.shields.io/badge/github-repo-blue.svg)](https://github.com/your-username/parallel-universe)
+[![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 ## 技术栈
 
 - **前端**: React 18, TypeScript, Vite, Tailwind CSS, Zustand, React-Flow (树图可视化), TipTap (协作编辑器)
 - **后端**: Node.js, Express, Socket.io (实时协作), JWT (身份认证)
-- **数据库**: SQLite (本地存储) + Prisma ORM
+- **数据库**: SQLite (开发) / PostgreSQL (生产) + Prisma ORM
 - **图标**: Lucide React
+
+## 在线演示
+
+- 前端预览: [待部署]
+- 后端 API: [待部署]
+
+## 快速部署
+
+本项目可以快速部署到以下平台:
+
+- **Vercel**: [查看部署指南](docs/GITHUB_DEPLOYMENT.md) (推荐,免费)
+- **Render**: [查看部署指南](docs/GITHUB_DEPLOYMENT.md) (支持后端)
+- **Railway**: [查看部署指南](docs/GITHUB_DEPLOYMENT.md) (一键部署)
+- **自建服务器**: [查看部署指南](docs/GITHUB_DEPLOYMENT.md) (VPS)
 
 ## 目录结构说明
 
@@ -29,7 +46,7 @@
 
 1. **主线故事**: 由原作者创建，作为宇宙的起源。
 2. **平行分支**: 任何读者可以在任意章节创建分支，开启新的可能性。
-3. **双轨系统**: 区分“官方正作”与“社区创作”，通过 `isOfficial` 标志过滤。
+3. **双轨系统**: 区分"官方正作"与"社区创作"，通过 `isOfficial` 标志过滤。
 4. **精彩番外**: 独立于主线的短篇故事，丰富角色维度。
 5. **精选书单**: 社区成员编排的个性化阅读路径。
 6. **图形化宇宙树**: 直观展示故事的 Divergence (发散) 与 Convergence (收敛)。
