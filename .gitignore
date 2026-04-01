@@ -32,7 +32,7 @@ build
 prisma/*.db
 prisma/*.db-journal
 
-# IDE
+# IDE & Tools
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -42,6 +42,14 @@ prisma/*.db-journal
 *.njsproj
 *.sln
 *.sw?
+.workbuddy/
+.trae/
+.accio/
+.vercel/
+.acc-build/
+.acc-dist/
+.acc-temp/
+.accio-debug/
 
 # Temporary files
 *.tmp
