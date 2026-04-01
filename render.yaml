@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: treebook-api
+    runtime: node
+    plan: free
+    buildCommand: cd api && npm install && npx prisma generate
+    startCommand: cd api && npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: treebook-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: PORT
+        value: 3001
+
+databases:
+  - name: treebook-db
+    plan: free
