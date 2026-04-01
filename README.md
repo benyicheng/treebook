@@ -42,6 +42,18 @@
   - `pages/`: 页面级组件 (Home, Mainline, Branch, Spinoff, Booklist)
   - `layouts/`: 布局组件
 
+  api/src/
+├── services/           # 业务逻辑大脑 (Service Layer)
+│   ├── StoryService.ts
+│   ├── InteractionService.ts
+│   ├── RevenueService.ts
+│   ├── StorageService.ts     <-- 新增：支持图片/视频存储
+│   ├── BlockchainService.ts  <-- 新增：支持区块链存证
+│   └── AIGenerationService.ts <-- 新增：支持 AI 多媒体创作
+├── controllers/        # HTTP 接口转换器
+├── middleware/         # 权限与验证 (Zod & Auth)
+└── routes/             # 扁平化的路由定义
+
 ## 核心功能
 
 1. **主线故事**: 由原作者创建，作为宇宙的起源。

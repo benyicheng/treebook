@@ -5,6 +5,24 @@ generator client {
   provider = "prisma-client-js"
 }
 
+model MergeRequest {
+  id              String    @id @default(uuid())
+  type            String    @default("branch_merge") // branch_merge, spinoff_official
+  branch          Branch?   @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  branchId        String?
+  spinoff         Spinoff?  @relation(fields: [spinoffId], references: [id], onDelete: Cascade)
+  spinoffId       String?
+  story           Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyId         String
+  status          String    @default("pending") // pending, approved, rejected
+  message         String?   // 申请说明
+  reviewComment   String?   // 审核回复
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@map("merge_requests")
+}
+
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
@@ -29,9 +47,53 @@ model User {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   readingHistory ReadingHistory[]
+  savepoints     ReadingSavepoint[]
   comments       Comment[]
+  wallet         Wallet?
+  transactions   Transaction[]
 
   @@map("users")
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+  balance   Float    @default(0.0)
+  currency  String   @default("UNIV") // Parallel Universe Coins
+  updatedAt DateTime @updatedAt
+
+  @@map("wallets")
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+  amount      Float
+  type        String   // REVENUE_SHARE, WITHDRAWAL, RECHARGE
+  targetType  String?  // STORY, BRANCH
+  targetId    String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@map("transactions")
+}
+
+model ReadingSavepoint {
+  id        String   @id @default(uuid())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String
+  story     Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyId   String
+  branch    Branch?  @relation(fields: [branchId], references: [id], onDelete: SetNull)
+  branchId  String?
+  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapterId String
+  name      String?  // 自定义存档名
+  createdAt DateTime @default(now())
+
+  @@map("reading_savepoints")
 }
 
 model Comment {
@@ -48,13 +110,15 @@ model Comment {
 }
 
 model ReadingHistory {
-  id        String   @id @default(uuid())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  userId    String
-  chapter   Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  chapterId String
-  progress  Float    @default(0) // 0-100 percentage
-  readAt    DateTime @default(now())
+  id                 String   @id @default(uuid())
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId             String
+  chapter            Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapterId          String
+  progress           Float    @default(0) // 0-100 percentage
+  referralBooklistId String?
+  referralBooklist   Booklist? @relation("BooklistReferral", fields: [referralBooklistId], references: [id], onDelete: SetNull)
+  readAt             DateTime @default(now())
 
   @@unique([userId, chapterId])
   @@map("reading_history")
@@ -79,6 +143,8 @@ model Story {
   updatedAt   DateTime  @updatedAt
   characters  Character[]
   tags        Tag[]
+  savepoints  ReadingSavepoint[]
+  mergeRequests MergeRequest[]
 
   @@map("stories")
 }
@@ -122,6 +188,7 @@ model Chapter {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   readingHistory ReadingHistory[]
+  savepoints     ReadingSavepoint[]
   comments       Comment[]
 
   @@map("chapters")
@@ -139,9 +206,16 @@ model Branch {
   description     String?
   branchType      String    @default("parallel")
   isOfficial      Boolean   @default(false)
+  isCertified     Boolean   @default(false) // 是否被原作者认证为“金级分支”
+  certifiedAt     DateTime?
+  contributionScore Int     @default(0)    // 分支贡献度分值
+  status          String    @default("ongoing") // ongoing, completed, merged
   conditions      String?   // JSON string
   viewCount       Int       @default(0)
   chapters        Chapter[]
+  savepoints      ReadingSavepoint[]
+  mergeRequests   MergeRequest[]
+  spinoffs        Spinoff[]
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @default(now()) @updatedAt
 
@@ -154,28 +228,43 @@ model Spinoff {
   authorId             String
   originalStory        Story     @relation(fields: [originalStoryId], references: [id], onDelete: Cascade)
   originalStoryId      String
+  originalBranch       Branch?   @relation(fields: [originalBranchId], references: [id], onDelete: SetNull)
+  originalBranchId     String?
   title                String
+  summary              String?   // 短简介
   content              String
+  type                 String    @default("if_timeline") // biography, if_timeline, world_expansion
+  status               String    @default("ongoing")     // ongoing, completed, merged
   isOfficial           Boolean   @default(false)
+  revenueShareRate     Float     @default(0.1)           // 给原作者的分成比例，默认 10%
+  referencedCharacters String?   // 引用的主线角色 ID 列表 (JSON String)
   characterRelationships String?   // JSON string
   viewCount            Int       @default(0)
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @default(now()) @updatedAt
+  mergeRequests        MergeRequest[]
 
   @@map("spinoffs")
 }
 
 model Booklist {
-  id          String         @id @default(uuid())
-  creator     User           @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  creatorId   String
-  title       String
-  description String?
-  isPublic    Boolean        @default(true)
-  viewCount   Int            @default(0)
-  items       BooklistItem[]
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @default(now()) @updatedAt
+  id                 String           @id @default(uuid())
+  creator            User             @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creatorId          String
+  title              String
+  description        String?
+  coverImage         String?          @default("https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&q=80&w=800")
+  type               String           @default("COLLECTION") // COLLECTION or TIMELINE
+  tags               String?          @default("") // Comma separated tags
+  isPublic           Boolean          @default(true)
+  isIncentiveEnabled Boolean          @default(true)
+  totalEarnings      Float            @default(0.0)
+  viewCount          Int              @default(0)
+  likesCount         Int              @default(0)
+  items              BooklistItem[]
+  referralHistories  ReadingHistory[] @relation("BooklistReferral")
+  createdAt          DateTime         @default(now())
+  updatedAt          DateTime         @default(now()) @updatedAt
 
   @@map("booklists")
 }

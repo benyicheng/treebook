@@ -22,8 +22,8 @@ const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
 interface BannerSlide {
   id: number;
   title: string;
-  subtitle: string;
-  image: string;
+  description: string;
+  imageUrl: string;
   link: string;
   badge: string;
 }
@@ -108,7 +108,7 @@ const CMSPage: React.FC = () => {
     const newSlide: BannerSlide = {
       id: Date.now(),
       title: '新轮播标题',
-      subtitle: '副标题',
+      description: '副标题',
       image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&h=400&fit=crop',
       link: '/',
       badge: '新',
@@ -342,13 +342,13 @@ const CMSPage: React.FC = () => {
                     {/* 预览头部 */}
                     <div
                       className="relative h-24 bg-cover bg-center flex items-center px-6"
-                      style={{ backgroundImage: `url(${slide.image})` }}
+                      style={{ backgroundImage: `url(${slide.imageUrl})` }}
                     >
                       <div className="absolute inset-0 bg-black/50" />
                       <div className="relative z-10 flex-1">
                         <span className="px-2 py-0.5 bg-white/20 text-white text-[10px] font-bold rounded-full mr-2">{slide.badge}</span>
                         <span className="text-white font-bold text-sm">{slide.title}</span>
-                        <p className="text-white/80 text-xs mt-0.5">{slide.subtitle}</p>
+                        <p className="text-white/80 text-xs mt-0.5">{slide.description}</p>
                       </div>
                       <div className="relative z-10 flex items-center gap-2">
                         <button onClick={() => moveSlide(i, 'up')} disabled={i === 0} className="p-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg disabled:opacity-30 transition-all">
@@ -368,7 +368,7 @@ const CMSPage: React.FC = () => {
                         <input type="text" value={slide.title} onChange={e => updateSlide(i, 'title', e.target.value)} className={inputSmClass} />
                       </FormField>
                       <FormField label="副标题" compact>
-                        <input type="text" value={slide.subtitle} onChange={e => updateSlide(i, 'subtitle', e.target.value)} className={inputSmClass} />
+                        <input type="text" value={slide.description} onChange={e => updateSlide(i, 'description', e.target.value)} className={inputSmClass} />
                       </FormField>
                       <FormField label="标签文字" compact>
                         <input type="text" value={slide.badge} onChange={e => updateSlide(i, 'badge', e.target.value)} placeholder="热门" className={inputSmClass} />
@@ -378,7 +378,7 @@ const CMSPage: React.FC = () => {
                       </FormField>
                       <div className="col-span-2">
                         <FormField label="图片 URL" compact>
-                          <input type="url" value={slide.image} onChange={e => updateSlide(i, 'image', e.target.value)} placeholder="https://..." className={inputSmClass} />
+                          <input type="url" value={slide.imageUrl} onChange={e => updateSlide(i, 'imageUrl', e.target.value)} placeholder="https://..." className={inputSmClass} />
                         </FormField>
                       </div>
                     </div>

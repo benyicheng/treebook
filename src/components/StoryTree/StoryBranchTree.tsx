@@ -15,6 +15,8 @@ import { nodeTypes } from './CustomNodes';
 interface StoryBranchTreeProps {
   chapters: Chapter[];
   branches: Branch[];
+  readingHistory?: any[]; // 传入已读历史
+  savepoints?: any[];      // 传入存档点
   onNodeClick?: (nodeId: string, type: 'chapter' | 'branch') => void;
 }
 
@@ -23,10 +25,21 @@ const CHAPTER_Y = 80;
 const BRANCH_Y_START = 280;
 const BRANCH_Y_STEP = 130;
 
-const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({ chapters, branches, onNodeClick }) => {
+const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({ 
+  chapters, 
+  branches, 
+  readingHistory = [], 
+  savepoints = [], 
+  onNodeClick 
+}) => {
   const { nodes, edges } = useMemo(() => {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
+
+    // 映射已读状态和存档点
+    const readChapterIds = new Set(readingHistory.map(h => h.chapterId));
+    const savepointChapterIds = new Set(savepoints.map(s => s.chapterId));
+    const readBranchIds = new Set(readingHistory.filter(h => h.chapter?.branchId).map(h => h.chapter.branchId));
 
     // 只取主线章节（branchId 为 null/undefined）并按顺序排列
     const mainlineChapters = chapters
@@ -47,6 +60,8 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({ chapters, branches, o
         data: { 
           label: chapter.title,
           orderIndex: chapter.orderIndex,
+          isRead: readChapterIds.has(chapter.id),
+          hasSavepoint: savepointChapterIds.has(chapter.id),
         },
         position: { x: chapterXMap[chapter.id], y: CHAPTER_Y },
       });
@@ -81,13 +96,17 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({ chapters, branches, o
       const siblingsGroup = branchesByParent[branch.parentChapterId] || [];
       const siblingIndex = siblingsGroup.findIndex(b => b.id === branch.id);
 
+      const isRead = readBranchIds.has(branch.id);
+
       nodes.push({
         id: `branch-${branch.id}`,
         type: 'branch',
         data: { 
           label: branch.title,
           isOfficial: branch.isOfficial,
+          isCertified: branch.isCertified,
           isHot: (branch.viewCount || 0) > 100,
+          isRead,
           chapterCount: (branch as any)._count?.chapters ?? 0,
           authorName: branch.author?.username,
         },
@@ -101,13 +120,14 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({ chapters, branches, o
         target: `branch-${branch.id}`,
         animated: true,
         style: { 
-          stroke: branch.isOfficial ? '#f59e0b' : '#8b5cf6', 
-          strokeWidth: 2.5, 
-          strokeDasharray: '8,4' 
+          stroke: branch.isCertified ? '#f59e0b' : (branch.isOfficial ? '#f59e0b' : '#8b5cf6'), 
+          strokeWidth: branch.isCertified ? 4 : 2.5, 
+          strokeDasharray: isRead ? '0' : '8,4', // 已读分支实线，未读虚线
+          opacity: isRead ? 1 : 0.6
         },
         markerEnd: { 
           type: MarkerType.ArrowClosed, 
-          color: branch.isOfficial ? '#f59e0b' : '#8b5cf6' 
+          color: branch.isCertified ? '#f59e0b' : (branch.isOfficial ? '#f59e0b' : '#8b5cf6') 
         },
       });
     });

@@ -12,13 +12,13 @@ export const authService = {
   login: async (credentials: { email: string; password: string }) => {
     const { data } = await client.post<{ user: User; token: string }>('/auth/login', credentials);
     localStorage.setItem('token', data.token);
-    return data.user;
+    return data;
   },
 
   register: async (userData: any) => {
     const { data } = await client.post<{ user: User; token: string }>('/auth/register', userData);
     localStorage.setItem('token', data.token);
-    return data.user;
+    return data;
   },
 
   getMe: async () => {

@@ -1,10 +1,11 @@
+import path from 'path';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { Server } from 'socket.io';
 import http from 'http';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from './prisma';
 import authRoutes from './routes/auth';
 import storyRoutes from './routes/stories';
 import chapterRoutes from './routes/chapters';
@@ -14,11 +15,14 @@ import spinoffRoutes from './routes/spinoffs';
 import roleRoutes from './routes/roles';
 import interactionRoutes from './routes/interactions';
 import cmsRoutes from './routes/cms';
+import savepointRoutes from './routes/savepoints';
+import revenueRoutes from './routes/revenue';
+import mergeRoutes from './routes/merges';
+import aiRoutes from './routes/ai';
+import { trace } from './middleware/trace';
+import { errorHandler } from './middleware/errorHandler';
 
 dotenv.config();
-
-// 初始化 Prisma 客户端
-const prisma = new PrismaClient();
 
 // 创建 Express 应用
 const app = express();
@@ -37,7 +41,12 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 3001;
 
+// 协作编辑锁管理 (Collaboration Locks)
+// chapterId -> { userId, username, socketId }
+const editLocks = new Map<string, { userId: string, username: string, socketId: string }>();
+
 // Middleware
+app.use(trace);
 app.use(helmet({
   contentSecurityPolicy: false, // Disable for easier local development
 }));
@@ -50,6 +59,9 @@ app.use(cors({
 app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
+
+// 静态文件服务：提供上传的多媒体文件访问
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -68,6 +80,49 @@ io.on('connection', (socket) => {
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
     console.log(`User ${socket.id} joined room ${roomId}`);
+    
+    // 发送当前该房间的所有锁状态
+    const roomLocks: any = {};
+    editLocks.forEach((lock, chapterId) => {
+      roomLocks[chapterId] = { userId: lock.userId, username: lock.username };
+    });
+    socket.emit('locks-update', roomLocks);
+  });
+
+  // 请求编辑锁
+  socket.on('request-lock', (data: { chapterId: string, userId: string, username: string, roomId: string }) => {
+    const existingLock = editLocks.get(data.chapterId);
+    
+    if (!existingLock || existingLock.userId === data.userId) {
+      // 获得锁或已经是持锁者
+      editLocks.set(data.chapterId, { 
+        userId: data.userId, 
+        username: data.username, 
+        socketId: socket.id 
+      });
+      
+      // 广播给房间内所有人
+      io.to(data.roomId).emit('lock-acquired', {
+        chapterId: data.chapterId,
+        userId: data.userId,
+        username: data.username
+      });
+    } else {
+      // 锁已被占用
+      socket.emit('lock-denied', {
+        chapterId: data.chapterId,
+        lockedBy: existingLock.username
+      });
+    }
+  });
+
+  // 释放编辑锁
+  socket.on('release-lock', (data: { chapterId: string, roomId: string }) => {
+    const lock = editLocks.get(data.chapterId);
+    if (lock && lock.socketId === socket.id) {
+      editLocks.delete(data.chapterId);
+      io.to(data.roomId).emit('lock-released', { chapterId: data.chapterId });
+    }
   });
 
   socket.on('content-change', (data) => {
@@ -77,6 +132,15 @@ io.on('connection', (socket) => {
 
   socket.on('disconnect', () => {
     console.log('User disconnected:', socket.id);
+    
+    // 自动释放该用户持有的所有锁
+    editLocks.forEach((lock, chapterId) => {
+      if (lock.socketId === socket.id) {
+        editLocks.delete(chapterId);
+        // 由于断开连接时可能不知道 roomId，可以全局广播或按需处理
+        io.emit('lock-released', { chapterId });
+      }
+    });
   });
 });
 
@@ -90,6 +154,10 @@ app.use('/api/spinoffs', spinoffRoutes);
 app.use('/api/roles', roleRoutes);
 app.use('/api/interactions', interactionRoutes);
 app.use('/api/cms', cmsRoutes);
+app.use('/api/savepoints', savepointRoutes);
+app.use('/api/revenue', revenueRoutes);
+app.use('/api/merges', mergeRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Health check
 app.get('/api/health', async (req: Request, res: Response) => {
@@ -102,13 +170,7 @@ app.get('/api/health', async (req: Request, res: Response) => {
 });
 
 // Error handling middleware
-app.use((err: any, req: Request, res: Response, next: any) => {
-  console.error(err.stack);
-  res.status(500).json({
-    error: err.message || 'Internal Server Error',
-    ...(process.env.NODE_ENV === 'development' && { stack: err.stack }),
-  });
-});
+app.use(errorHandler);
 
 // 404 handler
 app.use((req: Request, res: Response) => {

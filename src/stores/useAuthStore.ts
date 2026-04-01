@@ -3,6 +3,7 @@ import { authService, User } from '../api/authService';
 
 interface AuthState {
   user: User | null;
+  token: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -16,7 +17,8 @@ interface AuthState {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  isAuthenticated: false,
+  token: localStorage.getItem('token'),
+  isAuthenticated: !!localStorage.getItem('token'),
   isLoading: false,
   error: null,
 
@@ -30,8 +32,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   login: async (credentials) => {
     set({ isLoading: true, error: null });
     try {
-      const user = await authService.login(credentials);
-      set({ user, isAuthenticated: true, isLoading: false });
+      const { user, token } = await authService.login(credentials);
+      set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
       set({ error: err.response?.data?.message || err.message, isLoading: false });
     }
@@ -40,8 +42,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   register: async (userData) => {
     set({ isLoading: true, error: null });
     try {
-      const user = await authService.register(userData);
-      set({ user, isAuthenticated: true, isLoading: false });
+      const { user, token } = await authService.register(userData);
+      set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
       set({ error: err.response?.data?.message || err.message, isLoading: false });
     }
@@ -49,20 +51,20 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: () => {
     authService.logout();
-    set({ user: null, isAuthenticated: false });
+    set({ user: null, token: null, isAuthenticated: false });
   },
 
   checkAuth: async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
-    set({ isLoading: true });
+    set({ isLoading: true, token });
     try {
       const user = await authService.getMe();
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (err) {
       localStorage.removeItem('token');
-      set({ user: null, isAuthenticated: false, isLoading: false });
+      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
     }
   },
 

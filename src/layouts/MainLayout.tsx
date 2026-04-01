@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, Outlet, useLocation } from 'react-router-dom';
-import { BookOpen, GitBranch, Home, Layout, Library, LogIn, LogOut, Star, User, Shield, ChevronLeft, ChevronRight, Settings2, Bell, Search, Sparkles, BookMarked } from 'lucide-react';
+import { BookOpen, GitBranch, Home, Layout, Library, LogIn, LogOut, Star, User, Shield, ChevronLeft, ChevronRight, Settings2, Bell, Search, Sparkles, BookMarked, Plus, Coins } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSiteConfigStore } from '../stores/useSiteConfigStore';
 import MobileNavbar from '../components/MobileNavbar';
@@ -13,14 +13,7 @@ const MainLayout: React.FC = () => {
   const { user, isAuthenticated, login, logout } = useAuthStore();
   const { config, fetchConfig } = useSiteConfigStore();
   const [showAuthModal, setShowAuthModal] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
-    const saved = localStorage.getItem('sidebarCollapsed');
-    return saved ? JSON.parse(saved) : false;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('sidebarCollapsed', JSON.stringify(sidebarCollapsed));
-  }, [sidebarCollapsed]);
+  const [isHovered, setIsHovered] = useState(false);
 
   useEffect(() => {
     fetchConfig();
@@ -28,8 +21,19 @@ const MainLayout: React.FC = () => {
 
   const navItems = [
     { name: '首页', path: '/', icon: Home, desc: '发现精彩故事' },
+    { name: '工作台', path: '/dashboard', icon: Layout, desc: '管理我的作品' },
     { name: '精彩番外', path: '/spinoff', icon: Sparkles, desc: '探索平行宇宙' },
     { name: '精选书单', path: '/booklist', icon: BookMarked, desc: '编辑精心挑选' },
+    { name: '收益中心', path: '/revenue', icon: Coins, desc: '查看创作分润' },
+  ];
+
+  const categoryItems = [
+    { name: '全部', path: '/' },
+    { name: '主线故事', path: '/?filter=official' },
+    { name: '平行分支', path: '/?filter=community' },
+    { name: '完本精选', path: '/?filter=completed' },
+    { name: '拉力赛专区', path: '/contest' },
+    { name: '出版改编', path: '/publishing' },
   ];
 
   const handleTestLogin = async (role: 'author' | 'reader') => {
@@ -44,39 +48,43 @@ const MainLayout: React.FC = () => {
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex transition-colors duration-300">
 
       {/* ══════ Sidebar ══════ */}
-      <aside className={`
-        ${sidebarCollapsed ? 'w-[72px]' : 'w-64'}
-        bg-white dark:bg-gray-900
-        border-r border-gray-100 dark:border-gray-800
-        fixed h-full hidden md:flex flex-col z-20
-        transition-all duration-300 ease-in-out
-      `}>
+      <aside 
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`
+          ${isHovered ? 'w-64 shadow-2xl z-40' : 'w-4 z-20'}
+          bg-white/95 dark:bg-gray-900/95 backdrop-blur-md
+          border-r border-gray-100 dark:border-gray-800
+          fixed h-full hidden md:flex flex-col
+          transition-all duration-300 ease-in-out
+          overflow-hidden group/sidebar
+        `}
+      >
+        <div className={`absolute top-0 right-0 w-1 h-full bg-blue-500/0 group-hover/sidebar:bg-blue-500/20 transition-colors cursor-pointer`} />
 
         {/* Logo 区域 */}
-        <div className={`flex items-center h-16 border-b border-gray-100 dark:border-gray-800 shrink-0 ${sidebarCollapsed ? 'justify-center px-4' : 'px-5 gap-3'}`}>
+        <div className={`flex items-center h-16 border-b border-gray-100 dark:border-gray-800 shrink-0 ${!isHovered ? 'justify-center px-0 opacity-0' : 'px-5 gap-3 opacity-100'} transition-opacity duration-200`}>
           <Link to="/" className="flex items-center justify-center shrink-0">
-            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-105 transition-all overflow-hidden">
+            <div className="w-9 h-9 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-md shadow-blue-500/25">
               {config.logoUrl
                 ? <img src={config.logoUrl} alt="logo" className="w-full h-full object-contain" />
                 : <Layout size={20} className="text-white" />
               }
             </div>
           </Link>
-          {!sidebarCollapsed && (
+          {isHovered && (
             <Link to="/" className="flex-1 min-w-0">
               <span className="text-lg font-black tracking-tight text-gray-900 dark:text-white block truncate">
                 {config.siteName || '平行宇宙'}
               </span>
-              <span className="text-[10px] text-gray-400 font-medium tracking-wider block">STORY PLATFORM</span>
+              <span className="text-[10px] text-gray-400 font-medium tracking-wider block uppercase">Story Platform</span>
             </Link>
           )}
         </div>
 
         {/* 主导航 */}
-        <nav className={`flex-1 overflow-y-auto py-4 ${sidebarCollapsed ? 'px-3' : 'px-3'}`}>
-          {!sidebarCollapsed && (
-            <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-widest px-3 mb-2">探索</p>
-          )}
+        <nav className={`flex-1 overflow-y-auto py-4 px-3 ${!isHovered ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-200`}>
+          <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-widest px-3 mb-2">探索</p>
           <div className="space-y-0.5">
             {navItems.map((item) => {
               const active = isActive(item.path);
@@ -84,9 +92,7 @@ const MainLayout: React.FC = () => {
                 <Link
                   key={item.path}
                   to={item.path}
-                  title={sidebarCollapsed ? item.name : undefined}
-                  className={`flex items-center gap-3 rounded-xl transition-all duration-200 group
-                    ${sidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2.5'}
+                  className={`flex items-center gap-3 rounded-xl transition-all duration-200 group px-3 py-2.5
                     ${active
                       ? 'bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400'
                       : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
@@ -100,13 +106,11 @@ const MainLayout: React.FC = () => {
                   >
                     <item.icon size={16} />
                   </div>
-                  {!sidebarCollapsed && (
-                    <div className="min-w-0">
-                      <div className={`text-sm font-bold leading-none mb-0.5 ${active ? 'text-blue-600 dark:text-blue-400' : ''}`}>{item.name}</div>
-                      <div className="text-[10px] text-gray-400 dark:text-gray-600 truncate">{item.desc}</div>
-                    </div>
-                  )}
-                  {active && !sidebarCollapsed && (
+                  <div className="min-w-0">
+                    <div className={`text-sm font-bold leading-none mb-0.5 ${active ? 'text-blue-600 dark:text-blue-400' : ''}`}>{item.name}</div>
+                    <div className="text-[10px] text-gray-400 dark:text-gray-600 truncate">{item.desc}</div>
+                  </div>
+                  {active && (
                     <div className="ml-auto w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0" />
                   )}
                 </Link>
@@ -117,9 +121,7 @@ const MainLayout: React.FC = () => {
           {/* 管理区域 */}
           <PermissionGate permission="role:read">
             <div className="mt-6">
-              {!sidebarCollapsed && (
-                <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-widest px-3 mb-2">管理</p>
-              )}
+              <p className="text-[10px] font-black text-gray-300 dark:text-gray-700 uppercase tracking-widest px-3 mb-2">管理</p>
               <div className="space-y-0.5">
                 {[
                   { path: '/admin/roles', icon: Shield, name: '角色权限', desc: '权限管理' },
@@ -130,9 +132,7 @@ const MainLayout: React.FC = () => {
                     <Link
                       key={item.path}
                       to={item.path}
-                      title={sidebarCollapsed ? item.name : undefined}
-                      className={`flex items-center gap-3 rounded-xl transition-all duration-200 group
-                        ${sidebarCollapsed ? 'justify-center p-2.5' : 'px-3 py-2.5'}
+                      className={`flex items-center gap-3 rounded-xl transition-all duration-200 group px-3 py-2.5
                         ${active
                           ? 'bg-violet-50 dark:bg-violet-950/50 text-violet-600 dark:text-violet-400'
                           : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 hover:text-gray-900 dark:hover:text-white'
@@ -146,12 +146,10 @@ const MainLayout: React.FC = () => {
                       >
                         <item.icon size={16} />
                       </div>
-                      {!sidebarCollapsed && (
-                        <div className="min-w-0">
-                          <div className={`text-sm font-bold leading-none mb-0.5 ${active ? 'text-violet-600 dark:text-violet-400' : ''}`}>{item.name}</div>
-                          <div className="text-[10px] text-gray-400 dark:text-gray-600">{item.desc}</div>
-                        </div>
-                      )}
+                      <div className="min-w-0">
+                        <div className={`text-sm font-bold leading-none mb-0.5 ${active ? 'text-violet-600 dark:text-violet-400' : ''}`}>{item.name}</div>
+                        <div className="text-[10px] text-gray-400 dark:text-gray-600 truncate">{item.desc}</div>
+                      </div>
                     </Link>
                   );
                 })}
@@ -160,110 +158,71 @@ const MainLayout: React.FC = () => {
           </PermissionGate>
         </nav>
 
-        {/* 底部用户区 */}
-        <div className={`shrink-0 border-t border-gray-100 dark:border-gray-800 ${sidebarCollapsed ? 'p-3' : 'p-3'}`}>
-          {isAuthenticated ? (
-            <div className={`flex items-center gap-3 rounded-xl p-2 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-colors cursor-pointer group ${sidebarCollapsed ? 'justify-center' : ''}`}>
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-black text-sm shadow-md shrink-0">
-                {user?.username?.[0]?.toUpperCase() || 'U'}
+        {/* 底部用户信息 */}
+        {isHovered && isAuthenticated && (
+          <div className="p-3 border-t border-gray-100 dark:border-gray-800 transition-opacity duration-200">
+            <button
+              onClick={() => logout()}
+              className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-500 hover:text-red-600 transition-all group"
+            >
+              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center group-hover:bg-red-100 dark:group-hover:bg-red-900/30 group-hover:text-red-600">
+                <LogOut size={16} />
               </div>
-              {!sidebarCollapsed && (
-                <>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-bold text-gray-900 dark:text-white truncate leading-none mb-0.5">{user?.username}</div>
-                    <div className="text-[11px] text-gray-400 truncate">
-                      {user?.role === 'author' ? '✦ 官方作者' : user?.role === 'admin' ? '⚡ 管理员' : '创作者'}
-                    </div>
-                  </div>
-                  <button
-                    onClick={logout}
-                    className="shrink-0 w-7 h-7 rounded-lg flex items-center justify-center text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all opacity-0 group-hover:opacity-100"
-                    title="退出登录"
-                  >
-                    <LogOut size={14} />
-                  </button>
-                </>
-              )}
-            </div>
-          ) : (
-            <div className={sidebarCollapsed ? 'flex justify-center' : 'space-y-1.5'}>
-              <Link
-                to="/login"
-                title={sidebarCollapsed ? '登录' : undefined}
-                className={`flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold transition-all shadow-md shadow-blue-500/20 hover:shadow-blue-500/30
-                  ${sidebarCollapsed ? 'w-10 h-10' : 'w-full py-2.5 text-sm'}`}
-              >
-                <LogIn size={16} />
-                {!sidebarCollapsed && '登录'}
-              </Link>
-              {!sidebarCollapsed && (
-                <button
-                  onClick={() => setShowAuthModal(true)}
-                  className="w-full py-1.5 text-xs text-gray-400 hover:text-blue-600 transition-colors font-medium text-center"
-                >
-                  测试账号体验
-                </button>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* 折叠/展开按钮 */}
-        <button
-          onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-          className="absolute -right-3 top-[72px] w-6 h-6 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-full flex items-center justify-center text-gray-400 hover:text-blue-600 hover:border-blue-300 dark:hover:border-blue-700 shadow-sm hover:shadow-md transition-all z-30"
-          title={sidebarCollapsed ? '展开侧边栏' : '收起侧边栏'}
-        >
-          {sidebarCollapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}
-        </button>
+              <span className="text-sm font-bold italic uppercase tracking-widest">Logout</span>
+            </button>
+          </div>
+        )}
       </aside>
 
-      {/* ══════ Main ══════ */}
-      <main className={`flex-1 ${sidebarCollapsed ? 'md:ml-[72px]' : 'md:ml-64'} flex flex-col min-h-screen pb-16 md:pb-0 transition-all duration-300 ease-in-out`}>
-
-        {/* Top Header */}
-        <header className="hidden md:flex h-14 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 sticky top-0 z-30 items-center justify-between px-6">
-          {/* 左侧：面包屑 / 页面标题 */}
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs text-gray-400 font-medium">
-              {navItems.find(n => n.path === location.pathname)?.name || '故事空间'}
-            </span>
+      {/* ══════ Main Content ══════ */}
+      <main className="flex-1 transition-all duration-300 ml-4 min-w-0">
+        {/* Header - Top Navbar */}
+        <header className="h-14 flex items-center justify-between px-6 bg-white/80 dark:bg-gray-900/80 backdrop-blur-md sticky top-0 z-10 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-6 overflow-x-auto no-scrollbar py-1">
+            {categoryItems.map((item) => (
+              <Link
+                key={item.name}
+                to={item.path}
+                className={`text-sm font-medium whitespace-nowrap px-1 transition-colors ${
+                  isActive(item.path)
+                    ? 'text-blue-600 border-b-2 border-blue-600 pb-0.5'
+                    : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'
+                }`}
+              >
+                {item.name}
+              </Link>
+            ))}
           </div>
 
-          {/* 右侧工具栏 */}
-          <div className="flex items-center gap-2">
-            {/* 搜索框 */}
-            <div className="relative hidden lg:block">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="搜索故事、作者..."
-                className="pl-8 pr-4 py-1.5 text-sm bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-400 w-52 transition-all placeholder:text-gray-400 text-gray-700 dark:text-gray-300"
-              />
-            </div>
-
-            {/* 分隔 */}
-            <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1" />
-
-            {/* 通知 */}
-            <button className="relative w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all">
-              <Bell size={17} />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-gray-900"></span>
+          <div className="flex items-center gap-4">
+            <button className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all relative">
+              <Bell size={18} />
+              <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white dark:border-gray-900 rounded-full" />
             </button>
-
-            {/* 用户 */}
+            <div className="h-6 w-px bg-gray-100 dark:border-gray-800 mx-1" />
+            
             {isAuthenticated ? (
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="flex items-center gap-2 pl-1 pr-3 py-1 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-all group"
-              >
-                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-black shadow-sm">
-                  {user?.username?.[0]?.toUpperCase() || 'U'}
-                </div>
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white">
-                  {user?.username}
-                </span>
-              </button>
+              <div className="flex items-center gap-2">
+                <Link 
+                  to="/dashboard"
+                  className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-all text-xs font-bold rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                >
+                  <Layout size={14} />
+                  工作台
+                </Link>
+                <div className="hidden sm:block h-6 w-px bg-gray-100 dark:bg-gray-800 mx-1" />
+                <button 
+                  onClick={() => navigate('/profile')}
+                  className="flex items-center gap-2.5 p-1 rounded-full hover:bg-gray-50 dark:hover:bg-gray-800 transition-all group border border-transparent hover:border-gray-200 dark:hover:border-gray-700"
+                >
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white font-black text-xs shadow-sm ring-2 ring-white dark:ring-gray-900">
+                    {user?.username?.[0].toUpperCase()}
+                  </div>
+                  <span className="hidden md:inline text-sm font-semibold text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white mr-2">
+                    {user?.username}
+                  </span>
+                </button>
+              </div>
             ) : (
               <Link
                 to="/login"
@@ -277,7 +236,7 @@ const MainLayout: React.FC = () => {
         </header>
 
         {/* Page Content */}
-        <div className="p-4 md:p-8 flex-1 overflow-x-hidden">
+        <div className="p-4 md:p-6">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -285,7 +244,6 @@ const MainLayout: React.FC = () => {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.18 }}
-              className="h-full"
             >
               <Outlet />
             </motion.div>

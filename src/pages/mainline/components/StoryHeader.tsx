@@ -1,0 +1,133 @@
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BookOpen, Edit3, Coins, GitPullRequest, GitBranch, MessageSquare, Users } from 'lucide-react';
+
+interface StoryHeaderProps {
+  currentStory: any;
+  isAuthor: boolean;
+  isSettling: boolean;
+  activeTab: string;
+  setActiveTab: (tab: any) => void;
+  handleManageStory: () => void;
+  handleSettleRevenue: () => void;
+  setIsMergeModalOpen: (open: boolean) => void;
+}
+
+const StoryHeader: React.FC<StoryHeaderProps> = ({
+  currentStory,
+  isAuthor,
+  isSettling,
+  activeTab,
+  setActiveTab,
+  handleManageStory,
+  handleSettleRevenue,
+  setIsMergeModalOpen,
+}) => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl border border-gray-100 dark:border-gray-700">
+      <div className="relative h-64 md:h-80 overflow-hidden">
+        <img 
+          src={currentStory.coverImage || `https://coresg-normal.trae.ai/api/ide/v1/text_to_image?prompt=${encodeURIComponent(currentStory.title)}+background&image_size=landscape_16_9`} 
+          className="w-full h-full object-cover"
+          alt={currentStory.title}
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-gray-900/40 to-transparent"></div>
+        <div className="absolute bottom-8 left-8 right-8 flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div className="space-y-4">
+            <div className="flex gap-2">
+              <span className="px-3 py-1 bg-blue-600 text-white text-xs font-black rounded-full uppercase tracking-wider">主线故事</span>
+              {currentStory.author?.role === 'author' && (
+                <span className="px-3 py-1 bg-amber-500 text-white text-xs font-black rounded-full uppercase tracking-wider">官方认证</span>
+              )}
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">{currentStory.title}</h1>
+            <div className="flex items-center gap-4 text-gray-300">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-xs">
+                  {currentStory.author?.username?.[0] || 'A'}
+                </div>
+                <span className="text-sm font-bold">{currentStory.author?.username}</span>
+              </div>
+              <span className="w-1 h-1 bg-gray-500 rounded-full"></span>
+              <span className="text-sm">{new Date(currentStory.createdAt).toLocaleDateString()} 发布</span>
+            </div>
+          </div>
+          <div className="flex gap-3">
+            <button 
+              onClick={() => {
+                const firstChapterId = currentStory.chapters?.[0]?.id;
+                if (firstChapterId) {
+                  navigate(`/read/${firstChapterId}`);
+                } else {
+                  alert('该故事暂无章节，请先添加章节');
+                }
+              }}
+              className="flex items-center gap-2 px-6 py-3 bg-white text-gray-900 rounded-2xl font-bold hover:bg-gray-100 transition-all shadow-lg active:scale-95"
+            >
+              <BookOpen size={18} />
+              开始阅读
+            </button>
+            {isAuthor && (
+              <button 
+                onClick={handleManageStory}
+                className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95"
+              >
+                <Edit3 size={18} />
+                管理故事
+              </button>
+            )}
+            {isAuthor && (
+              <button 
+                onClick={handleSettleRevenue}
+                disabled={isSettling}
+                className="flex items-center gap-2 px-6 py-3 bg-emerald-600 text-white rounded-2xl font-bold hover:bg-emerald-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+              >
+                <Coins size={18} />
+                {isSettling ? '结算中...' : '收益结算'}
+              </button>
+            )}
+            {isAuthor && (
+              <button 
+                onClick={() => setIsMergeModalOpen(true)}
+                className="flex items-center gap-2 px-6 py-3 bg-indigo-100 text-indigo-600 rounded-2xl font-bold hover:bg-indigo-200 transition-all shadow-lg active:scale-95"
+              >
+                <GitPullRequest size={18} />
+                合并管理
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex px-8 border-b border-gray-100 dark:border-gray-700">
+        {[
+          { id: 'overview', label: '详情概览', icon: BookOpen },
+          { id: 'tree', label: '平行宇宙树', icon: GitBranch },
+          { id: 'chapters', label: '章节目录', icon: MessageSquare },
+          { id: 'characters', label: '角色档案', icon: Users },
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-2 px-6 py-5 text-sm font-bold transition-all relative ${
+              activeTab === tab.id 
+                ? 'text-blue-600 dark:text-blue-400' 
+                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+            }`}
+          >
+            <tab.icon size={16} />
+            {tab.label}
+            {activeTab === tab.id && (
+              <div className="absolute bottom-0 left-0 right-0 h-1 bg-blue-600 rounded-t-full"></div>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default StoryHeader;

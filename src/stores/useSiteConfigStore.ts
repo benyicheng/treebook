@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { useAuthStore } from './useAuthStore';
 
 // 站点配置接口
 export interface SiteConfig {
@@ -67,24 +68,24 @@ export const useSiteConfigStore = create<SiteConfigStore>()(
 
           if (!response.ok) {
             console.error('Failed to fetch site config:', response.status, response.statusText);
-            // 即使 API 失败，也使用默认配置
             set({ config: DEFAULT_CONFIG, isLoading: false });
             return;
           }
 
-          const data = await response.json();
-          console.log('Fetched site config:', data);
+          const result = await response.json();
+          console.log('Fetched site config:', result);
 
           // 合并后端返回的配置到默认配置
+          const remoteConfig = result.success ? result.data : {};
+
           set({
-            config: { ...DEFAULT_CONFIG, ...data },
+            config: { ...DEFAULT_CONFIG, ...remoteConfig },
             isLoading: false,
           });
         } catch (err) {
           const errorMessage = err instanceof Error ? err.message : '未知错误';
           console.error('Failed to fetch site config:', errorMessage);
 
-          // 即使失败，也使用默认配置
           set({
             config: DEFAULT_CONFIG,
             isLoading: false,
@@ -98,7 +99,7 @@ export const useSiteConfigStore = create<SiteConfigStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          const token = localStorage.getItem('token');
+          const { token } = useAuthStore.getState();
           const response = await fetch('/api/cms', {
             method: 'PUT',
             headers: {
@@ -110,7 +111,7 @@ export const useSiteConfigStore = create<SiteConfigStore>()(
 
           if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.error || '更新配置失败');
+            throw new Error(errorData.error?.message || errorData.message || '更新配置失败');
           }
 
           const result = await response.json();

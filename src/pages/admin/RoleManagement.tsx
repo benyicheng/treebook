@@ -39,7 +39,7 @@ const RoleManagement: React.FC = () => {
     queryKey: ['adminRoles', page, pageSize, q],
     queryFn: async () => {
       const res = await client.get('/roles', { params: { page, pageSize, q: q.trim() || undefined } });
-      return res.data.data as { items: Role[]; total: number; page: number; pageSize: number };
+      return res.data as { items: Role[]; total: number; page: number; pageSize: number };
     },
   });
 
@@ -47,7 +47,7 @@ const RoleManagement: React.FC = () => {
     queryKey: ['adminPermissions'],
     queryFn: async () => {
       const res = await client.get('/roles/permissions');
-      return res.data.data as Permission[];
+      return res.data as Permission[];
     },
     staleTime: 60_000,
   });
@@ -62,7 +62,7 @@ const RoleManagement: React.FC = () => {
   const handleEdit = (role: Role) => {
     const run = async () => {
       const res = await client.get(`/roles/${role.id}`);
-      const full = res.data.data as Role;
+      const full = res.data as Role;
       setEditingRole(full);
       setNewRoleName(full.name);
       setNewRoleDesc(full.description || '');

@@ -50,36 +50,29 @@ export const RATING_REASON_TAGS = [
   '更新稳定', '互动性强', '值得收藏', '强烈推荐'
 ];
 
-// API 响应包装类型
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  traceId?: string;
-}
-
 export const interactionService = {
   // 获取互动统计
   getStats: async (targetType: string, targetId: string): Promise<InteractionStats> => {
-    const { data } = await client.get<ApiResponse<InteractionStats>>(`/interactions/${targetType}/${targetId}`);
-    return data.data;
+    const { data } = await client.get<any>(`/interactions/${targetType}/${targetId}`);
+    return data.data || data;
   },
 
   // 点赞/取消点赞
   toggleLike: async (targetType: string, targetId: string): Promise<LikeResponse> => {
-    const { data } = await client.post<ApiResponse<LikeResponse>>(`/interactions/${targetType}/${targetId}/like`);
-    return data.data;
+    const { data } = await client.post<any>(`/interactions/${targetType}/${targetId}/like`);
+    return data.data || data;
   },
 
   // 提交评分
   submitRating: async (targetType: string, targetId: string, request: RatingRequest): Promise<InteractionStats> => {
-    const { data } = await client.put<ApiResponse<InteractionStats>>(`/interactions/${targetType}/${targetId}/rating`, request);
-    return data.data;
+    const { data } = await client.put<any>(`/interactions/${targetType}/${targetId}/rating`, request);
+    return data.data || data;
   },
 
   // 记录分享
   recordShare: async (targetType: string, targetId: string, platform: SharePlatform): Promise<ShareResponse> => {
-    const { data } = await client.post<ApiResponse<ShareResponse>>(`/interactions/${targetType}/${targetId}/share`, { platform });
-    return data.data;
+    const { data } = await client.post<any>(`/interactions/${targetType}/${targetId}/share`, { platform });
+    return data.data || data;
   },
 
   // 获取评分理由标签

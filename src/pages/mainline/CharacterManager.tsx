@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { storyService, Character } from '../../api/storyService';
+import { storyService, aiService, Character } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { User, Plus, Trash2, Edit3, X, Save } from 'lucide-react';
+import { User, Plus, Trash2, Edit3, X, Save, Sparkles, Loader2 } from 'lucide-react';
 import Modal from '../../components/Modal';
 
 interface CharacterManagerProps {
@@ -15,6 +15,7 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingChar, setEditingChar] = useState<Partial<Character> | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
 
   useEffect(() => {
     fetchCharacters();
@@ -50,6 +51,28 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
       alert('操作失败');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleGenerateAvatar = async () => {
+    if (!editingChar?.name || !editingChar?.description) {
+      alert('请先填写角色姓名和描述，AI 将根据这些信息生成形象');
+      return;
+    }
+
+    setIsGeneratingImage(true);
+    try {
+      const prompt = `A professional character portrait of ${editingChar.name}, who is described as: ${editingChar.description}. High quality, cinematic lighting, 4k.`;
+      const result = await aiService.generateImage(prompt);
+      
+      setEditingChar(prev => ({
+        ...prev!,
+        avatarUrl: result.imageUrl
+      }));
+    } catch (err) {
+      alert('AI 生成失败，请稍后重试');
+    } finally {
+      setIsGeneratingImage(false);
     }
   };
 
@@ -154,16 +177,29 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex gap-4">
-            <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center text-gray-400 shrink-0 border border-dashed border-gray-300 dark:border-gray-600 relative overflow-hidden group cursor-pointer">
-              {editingChar?.avatarUrl ? (
-                <img src={editingChar.avatarUrl} className="w-full h-full object-cover" />
-              ) : (
-                <User size={32} />
-              )}
-              <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold">
-                更改头像
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-gray-500 uppercase">角色头像</label>
+              <div className="w-24 h-24 bg-gray-100 dark:bg-gray-800 rounded-2xl flex items-center justify-center text-gray-400 shrink-0 border border-dashed border-gray-300 dark:border-gray-600 relative overflow-hidden group">
+                {editingChar?.avatarUrl ? (
+                  <img src={editingChar.avatarUrl} className="w-full h-full object-cover" />
+                ) : (
+                  <User size={32} />
+                )}
+                {isGeneratingImage && (
+                  <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                    <Loader2 size={24} className="animate-spin text-white" />
+                  </div>
+                )}
               </div>
-              {/* 这里可以对接图片上传功能 */}
+              <button
+                type="button"
+                disabled={isGeneratingImage}
+                onClick={handleGenerateAvatar}
+                className="mt-2 flex items-center justify-center gap-1.5 w-full py-1.5 bg-gradient-to-r from-purple-500 to-blue-500 text-white text-[10px] font-black rounded-lg hover:shadow-lg transition-all active:scale-95 disabled:opacity-50"
+              >
+                {isGeneratingImage ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                AI 生成形象
+              </button>
             </div>
             <div className="flex-1 space-y-4">
               <div className="space-y-2">
@@ -196,7 +232,7 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
             <textarea
               rows={4}
               className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-none"
-              placeholder="描述角色的性格、背景故事..."
+              placeholder="描述角色的性格、背景故事... (AI 将参考此描述生成形象)"
               value={editingChar?.description || ''}
               onChange={e => setEditingChar(prev => ({ ...prev!, description: e.target.value }))}
             />
@@ -212,7 +248,7 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || isGeneratingImage}
               className="flex-1 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
             >
               {isSubmitting ? '保存中...' : '保存档案'}

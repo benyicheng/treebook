@@ -12,15 +12,6 @@ const SpinoffPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated, user } = useAuthStore();
   
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newSpinoff, setNewSpinoff] = useState({
-    originalStoryId: '',
-    title: '',
-    content: '',
-  });
-
   const fetchData = async () => {
     setIsLoading(true);
     try {
@@ -28,13 +19,10 @@ const SpinoffPage: React.FC = () => {
         spinoffService.getAll(),
         storyService.getAll()
       ]);
-      setSpinoffs(spinoffData);
-      setStories(storyData);
-      if (storyData.length > 0) {
-        setNewSpinoff(prev => ({ ...prev, originalStoryId: storyData[0].id }));
-      }
+      setSpinoffs(Array.isArray(spinoffData) ? spinoffData : (spinoffData as any)?.data || []);
+      setStories(Array.isArray(storyData) ? storyData : (storyData as any)?.data || []);
     } catch (err) {
-      console.error('Failed to fetch spinoffs');
+      console.error('Failed to fetch spinoffs', err);
     } finally {
       setIsLoading(false);
     }
@@ -70,7 +58,7 @@ const SpinoffPage: React.FC = () => {
         </div>
         {isAuthenticated && (
           <button 
-            onClick={() => setIsModalOpen(true)}
+            onClick={() => navigate('/spinoff/create')}
             className="flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg active:scale-95"
           >
             <PlusCircle size={20} />
@@ -137,57 +125,7 @@ const SpinoffPage: React.FC = () => {
         </div>
       )}
 
-      {/* Spinoff Modal */}
-      <Modal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        title="发布新番外"
-      >
-        <form onSubmit={handleCreateSpinoff} className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-500">关联原著</label>
-            <select 
-              required
-              className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-              value={newSpinoff.originalStoryId}
-              onChange={e => setNewSpinoff(prev => ({ ...prev, originalStoryId: e.target.value }))}
-            >
-              {stories.map(s => (
-                <option key={s.id} value={s.id}>{s.title}</option>
-              ))}
-            </select>
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-500">番外标题</label>
-            <input 
-              type="text" 
-              required
-              className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
-              placeholder="例如：某个角色的过去..."
-              value={newSpinoff.title}
-              onChange={e => setNewSpinoff(prev => ({ ...prev, title: e.target.value }))}
-            />
-          </div>
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-500">番外内容</label>
-            <textarea 
-              required
-              rows={8}
-              className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
-              placeholder="开始你的创作..."
-              value={newSpinoff.content}
-              onChange={e => setNewSpinoff(prev => ({ ...prev, content: e.target.value }))}
-            />
-          </div>
-          <button 
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black hover:bg-indigo-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
-          >
-            {isSubmitting ? '发布中...' : '确认发布'}
-          </button>
-        </form>
-      </Modal>
+      {/* Modal removed - integrated into SpinoffEditorPage */}
     </div>
   );
 };

@@ -108,7 +108,7 @@ const DashboardPage: React.FC = () => {
             <p className="text-gray-500 dark:text-gray-400 font-medium">{user?.email}</p>
           </div>
           <div className="flex flex-wrap justify-center md:justify-start gap-3 pt-2">
-            <button onClick={() => navigate('/settings/profile')} className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-black hover:opacity-90 transition-all flex items-center gap-2">
+            <button onClick={() => navigate('/profile')} className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-xl text-sm font-black hover:opacity-90 transition-all flex items-center gap-2">
               <Settings size={16} />
               编辑资料
             </button>

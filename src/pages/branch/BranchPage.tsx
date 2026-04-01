@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useStoryStore } from '../../stores/useStoryStore';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { BookOpen, GitBranch, MessageSquare, Edit3, Share2, PlusCircle, ArrowLeft, BookMarked, GitMerge, ChevronRight, Star, Sparkles } from 'lucide-react';
+import { BookOpen, GitBranch, MessageSquare, Edit3, Share2, PlusCircle, ArrowLeft, BookMarked, GitMerge, ChevronRight, Star, Sparkles, Crown, GitPullRequest } from 'lucide-react';
 import ChapterEditor from '../../components/Editor/ChapterEditor';
-import { chapterService, spinoffService } from '../../api/storyService';
+import { chapterService, spinoffService, branchService } from '../../api/storyService';
 import Modal from '../../components/Modal';
 import AddToBooklistModal from '../../components/AddToBooklistModal';
+import MergeRequestModal from '../../components/Merge/MergeRequestModal';
 
 const BranchPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +29,7 @@ const BranchPage: React.FC = () => {
     content: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
 
   // 加入书单
   const [booklistTargetChapter, setBooklistTargetChapter] = useState<{ id: string; title: string } | null>(null);
@@ -58,6 +60,26 @@ const BranchPage: React.FC = () => {
     user.id === currentBranch.parentStory?.authorId ||
     user.role === 'admin'
   );
+
+  // 认证权限：只有主线作者或管理员可以认证
+  const canCertify = user && (
+    user.id === currentBranch.parentStory?.authorId ||
+    user.role === 'admin'
+  );
+
+  const handleCertify = async () => {
+    if (!id) return;
+    setIsSubmitting(true);
+    try {
+      await branchService.certify(id, !currentBranch.isCertified);
+      alert(currentBranch.isCertified ? '已取消认证' : '分支已认证为金级');
+      fetchBranchById(id);
+    } catch (err) {
+      alert('操作失败');
+    } finally {
+      setIsSubmitting(true);
+    }
+  };
 
   const handleSaveChapter = async (content: string) => {
     if (editingChapterId) {
@@ -148,7 +170,14 @@ const BranchPage: React.FC = () => {
                   <span className="px-3 py-1 bg-amber-500 text-white text-xs font-black rounded-full uppercase tracking-wider">官方认证</span>
                 )}
               </div>
-              <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">{currentBranch.title}</h1>
+              <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+                {currentBranch.title}
+                {currentBranch.isCertified && (
+                  <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-lg rotate-[-12deg] shrink-0">
+                    <Crown size={22} />
+                  </div>
+                )}
+              </h1>
               <p className="text-gray-500 dark:text-gray-400 text-lg font-light max-w-2xl leading-relaxed">
                 {currentBranch.description}
               </p>
@@ -165,6 +194,19 @@ const BranchPage: React.FC = () => {
             </div>
             
             <div className="flex gap-3">
+              {canCertify && (
+                <button 
+                  onClick={handleCertify}
+                  className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all shadow-lg active:scale-95 ${
+                    currentBranch.isCertified 
+                      ? 'bg-amber-100 text-amber-600 border-2 border-amber-400' 
+                      : 'bg-amber-500 text-white hover:bg-amber-600'
+                  }`}
+                >
+                  <Crown size={18} />
+                  {currentBranch.isCertified ? '已认证金级' : '认证金级分支'}
+                </button>
+              )}
               <button 
                 onClick={() => {
                   const firstChapterId = currentBranch.chapters[0]?.id;
@@ -182,6 +224,15 @@ const BranchPage: React.FC = () => {
                 >
                   <PlusCircle size={18} />
                   添加新章节
+                </button>
+              )}
+              {user && user.id === currentBranch.authorId && currentBranch.status !== 'merged' && (
+                <button 
+                  onClick={() => setIsMergeModalOpen(true)}
+                  className="flex items-center gap-2 px-6 py-3 bg-indigo-100 text-indigo-600 rounded-2xl font-bold hover:bg-indigo-200 transition-all shadow-lg active:scale-95"
+                >
+                  <GitPullRequest size={18} />
+                  发起合并
                 </button>
               )}
             </div>
@@ -446,6 +497,19 @@ const BranchPage: React.FC = () => {
         onClose={() => setBooklistTargetChapter(null)}
         chapterId={booklistTargetChapter?.id || ''}
         chapterTitle={booklistTargetChapter?.title}
+      />
+
+      {/* 合并请求弹窗 */}
+      <MergeRequestModal 
+        isOpen={isMergeModalOpen}
+        onClose={() => setIsMergeModalOpen(false)}
+        storyId={currentBranch.parentStoryId}
+        branchId={currentBranch.id}
+        branchTitle={currentBranch.title}
+        onSuccess={() => {
+          alert('合并请求已发起，请等待原作者审核。');
+          if (id) fetchBranchById(id);
+        }}
       />
     </div>
   );

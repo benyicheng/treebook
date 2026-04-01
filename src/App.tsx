@@ -8,6 +8,7 @@ import CreateStoryPage from './pages/mainline/CreateStoryPage';
 import BranchPage from './pages/branch/BranchPage';
 import SpinoffPage from './pages/spinoff/SpinoffPage';
 import SpinoffDetailPage from './pages/spinoff/SpinoffDetailPage';
+import SpinoffEditorPage from './pages/spinoff/SpinoffEditorPage';
 import BooklistPage from './pages/booklist/BooklistPage';
 import BooklistDetailPage from './pages/booklist/BooklistDetailPage';
 import ReadPage from './pages/read/ReadPage';
@@ -16,6 +17,7 @@ import RegisterPage from './pages/auth/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
 import AboutPage from './pages/about/AboutPage';
+import RevenuePage from './pages/RevenuePage';
 import ContactPage from './pages/about/ContactPage';
 import JoinPage from './pages/about/JoinPage';
 import AuthorGuidePage from './pages/about/AuthorGuidePage';
@@ -63,10 +65,13 @@ const App: React.FC = () => {
               <Route path="read/:id" element={<ReadPage />} />
               <Route path="spinoff" element={<SpinoffPage />} />
               <Route path="spinoff/:id" element={<SpinoffDetailPage />} />
+              <Route path="spinoff/create" element={<SpinoffEditorPage />} />
+              <Route path="spinoff/edit/:id" element={<SpinoffEditorPage />} />
               <Route path="booklist" element={<BooklistPage />} />
               <Route path="booklist/:id" element={<BooklistDetailPage />} />
               <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="settings/profile" element={<ProfilePage />} />
+              <Route path="profile" element={<ProfilePage />} />
+              <Route path="revenue" element={<RevenuePage />} />
               
               <Route path="about" element={<AboutPage />} />
               <Route path="contact" element={<ContactPage />} />

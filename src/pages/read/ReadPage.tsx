@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { chapterService, booklistService, Chapter, Branch, Booklist } from '../../api/storyService';
+import { chapterService, booklistService, savepointService, Chapter, Branch, Booklist } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { 
   ArrowLeft, 
@@ -15,7 +15,10 @@ import {
   Type,
   Sun,
   Moon,
-  AlignLeft
+  AlignLeft,
+  Save,
+  Clock,
+  Trash2
 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import CommentSection from './CommentSection';
@@ -23,8 +26,12 @@ import { InteractionBar, ShareButton, RatingComponent } from '../../components/I
 
 const ReadPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
+
+  const queryParams = new URLSearchParams(location.search);
+  const referralId = queryParams.get('referralId') || undefined;
 
   const [chapter, setChapter] = useState<(Chapter & {
     story: any;
@@ -51,19 +58,31 @@ const ReadPage: React.FC = () => {
   const [isAddingToBooklist, setIsAddingToBooklist] = useState(false);
   const [addSuccess, setAddSuccess] = useState(false);
 
+  // Savepoints
+  const [isSavepointsOpen, setIsSavepointsOpen] = useState(false);
+  const [savepoints, setSavepoints] = useState<any[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
   useEffect(() => {
     if (id) {
-      fetchChapter(id);
+      fetchChapter(id, referralId);
     }
     if (isAuthenticated) {
       fetchMyBooklists();
     }
-  }, [id, isAuthenticated]);
+  }, [id, isAuthenticated, referralId]);
 
-  const fetchChapter = async (chapterId: string) => {
+  useEffect(() => {
+    if (isSavepointsOpen && chapter?.storyId) {
+      fetchSavepoints(chapter.storyId);
+    }
+  }, [isSavepointsOpen, chapter?.storyId]);
+
+  const fetchChapter = async (chapterId: string, refId?: string) => {
     setIsLoading(true);
     try {
-      const data = await chapterService.getById(chapterId);
+      const data = await chapterService.getById(chapterId, refId);
       setChapter(data);
       window.scrollTo(0, 0);
     } catch (err) {
@@ -80,6 +99,43 @@ const ReadPage: React.FC = () => {
       if (data.length > 0) setSelectedBooklistId(data[0].id);
     } catch (err) {
       console.error('Failed to fetch booklists');
+    }
+  };
+
+  const fetchSavepoints = async (storyId: string) => {
+    try {
+      const data = await savepointService.getAll({ storyId });
+      setSavepoints(data);
+    } catch (err) {
+      console.error('Failed to fetch savepoints');
+    }
+  };
+
+  const handleCreateSavepoint = async () => {
+    if (!chapter) return;
+    setIsSaving(true);
+    try {
+      await savepointService.create({
+        storyId: chapter.storyId,
+        branchId: chapter.branchId,
+        chapterId: chapter.id,
+      });
+      setSaveSuccess(true);
+      fetchSavepoints(chapter.storyId);
+      setTimeout(() => setSaveSuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to create savepoint');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteSavepoint = async (savepointId: string) => {
+    try {
+      await savepointService.delete(savepointId);
+      setSavepoints(prev => prev.filter(s => s.id !== savepointId));
+    } catch (err) {
+      console.error('Failed to delete savepoint');
     }
   };
 
@@ -180,6 +236,15 @@ const ReadPage: React.FC = () => {
           >
             <Settings size={20} />
           </button>
+          {isAuthenticated && (
+            <button
+              onClick={() => setIsSavepointsOpen(true)}
+              className="p-2 text-gray-400 hover:text-amber-600 transition-colors"
+              title="时空存档"
+            >
+              <Save size={20} />
+            </button>
+          )}
         </div>
       </header>
 
@@ -280,7 +345,7 @@ const ReadPage: React.FC = () => {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-12 border-t border-gray-100 dark:border-gray-800">
           {chapter.prevChapter ? (
             <Link 
-              to={`/read/${chapter.prevChapter.id}`}
+              to={`/read/${chapter.prevChapter.id}${referralId ? `?referralId=${referralId}` : ''}`}
               className="w-full sm:w-auto flex items-center gap-4 p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:border-blue-400 transition-all group"
             >
               <ArrowLeft className="text-gray-300 group-hover:text-blue-600 transition-colors" />
@@ -303,7 +368,7 @@ const ReadPage: React.FC = () => {
 
           {chapter.nextChapter ? (
             <Link 
-              to={`/read/${chapter.nextChapter.id}`}
+              to={`/read/${chapter.nextChapter.id}${referralId ? `?referralId=${referralId}` : ''}`}
               className="w-full sm:w-auto flex items-center justify-end gap-4 p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:border-blue-400 transition-all group"
             >
               <div className="text-right">
@@ -513,6 +578,82 @@ const ReadPage: React.FC = () => {
             </button>
           </form>
         )}
+      </Modal>
+
+      {/* Savepoints Modal */}
+      <Modal
+        isOpen={isSavepointsOpen}
+        onClose={() => setIsSavepointsOpen(false)}
+        title="时空存档 (Reading Savepoints)"
+      >
+        <div className="space-y-6">
+          <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl border border-amber-100 dark:border-amber-900/30">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-sm font-black text-amber-800 dark:text-amber-200 uppercase tracking-widest">
+                当前位置
+              </h4>
+              {saveSuccess && (
+                <span className="text-[10px] font-bold text-emerald-600 animate-pulse">
+                  存档成功！
+                </span>
+              )}
+            </div>
+            <p className="text-[13px] font-bold text-amber-900 dark:text-amber-100 mb-4">
+              {chapter?.title}
+            </p>
+            <button
+              onClick={handleCreateSavepoint}
+              disabled={isSaving}
+              className="w-full py-3 bg-amber-600 text-white rounded-xl text-xs font-black shadow-lg shadow-amber-600/20 flex items-center justify-center gap-2 hover:bg-amber-500 transition-all disabled:opacity-50"
+            >
+              <Save size={14} />
+              {isSaving ? '正在记录时空坐标...' : '立即存档当前进度'}
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest px-1">
+              历史存档点
+            </h4>
+            <div className="max-h-[300px] overflow-y-auto space-y-2 pr-2 no-scrollbar">
+              {savepoints.length > 0 ? (
+                savepoints.map(sp => (
+                  <div key={sp.id} className="group flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-blue-200 transition-all">
+                    <div className="flex-1 min-w-0" onClick={() => { navigate(`/read/${sp.chapterId}`); setIsSavepointsOpen(false); }}>
+                      <h5 className="text-xs font-black text-gray-900 dark:text-white truncate group-hover:text-blue-600 transition-colors cursor-pointer">
+                        {sp.chapter?.title || '未知章节'}
+                      </h5>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Clock size={10} className="text-gray-400" />
+                        <span className="text-[10px] text-gray-400 font-bold">
+                          {new Date(sp.createdAt).toLocaleString()}
+                        </span>
+                        {sp.branch && (
+                          <>
+                            <span className="text-gray-300">·</span>
+                            <span className="text-[10px] text-purple-500 font-bold italic">{sp.branch.title}</span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteSavepoint(sp.id)}
+                      className="p-2 text-gray-300 hover:text-red-500 transition-colors"
+                      title="删除存档"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                ))
+              ) : (
+                <div className="py-10 text-center text-gray-400">
+                  <Clock size={24} className="mx-auto mb-2 opacity-20" />
+                  <p className="text-[10px] font-bold uppercase tracking-widest">暂无历史存档</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       </Modal>
     </div>
   );
