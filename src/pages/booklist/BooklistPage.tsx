@@ -208,7 +208,7 @@ const BooklistPage: React.FC = () => {
               <select 
                 className="w-full px-6 py-4 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold"
                 value={newBooklist.type}
-                onChange={e => setNewBooklist(prev => ({ ...prev, type: e.target.value }))}
+                onChange={e => setNewBooklist(prev => ({ ...prev, type: e.target.value as any }))}
               >
                 <option value="COLLECTION">普通合集 (Collection)</option>
                 <option value="TIMELINE">时空导览 (Timeline)</option>

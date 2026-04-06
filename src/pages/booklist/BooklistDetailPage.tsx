@@ -671,7 +671,7 @@ const BooklistDetailPage: React.FC = () => {
               <select
                 className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                 value={editForm.type}
-                onChange={e => setEditForm(prev => ({ ...prev, type: e.target.value }))}
+                onChange={e => setEditForm(prev => ({ ...prev, type: e.target.value as any }))}
               >
                 <option value="COLLECTION">普通书单 (精选收藏)</option>
                 <option value="TIMELINE">时空导览 (推荐阅读路线)</option>
