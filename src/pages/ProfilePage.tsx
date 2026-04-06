@@ -15,7 +15,7 @@ const ProfilePage: React.FC = () => {
     }
     if (user) {
       setUsername(user.username || '');
-      setAvatarUrl((user as any).avatarUrl || '');
+      setAvatarUrl(user.avatarUrl || '');
     }
   }, [isAuthenticated, navigate, user]);
 
@@ -37,7 +37,23 @@ const ProfilePage: React.FC = () => {
           <p className="text-gray-500 dark:text-gray-400 text-sm">修改用户名与头像链接。</p>
         </div>
 
-        <form onSubmit={onSubmit} className="space-y-6">
+          <div className="flex items-center gap-6 p-6 bg-gray-50 dark:bg-gray-800/50 rounded-3xl border border-gray-100 dark:border-gray-800">
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 shadow-lg">
+              <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 flex items-center justify-center text-blue-600 font-black text-2xl overflow-hidden">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  username?.[0]?.toUpperCase() || '?'
+                )}
+              </div>
+            </div>
+            <div>
+              <div className="text-sm font-black text-gray-900 dark:text-white">头像预览</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">输入下方链接后自动预览</div>
+            </div>
+          </div>
+
+          <form onSubmit={onSubmit} className="space-y-6">
           <div className="space-y-2">
             <label className="text-xs font-black text-gray-400 uppercase tracking-widest">邮箱</label>
             <div className="px-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-200 font-bold">

@@ -77,6 +77,7 @@ model Transaction {
   description String?
   createdAt   DateTime @default(now())
 
+  @@index([userId, type])
   @@map("transactions")
 }
 
@@ -121,6 +122,8 @@ model ReadingHistory {
   readAt             DateTime @default(now())
 
   @@unique([userId, chapterId])
+  @@index([referralBooklistId])
+  @@index([chapterId])
   @@map("reading_history")
 }
 
@@ -244,6 +247,8 @@ model Spinoff {
   updatedAt            DateTime  @default(now()) @updatedAt
   mergeRequests        MergeRequest[]
 
+  @@index([originalStoryId])
+  @@index([authorId])
   @@map("spinoffs")
 }
 
@@ -266,6 +271,7 @@ model Booklist {
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @default(now()) @updatedAt
 
+  @@index([creatorId])
   @@map("booklists")
 }
 

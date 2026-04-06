@@ -21,7 +21,9 @@ import {
   BarChart3,
   Tag,
   Sparkles,
-  Globe
+  Globe,
+  Megaphone,
+  Mail
 } from 'lucide-react';
 // ══════════════ 豆瓣风格简约组件 ══════════════
 
@@ -178,18 +180,21 @@ const Home: React.FC = () => {
     catch (err) { console.error('Failed to fetch new branches'); }
   };
 
-  // 模拟分类数据
-  const categorySections = [
-    { title: '悬疑 · 幻想', icon: Zap, tags: ['无限流', '赛博朋克', '克苏鲁'], color: 'amber' },
-    { title: '都市 · 言情', icon: Heart, tags: ['破镜重圆', '职场', '先婚后爱'], color: 'pink' },
-    { title: '历史 · 权谋', icon: Crown, tags: ['群像', '权谋', '架空'], color: 'emerald' },
-  ];
-
   return (
     <div className="pb-16 -mx-4 md:-mx-10 bg-white dark:bg-gray-950 font-sans">
 
       <div className="max-w-6xl mx-auto px-6 md:px-10 mt-1">
         
+        {/* 公告栏 */}
+        {config.announcementEnabled === 'true' && config.announcement && (
+          <div className="mb-6 bg-blue-50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-800/30 rounded-[2px] px-4 py-3 flex items-center gap-3">
+            <Megaphone size={16} className="text-blue-600 shrink-0" />
+            <p className="text-[13px] text-blue-800 dark:text-blue-300 font-medium">
+              {config.announcement}
+            </p>
+          </div>
+        )}
+
         {/* ══════════════ 豆瓣式 Banner ══════════════ */}
         <section className="relative w-full aspect-[21/6] rounded-[4px] overflow-hidden mb-8 shadow-sm border border-gray-100 dark:border-gray-900 group">
           <div className="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" 
@@ -257,18 +262,6 @@ const Home: React.FC = () => {
                 ))}
               </div>
             </section>
-
-            {/* 分类专区 */}
-            {categorySections.map((sec, idx) => (
-              <section key={idx} className="mb-8">
-                <DoubanSectionHeader title={sec.title} link="#" />
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 gap-6">
-                  {stories.slice(idx * 2 + 5, idx * 2 + 10).map(story => (
-                    <DoubanStoryCard key={story.id} story={story} />
-                  ))}
-                </div>
-              </section>
-            ))}
 
             {/* 最近活跃的分支 */}
             <section className="mb-8">
@@ -373,8 +366,14 @@ const Home: React.FC = () => {
                 <Link key={f} to="#" className="hover:text-gray-600 transition-colors">{f}</Link>
               ))}
             </div>
-            <div className="text-[10px] text-gray-300 dark:text-gray-700 font-medium uppercase tracking-widest text-right">
-              {config.footerCopyright || '© 2026 PARALLEL UNIVERSE STORY PLATFORM.'}
+            <div className="flex flex-col items-end gap-1 text-[10px] text-gray-300 dark:text-gray-700 font-medium uppercase tracking-widest text-right">
+              {config.contactEmail && (
+                <div className="flex items-center gap-2 mb-1 text-gray-400 normal-case tracking-normal text-xs">
+                  <Mail size={12} />
+                  <span>{config.contactEmail}</span>
+                </div>
+              )}
+              <span>{config.footerCopyright || '© 2026 PARALLEL UNIVERSE STORY PLATFORM.'}</span>
               {config.icp && (
                 <span className="block mt-1 opacity-60">{config.icp}</span>
               )}

@@ -1,26 +1,25 @@
 import { prisma } from '../prisma';
 import { AppError } from '../utils/http';
-import { Prisma } from '@prisma/client';
+import { ensure } from '../utils/entity';
 
 export class ChapterService {
   static async createChapter(authorId: string, userRole: string, data: any) {
     const { storyId, branchId, title, content, orderIndex, isBranchPoint, characterData } = data;
 
-    const story = await prisma.story.findUnique({ where: { id: storyId } });
-    if (!story) throw new AppError(404, 'NOT_FOUND', 'Story not found');
+    const story = await ensure.exists(prisma.story, storyId, 'Story');
 
     let hasPermission = false;
     if (story.authorId === authorId || userRole === 'admin') {
       hasPermission = true;
     } else if (branchId) {
-      const branch = await prisma.branch.findUnique({ where: { id: branchId } });
-      if (branch && branch.authorId === authorId) {
+      const branch = await ensure.exists(prisma.branch, branchId, 'Branch');
+      if (branch.authorId === authorId) {
         hasPermission = true;
       }
     }
 
     if (!hasPermission) {
-      throw new AppError(403, 'FORBIDDEN', 'Not authorized to add chapters to this story/branch');
+      throw new AppError(403, 'FORBIDDEN', '没有权限向此故事/分支添加章节');
     }
 
     return prisma.chapter.create({
@@ -39,20 +38,15 @@ export class ChapterService {
   static async updateChapter(id: string, authorId: string, userRole: string, data: any) {
     const { title, content, orderIndex, isBranchPoint, characterData } = data;
 
-    const chapter = await prisma.chapter.findUnique({
-      where: { id },
-      include: { story: true }
-    });
-
-    if (!chapter) throw new AppError(404, 'NOT_FOUND', 'Chapter not found');
+    const chapter = await ensure.exists(prisma.chapter, id, 'Chapter', { story: true });
 
     // Check permissions: Story author, collaborator, or admin
-    if (chapter.story.authorId !== authorId) {
+    if (chapter.story.authorId !== authorId && userRole !== 'admin') {
       const collaboration = await prisma.collaboration.findFirst({
         where: { storyId: chapter.storyId, userId: authorId, status: 'approved' }
       });
-      if (!collaboration && userRole !== 'admin') {
-        throw new AppError(403, 'FORBIDDEN', 'Insufficient permissions');
+      if (!collaboration) {
+        throw new AppError(403, 'FORBIDDEN', '权限不足');
       }
     }
 
@@ -69,16 +63,9 @@ export class ChapterService {
   }
 
   static async deleteChapter(id: string, authorId: string, userRole: string) {
-    const chapter = await prisma.chapter.findUnique({
-      where: { id },
-      include: { story: true }
-    });
+    const chapter = await ensure.exists(prisma.chapter, id, 'Chapter', { story: true });
 
-    if (!chapter) throw new AppError(404, 'NOT_FOUND', 'Chapter not found');
-
-    if (chapter.story.authorId !== authorId && userRole !== 'admin') {
-      throw new AppError(403, 'FORBIDDEN', 'Insufficient permissions');
-    }
+    await ensure.isOwner(authorId, userRole, chapter.story.authorId);
 
     await prisma.chapter.delete({ where: { id } });
     return { success: true, message: 'Chapter deleted successfully' };

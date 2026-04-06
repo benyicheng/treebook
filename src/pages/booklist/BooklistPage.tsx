@@ -1,27 +1,17 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { booklistService, Booklist, storyService, Story } from '../../api/storyService';
+import { booklistService, Booklist } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { 
-  List, 
   PlusCircle, 
-  BookOpen, 
-  Clock, 
-  Layers, 
-  Heart, 
-  Eye, 
   Filter, 
-  TrendingUp, 
   Sparkles, 
   Map, 
-  Tag, 
-  ChevronRight,
-  ChevronLeft
+  Tag
 } from 'lucide-react';
 import Modal from '../../components/Modal';
+import BooklistCard from '../../components/Booklist/BooklistCard';
 
 const BooklistPage: React.FC = () => {
-  const navigate = useNavigate();
   const [booklists, setBooklists] = useState<Booklist[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { isAuthenticated } = useAuthStore();
@@ -175,72 +165,7 @@ const BooklistPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {booklists.map((booklist) => (
-            <div 
-              key={booklist.id} 
-              onClick={() => navigate(`/booklist/${booklist.id}`)}
-              className="group cursor-pointer bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 overflow-hidden hover:border-emerald-300 dark:hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 flex flex-col"
-            >
-              {/* Cover Image Area */}
-              <div className="relative h-48 overflow-hidden bg-slate-200">
-                <img 
-                  src={booklist.coverImage || 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&q=80&w=800'} 
-                  alt={booklist.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-                <div className="absolute top-4 left-4 flex gap-2">
-                  <span className={`px-3 py-1 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg ${
-                    booklist.type === 'TIMELINE' ? 'bg-indigo-600' : 'bg-emerald-600'
-                  }`}>
-                    {booklist.type === 'TIMELINE' ? '时空导览' : '精选合集'}
-                  </span>
-                </div>
-                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-white">
-                    <div className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-[10px] font-bold">
-                      {booklist.creator?.username?.[0]}
-                    </div>
-                    <span className="text-xs font-bold text-white/90">{booklist.creator?.username}</span>
-                  </div>
-                  <div className="flex items-center gap-3 text-white/80 text-[10px] font-black">
-                    <div className="flex items-center gap-1">
-                      <Eye size={12} />
-                      {booklist.viewCount || 0}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Heart size={12} />
-                      {booklist.likesCount || 0}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="p-8 space-y-4 flex-1 flex flex-col">
-                <div className="flex flex-wrap gap-2">
-                  {booklist.tags?.split(',').filter(Boolean).map(tag => (
-                    <span key={tag} className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
-                      #{tag.trim()}
-                    </span>
-                  ))}
-                </div>
-                <h3 className="text-2xl font-black text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors line-clamp-2">
-                  {booklist.title}
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 font-light leading-relaxed text-sm line-clamp-3 italic">
-                  "{booklist.description || '暂无描述'}"
-                </p>
-                <div className="pt-6 mt-auto flex items-center justify-between border-t border-gray-50 dark:border-gray-700/50">
-                  <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
-                    <Layers size={14} />
-                    <span>{booklist.items?.length || 0} 站旅程</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs font-black text-emerald-600 group-hover:gap-2 transition-all">
-                    进入时空
-                    <ChevronRight size={14} />
-                  </div>
-                </div>
-              </div>
-            </div>
+            <BooklistCard key={booklist.id} booklist={booklist} />
           ))}
 
           {booklists.length === 0 && (
