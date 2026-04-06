@@ -52,7 +52,13 @@ const BooklistDetailPage: React.FC = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editForm, setEditForm] = useState({ 
+  const [editForm, setEditForm] = useState<{
+    title: string;
+    description: string;
+    type: 'TIMELINE' | 'COLLECTION';
+    tags: string;
+    coverImage: string;
+  }>({ 
     title: '', 
     description: '', 
     type: 'COLLECTION', 

@@ -24,7 +24,13 @@ const BooklistPage: React.FC = () => {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [newBooklist, setNewBooklist] = useState({
+  const [newBooklist, setNewBooklist] = useState<{
+    title: string;
+    description: string;
+    type: 'TIMELINE' | 'COLLECTION';
+    tags: string;
+    coverImage: string;
+  }>({
     title: '',
     description: '',
     type: 'COLLECTION',
