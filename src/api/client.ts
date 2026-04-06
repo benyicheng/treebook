@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_URL = '/api';
+// 核心逻辑：如果是本地开发连 3001，如果是服务器部署则使用相对路径 /api
+// 配合 Nginx 反向代理，彻底消除跨域问题
+const API_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:3001/api' 
+  : '/api';
 
 const client = axios.create({
   baseURL: API_URL,
