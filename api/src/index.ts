@@ -19,6 +19,7 @@ import savepointRoutes from './routes/savepoints';
 import revenueRoutes from './routes/revenue';
 import mergeRoutes from './routes/merges';
 import aiRoutes from './routes/ai';
+import initRoutes from './routes/initRoutes';
 import { trace } from './middleware/trace';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -179,6 +180,7 @@ app.use('/api/savepoints', savepointRoutes);
 app.use('/api/revenue', revenueRoutes);
 app.use('/api/merges', mergeRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/init', initRoutes);
 
 // Health check
 app.get('/api/health', async (req: Request, res: Response) => {

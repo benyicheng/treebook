@@ -16,6 +16,7 @@ import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import ProfilePage from './pages/ProfilePage';
+import SetupPage from './pages/SetupPage';
 import AboutPage from './pages/about/AboutPage';
 import RevenuePage from './pages/RevenuePage';
 import ContactPage from './pages/about/ContactPage';
@@ -97,6 +98,7 @@ const App: React.FC = () => {
               
               <Route path="login" element={<LoginPage />} />
               <Route path="register" element={<RegisterPage />} />
+              <Route path="setup" element={<SetupPage />} />
             </Route>
           </Routes>
         </Router>
