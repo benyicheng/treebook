@@ -31,16 +31,17 @@ const app = express();
 // 创建 HTTP 服务器
 const server = http.createServer(app);
 
+// CORS Configuration
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://43.135.162.210' // The server IP
+];
+
 // 初始化 Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-        callback(null, true);
-      } else {
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: true, // 动态反射，允许所有来源并自动回传 Origin 头部
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -56,26 +57,14 @@ const editLocks = new Map<string, { userId: string, username: string, socketId: 
 app.use(trace);
 app.use(helmet({
   contentSecurityPolicy: false, // Disable for easier local development
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// CORS Configuration
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://43.135.162.210' // The server IP
-];
-
+// CORS Configuration (Express)
 app.use(cors({
-  origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV !== 'production') {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+  origin: true, // 动态反射，这是解决生产环境跨域最稳妥的方法
   credentials: true,
+  optionsSuccessStatus: 200
 }));
 
 app.use(express.json());

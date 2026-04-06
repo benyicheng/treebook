@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import { useAuthStore } from './useAuthStore';
+import client from '../api/client';
 
 // 站点配置接口
 export interface SiteConfig {
@@ -64,19 +64,14 @@ export const useSiteConfigStore = create<SiteConfigStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          const response = await fetch('/api/cms');
+          // 使用统一的 axios 客户端
+          const response = await client.get('/cms');
+          
+          // client 拦截器已经处理了 { success: true, data: T } 格式
+          // 这里的 response.data 就是业务数据 (即之前的 result.data)
+          const remoteConfig = response.data || {};
 
-          if (!response.ok) {
-            console.error('Failed to fetch site config:', response.status, response.statusText);
-            set({ config: DEFAULT_CONFIG, isLoading: false });
-            return;
-          }
-
-          const result = await response.json();
-          console.log('Fetched site config:', result);
-
-          // 合并后端返回的配置到默认配置
-          const remoteConfig = result.success ? result.data : {};
+          console.log('Fetched site config:', remoteConfig);
 
           set({
             config: { ...DEFAULT_CONFIG, ...remoteConfig },
@@ -99,23 +94,10 @@ export const useSiteConfigStore = create<SiteConfigStore>()(
         set({ isLoading: true, error: null });
 
         try {
-          const { token } = useAuthStore.getState();
-          const response = await fetch('/api/cms', {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-            },
-            body: JSON.stringify(updates),
-          });
+          // 使用统一的 axios 客户端 (会自动带上 Authorization Token)
+          const response = await client.put('/cms', updates);
 
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error?.message || errorData.message || '更新配置失败');
-          }
-
-          const result = await response.json();
-          console.log('配置更新成功:', result);
+          console.log('配置更新成功:', response.data);
 
           // 更新本地配置
           set((state) => ({
