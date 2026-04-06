@@ -16,9 +16,14 @@ const CreateStoryPage: React.FC = () => {
     tags: [] as string[],
   });
   const [tagInput, setTagInput] = useState('');
+  
+  React.useEffect(() => {
+    if (!isAuthenticated) {
+      navigate('/login');
+    }
+  }, [isAuthenticated, navigate]);
 
   if (!isAuthenticated) {
-    navigate('/login');
     return null;
   }
 

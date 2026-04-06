@@ -124,7 +124,7 @@ const MainLayout: React.FC = () => {
               {isAuthenticated ? (
                 <>
                   <Link 
-                    to="/dashboard/create"
+                    to="/story/create"
                     className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-black transition-all shadow-lg shadow-blue-500/20 active:scale-95"
                   >
                     <Plus size={16} strokeWidth={3} />
@@ -140,7 +140,7 @@ const MainLayout: React.FC = () => {
                       {user?.avatarUrl ? (
                         <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
                       ) : (
-                        user?.username?.[0].toUpperCase()
+                        user?.username?.[0]?.toUpperCase() || 'U'
                       )}
                     </div>
                   </button>
