@@ -18,16 +18,16 @@ const BooklistCard: React.FC<BooklistCardProps> = ({ booklist }) => {
       {/* Cover Image Area */}
       <div className="relative h-48 overflow-hidden bg-slate-200">
         <img 
-          src={booklist.coverImage || 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&q=80&w=800'} 
+          src={(booklist as any).coverImage || 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&q=80&w=800'} 
           alt={booklist.title}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
         <div className="absolute top-4 left-4 flex gap-2">
           <span className={`px-3 py-1 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg ${
-            booklist.type === 'TIMELINE' ? 'bg-indigo-600' : 'bg-emerald-600'
+            (booklist as any).type === 'TIMELINE' ? 'bg-indigo-600' : 'bg-emerald-600'
           }`}>
-            {booklist.type === 'TIMELINE' ? '时空导览' : '精选合集'}
+            {(booklist as any).type === 'TIMELINE' ? '时空导览' : '精选合集'}
           </span>
         </div>
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
@@ -40,11 +40,11 @@ const BooklistCard: React.FC<BooklistCardProps> = ({ booklist }) => {
           <div className="flex items-center gap-3 text-white/80 text-[10px] font-black">
             <div className="flex items-center gap-1">
               <Eye size={12} />
-              {booklist.viewCount || 0}
+              {(booklist as any).viewCount || 0}
             </div>
             <div className="flex items-center gap-1">
               <Heart size={12} />
-              {booklist.likesCount || 0}
+              {(booklist as any).likesCount || 0}
             </div>
           </div>
         </div>
@@ -52,7 +52,7 @@ const BooklistCard: React.FC<BooklistCardProps> = ({ booklist }) => {
       
       <div className="p-8 space-y-4 flex-1 flex flex-col">
         <div className="flex flex-wrap gap-2">
-          {booklist.tags?.split(',').filter(Boolean).map(tag => (
+          {(booklist as any).tags?.split(',').filter(Boolean).map(tag => (
             <span key={tag} className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
               #{tag.trim()}
             </span>

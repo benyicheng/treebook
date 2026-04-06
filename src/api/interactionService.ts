@@ -9,6 +9,7 @@ export interface InteractionStats {
   ratingAvg: number;
   ratingDist: Record<string, number>;
   liked: boolean;
+  viewCount?: number;
   myRating: number | null;
   myReasonTags: string[];
 }

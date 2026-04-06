@@ -49,6 +49,8 @@ export interface Branch {
   description: string;
   branchType: string;
   isOfficial: boolean;
+  isCertified?: boolean;
+  status?: 'ongoing' | 'completed' | 'merged';
   viewCount?: number;
   createdAt: string;
   updatedAt: string;
@@ -78,6 +80,7 @@ export interface Spinoff {
   type: 'biography' | 'if_timeline' | 'world_expansion';
   status: 'ongoing' | 'completed' | 'merged';
   isOfficial: boolean;
+  isCertified?: boolean;
   revenueShareRate: number;
   referencedCharacters?: string; // JSON String
   characterRelationships?: string; // JSON String
@@ -102,7 +105,13 @@ export interface Booklist {
   creatorId: string;
   title: string;
   description: string;
+  coverImage?: string;
+  type?: 'TIMELINE' | 'COLLECTION';
+  tags?: string;
   isPublic: boolean;
+  viewCount?: number;
+  likesCount?: number;
+  totalEarnings?: number;
   createdAt: string;
   updatedAt: string;
   creator?: {

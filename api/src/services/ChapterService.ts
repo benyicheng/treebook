@@ -6,13 +6,13 @@ export class ChapterService {
   static async createChapter(authorId: string, userRole: string, data: any) {
     const { storyId, branchId, title, content, orderIndex, isBranchPoint, characterData } = data;
 
-    const story = await ensure.exists(prisma.story, storyId, 'Story');
+    const story = await ensure.exists<any>(prisma.story, storyId, 'Story');
 
     let hasPermission = false;
     if (story.authorId === authorId || userRole === 'admin') {
       hasPermission = true;
     } else if (branchId) {
-      const branch = await ensure.exists(prisma.branch, branchId, 'Branch');
+      const branch = await ensure.exists<any>(prisma.branch, branchId, 'Branch');
       if (branch.authorId === authorId) {
         hasPermission = true;
       }
@@ -38,7 +38,7 @@ export class ChapterService {
   static async updateChapter(id: string, authorId: string, userRole: string, data: any) {
     const { title, content, orderIndex, isBranchPoint, characterData } = data;
 
-    const chapter = await ensure.exists(prisma.chapter, id, 'Chapter', { story: true });
+    const chapter = await ensure.exists<any>(prisma.chapter, id, 'Chapter', { story: true });
 
     // Check permissions: Story author, collaborator, or admin
     if (chapter.story.authorId !== authorId && userRole !== 'admin') {
@@ -63,7 +63,7 @@ export class ChapterService {
   }
 
   static async deleteChapter(id: string, authorId: string, userRole: string) {
-    const chapter = await ensure.exists(prisma.chapter, id, 'Chapter', { story: true });
+    const chapter = await ensure.exists<any>(prisma.chapter, id, 'Chapter', { story: true });
 
     await ensure.isOwner(authorId, userRole, chapter.story.authorId);
 

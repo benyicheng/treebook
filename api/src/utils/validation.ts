@@ -36,7 +36,7 @@ export const characterSchema = z.object({
   description: z.string().max(500).optional(),
   avatarUrl: z.string().url().optional().or(z.literal('')),
   role: z.enum(['protagonist', 'antagonist', 'supporting', 'extra']).optional(),
-  attributes: z.record(z.any()).optional(),
+  attributes: z.record(z.string(), z.any()).optional(),
 });
 
 export const branchSchema = z.object({

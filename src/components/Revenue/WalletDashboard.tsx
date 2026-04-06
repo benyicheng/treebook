@@ -105,7 +105,7 @@ const WalletDashboard: React.FC = () => {
           <div className="mt-4">
             <p className="text-slate-500 text-sm font-medium">累计书单分润</p>
             <p className="text-2xl font-black text-slate-900 mt-1">
-              {(wallet?.user.transactions.reduce((acc, t) => t.type === 'CURATION_REWARD' ? acc + t.amount : acc, 0) || 0).toFixed(2)}
+              {(wallet?.user.transactions.reduce((acc, t) => (t.type as any) === 'CURATION_REWARD' ? acc + t.amount : acc, 0) || 0).toFixed(2)}
             </p>
           </div>
         </div>

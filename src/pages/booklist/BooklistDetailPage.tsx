@@ -362,11 +362,11 @@ const BooklistDetailPage: React.FC = () => {
           <div className="space-y-4 flex-1">
             <div className="flex items-center gap-2">
               <span className={`px-3 py-1 text-white text-xs font-black rounded-full uppercase tracking-wider shadow-sm ${
-                booklist.type === 'TIMELINE' ? 'bg-indigo-600' : 'bg-emerald-600'
+                (booklist as any).type === 'TIMELINE' ? 'bg-indigo-600' : 'bg-emerald-600'
               }`}>
-                {booklist.type === 'TIMELINE' ? '时空导览' : '精选书单'}
+                {(booklist as any).type === 'TIMELINE' ? '时空导览' : '精选书单'}
               </span>
-              {booklist.tags?.split(',').filter(Boolean).map(tag => (
+              {(booklist as any).tags?.split(',').filter(Boolean).map(tag => (
                 <span key={tag} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 text-[10px] font-bold rounded-lg">
                   #{tag.trim()}
                 </span>
@@ -378,7 +378,7 @@ const BooklistDetailPage: React.FC = () => {
                 <div className="flex items-center gap-4 ml-4 text-gray-400">
                   <div className="flex items-center gap-1.5" title="阅读次数">
                     <Eye size={14} />
-                    <span className="text-xs font-bold">{stats.viewCount}</span>
+                    <span className="text-xs font-bold">{(stats as any).viewCount}</span>
                   </div>
                   <div className="flex items-center gap-1.5" title="点赞数">
                     <Heart size={14} className={stats.liked ? "fill-red-500 text-red-500" : ""} />
@@ -417,7 +417,7 @@ const BooklistDetailPage: React.FC = () => {
                   <div className="h-8 w-[1px] bg-gray-100 dark:bg-gray-700"></div>
                   <div className="text-left">
                     <p className="text-xs font-black uppercase tracking-widest leading-none mb-1 text-emerald-600">累计分润</p>
-                    <p className="text-sm font-bold text-emerald-600">{(booklist.totalEarnings || 0).toFixed(2)} USD</p>
+                    <p className="text-sm font-bold text-emerald-600">{((booklist as any).totalEarnings || 0).toFixed(2)} USD</p>
                   </div>
                 </>
               )}

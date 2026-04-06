@@ -71,13 +71,13 @@ const BranchPage: React.FC = () => {
     if (!id) return;
     setIsSubmitting(true);
     try {
-      await branchService.certify(id, !currentBranch.isCertified);
-      alert(currentBranch.isCertified ? '已取消认证' : '分支已认证为金级');
+      await branchService.certify(id, !(currentBranch as any).isCertified);
+      alert((currentBranch as any).isCertified ? '已取消认证' : '分支已认证为金级');
       fetchBranchById(id);
     } catch (err) {
       alert('操作失败');
     } finally {
-      setIsSubmitting(true);
+      setIsSubmitting(false);
     }
   };
 
@@ -172,7 +172,7 @@ const BranchPage: React.FC = () => {
               </div>
               <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
                 {currentBranch.title}
-                {currentBranch.isCertified && (
+                {(currentBranch as any).isCertified && (
                   <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-lg rotate-[-12deg] shrink-0">
                     <Crown size={22} />
                   </div>
@@ -198,13 +198,13 @@ const BranchPage: React.FC = () => {
                 <button 
                   onClick={handleCertify}
                   className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all shadow-lg active:scale-95 ${
-                    currentBranch.isCertified 
+                    (currentBranch as any).isCertified 
                       ? 'bg-amber-100 text-amber-600 border-2 border-amber-400' 
                       : 'bg-amber-500 text-white hover:bg-amber-600'
                   }`}
                 >
                   <Crown size={18} />
-                  {currentBranch.isCertified ? '已认证金级' : '认证金级分支'}
+                  {(currentBranch as any).isCertified ? '已认证金级' : '认证金级分支'}
                 </button>
               )}
               <button 
@@ -226,7 +226,7 @@ const BranchPage: React.FC = () => {
                   添加新章节
                 </button>
               )}
-              {user && user.id === currentBranch.authorId && currentBranch.status !== 'merged' && (
+              {user && user.id === currentBranch.authorId && (currentBranch as any).status !== 'merged' && (
                 <button 
                   onClick={() => setIsMergeModalOpen(true)}
                   className="flex items-center gap-2 px-6 py-3 bg-indigo-100 text-indigo-600 rounded-2xl font-bold hover:bg-indigo-200 transition-all shadow-lg active:scale-95"

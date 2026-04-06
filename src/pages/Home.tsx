@@ -122,7 +122,7 @@ const DoubanRankingItem: React.FC<{ story: any; index: number }> = ({ story, ind
 const Home: React.FC = () => {
   const navigate = useNavigate();
   const { stories, fetchStories, isLoading } = useStoryStore();
-  const { user } = useAuthStore();
+  const { user, isAuthenticated } = useAuthStore();
   const { config, fetchConfig } = useSiteConfigStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [recentReads, setRecentReads] = useState<any[]>([]);
@@ -160,10 +160,12 @@ const Home: React.FC = () => {
   useEffect(() => {
     fetchStories();
     fetchConfig();
-    fetchRecentReads();
+    if (isAuthenticated) {
+      fetchRecentReads();
+    }
     fetchHotBooklists();
     fetchNewBranches();
-  }, [fetchStories, fetchConfig]);
+  }, [fetchStories, fetchConfig, isAuthenticated]);
 
   const fetchRecentReads = async () => {
     try { const data = await storyService.getRecentReads(); setRecentReads(data); }

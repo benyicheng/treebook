@@ -3,7 +3,7 @@ import client from './client';
 export interface Transaction {
   id: string;
   amount: number;
-  type: 'REVENUE_SHARE' | 'WITHDRAWAL' | 'RECHARGE';
+  type: 'REVENUE_SHARE' | 'WITHDRAWAL' | 'RECHARGE' | 'CURATION_REWARD';
   targetType?: 'STORY' | 'BRANCH';
   targetId?: string;
   description?: string;

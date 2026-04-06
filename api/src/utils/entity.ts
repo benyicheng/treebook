@@ -6,7 +6,7 @@ import { AppError } from './http';
  * 消除 Service 层中重复的 findUnique + throw 逻辑
  */
 export const ensure = {
-  async exists<T>(
+  async exists<T = any>(
     model: any, 
     id: string, 
     entityName: string, 

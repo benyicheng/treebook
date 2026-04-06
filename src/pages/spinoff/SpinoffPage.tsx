@@ -32,21 +32,6 @@ const SpinoffPage: React.FC = () => {
     fetchData();
   }, []);
 
-  const handleCreateSpinoff = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSubmitting(true);
-    try {
-      await spinoffService.create(newSpinoff);
-      setIsModalOpen(false);
-      setNewSpinoff({ originalStoryId: stories[0]?.id || '', title: '', content: '' });
-      fetchData();
-    } catch (err) {
-      alert('创建番外失败');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">

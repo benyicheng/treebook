@@ -109,7 +109,7 @@ const CMSPage: React.FC = () => {
       id: Date.now(),
       title: '新轮播标题',
       description: '副标题',
-      image: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&h=400&fit=crop',
+      imageUrl: 'https://images.unsplash.com/photo-1519681393784-d120267933ba?w=1200&h=400&fit=crop',
       link: '/',
       badge: '新',
     };

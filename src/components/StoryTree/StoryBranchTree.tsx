@@ -104,7 +104,7 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({
         data: { 
           label: branch.title,
           isOfficial: branch.isOfficial,
-          isCertified: branch.isCertified,
+          isCertified: (branch as any).isCertified,
           isHot: (branch.viewCount || 0) > 100,
           isRead,
           chapterCount: (branch as any)._count?.chapters ?? 0,
@@ -120,14 +120,14 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({
         target: `branch-${branch.id}`,
         animated: true,
         style: { 
-          stroke: branch.isCertified ? '#f59e0b' : (branch.isOfficial ? '#f59e0b' : '#8b5cf6'), 
-          strokeWidth: branch.isCertified ? 4 : 2.5, 
+          stroke: (branch as any).isCertified ? '#f59e0b' : (branch.isOfficial ? '#f59e0b' : '#8b5cf6'), 
+          strokeWidth: (branch as any).isCertified ? 4 : 2.5, 
           strokeDasharray: isRead ? '0' : '8,4', // 已读分支实线，未读虚线
           opacity: isRead ? 1 : 0.6
         },
         markerEnd: { 
           type: MarkerType.ArrowClosed, 
-          color: branch.isCertified ? '#f59e0b' : (branch.isOfficial ? '#f59e0b' : '#8b5cf6') 
+          color: (branch as any).isCertified ? '#f59e0b' : (branch.isOfficial ? '#f59e0b' : '#8b5cf6') 
         },
       });
     });

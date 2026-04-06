@@ -2,7 +2,7 @@ import { render, fireEvent, screen } from '@testing-library/react';
 import React from 'react';
 import StoryBranchTree from './StoryBranchTree';
 import { ReactFlowProvider } from 'reactflow';
-import { vi } from 'vitest';
+import { vi, describe, it, expect } from 'vitest';
 
 // Mock ResizeObserver
 class ResizeObserver {
