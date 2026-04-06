@@ -41,10 +41,8 @@ export class InitController {
         data: {
           email,
           username,
-          password: hashedPassword,
-          role: 'admin',
-          isCertified: true,
-          bio: '系统首席执行官 (System Administrator)'
+          passwordHash: hashedPassword,
+          role: 'admin'
         }
       });
 
