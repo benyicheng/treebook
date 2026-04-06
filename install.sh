@@ -42,7 +42,7 @@ npm run build
 # 7. 启动服务
 echo "🔥 正在使用 PM2 启动服务..."
 pm2 delete aura-api 2>/dev/null || true
-pm2 start "npm run api:prod" --name "aura-api"
+pm2 start "npm run api:aura-api" --name "aura-api"
 
 echo "🎉 安装完成！"
 echo "🌐 前端预览: http://$(curl -s ifconfig.me):5173 (如果你使用 npm run dev)"

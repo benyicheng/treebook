@@ -10,6 +10,7 @@
     "dev": "vite",
     "server": "tsx watch api/src/index.ts",
     "api:prod": "NODE_ENV=production tsx api/src/index.ts",
+    "api:aura-api": "NODE_ENV=production tsx api/src/index.ts",
     "dev:full": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
