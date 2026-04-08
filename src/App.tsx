@@ -11,6 +11,10 @@ import SpinoffDetailPage from './pages/spinoff/SpinoffDetailPage';
 import SpinoffEditorPage from './pages/spinoff/SpinoffEditorPage';
 import BooklistPage from './pages/booklist/BooklistPage';
 import BooklistDetailPage from './pages/booklist/BooklistDetailPage';
+import BranchesPage from './pages/branch/BranchesPage';
+import RecommendationsPage from './pages/mainline/RecommendationsPage';
+import NewStoriesPage from './pages/mainline/NewStoriesPage';
+import AllStoriesPage from './pages/mainline/AllStoriesPage';
 import ReadPage from './pages/read/ReadPage';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
@@ -62,7 +66,11 @@ const App: React.FC = () => {
               <Route index element={<Home />} />
               <Route path="story/create" element={<CreateStoryPage />} />
               <Route path="story/:id" element={<MainlinePage />} />
+              <Route path="stories" element={<AllStoriesPage />} />
+              <Route path="recommendations" element={<RecommendationsPage />} />
+              <Route path="new" element={<NewStoriesPage />} />
               <Route path="branch/:id" element={<BranchPage />} />
+              <Route path="branches" element={<BranchesPage />} />
               <Route path="read/:id" element={<ReadPage />} />
               <Route path="spinoff" element={<SpinoffPage />} />
               <Route path="spinoff/:id" element={<SpinoffDetailPage />} />

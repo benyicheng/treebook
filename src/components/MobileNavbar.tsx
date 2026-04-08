@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Home, Star, Library, User } from 'lucide-react';
+import { Home, GitBranch, Library, User, Crown } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 
 const MobileNavbar: React.FC = () => {
@@ -9,7 +9,8 @@ const MobileNavbar: React.FC = () => {
 
   const navItems = [
     { name: '首页', path: '/', icon: Home },
-    { name: '番外', path: '/spinoff', icon: Star },
+    { name: '宇宙', path: '/stories', icon: Crown },
+    { name: '平行', path: '/branches', icon: GitBranch },
     { name: '书单', path: '/booklist', icon: Library },
     { name: '我的', path: isAuthenticated ? '/dashboard' : '/login', icon: User },
   ];

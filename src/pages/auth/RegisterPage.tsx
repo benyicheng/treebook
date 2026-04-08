@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { Mail, Lock, User, PlusCircle, ArrowLeft, AlertCircle, BookOpen, GitBranch } from 'lucide-react';
+import { Mail, Lock, User, PlusCircle, ArrowLeft, AlertCircle, BookOpen, GitBranch, Eye } from 'lucide-react';
 
 const RegisterPage: React.FC = () => {
   const navigate = useNavigate();
@@ -12,6 +12,7 @@ const RegisterPage: React.FC = () => {
     username: '',
     password: '',
     role: 'reader' as 'reader' | 'author',
+    uiRole: 'reader' as 'reader' | 'contributor' | 'author',
   });
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -19,7 +20,9 @@ const RegisterPage: React.FC = () => {
     e.preventDefault();
     setLocalError(null);
     try {
-      await register(formData);
+      // Remove uiRole before sending to API
+      const { uiRole, ...submitData } = formData;
+      await register(submitData);
       navigate('/');
     } catch (err: any) {
       setLocalError(err.response?.data?.message || '注册失败，请稍后再试');
@@ -96,30 +99,42 @@ const RegisterPage: React.FC = () => {
               <label className="flex items-center gap-2 text-xs font-black text-gray-400 uppercase tracking-widest px-1">
                 身份角色
               </label>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button 
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, role: 'reader' }))}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
-                    formData.role === 'reader' 
+                  onClick={() => setFormData(prev => ({ ...prev, role: 'reader', uiRole: 'reader' }))}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
+                    formData.uiRole === 'reader' 
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400' 
                       : 'border-gray-100 dark:border-gray-700 hover:border-blue-200 text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  <GitBranch size={20} />
-                  <span className="text-xs font-black uppercase tracking-widest">社区创作者</span>
+                  <Eye size={18} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">星空读者</span>
                 </button>
                 <button 
                   type="button"
-                  onClick={() => setFormData(prev => ({ ...prev, role: 'author' }))}
-                  className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${
-                    formData.role === 'author' 
+                  onClick={() => setFormData(prev => ({ ...prev, role: 'reader', uiRole: 'contributor' }))}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
+                    formData.uiRole === 'contributor' 
                       ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400' 
                       : 'border-gray-100 dark:border-gray-700 hover:border-blue-200 text-gray-500 dark:text-gray-400'
                   }`}
                 >
-                  <BookOpen size={20} />
-                  <span className="text-xs font-black uppercase tracking-widest">官方作者</span>
+                  <GitBranch size={18} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">社区创作者</span>
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, role: 'author', uiRole: 'author' }))}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-2xl border-2 transition-all ${
+                    formData.uiRole === 'author' 
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/10 text-blue-600 dark:text-blue-400' 
+                      : 'border-gray-100 dark:border-gray-700 hover:border-blue-200 text-gray-500 dark:text-gray-400'
+                  }`}
+                >
+                  <BookOpen size={18} />
+                  <span className="text-[10px] font-black uppercase tracking-widest">官方作者</span>
                 </button>
               </div>
             </div>

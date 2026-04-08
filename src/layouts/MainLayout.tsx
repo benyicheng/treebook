@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, Outlet, useLocation } from 'react-router-dom';
-import { BookOpen, GitBranch, Home, Layout, Library, LogIn, LogOut, Star, User, Shield, ChevronLeft, ChevronRight, Settings2, Bell, Search, Sparkles, BookMarked, Plus, Coins, Globe, Crown } from 'lucide-react';
+import { BookOpen, GitBranch, Home, Layout, Library, LogIn, LogOut, Star, User, Shield, ChevronLeft, ChevronRight, Settings2, Bell, Search, Sparkles, BookMarked, Plus, Coins, Globe, Crown, Zap } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSiteConfigStore } from '../stores/useSiteConfigStore';
 import MobileNavbar from '../components/MobileNavbar';
@@ -35,11 +35,12 @@ const MainLayout: React.FC = () => {
 
   // 顶部主要分类入口
   const categoryItems = [
-    { name: '全部探索', path: '/', icon: Globe },
-    { name: '官方主线', path: '/?filter=official', icon: Crown },
-    { name: '平行支线', path: '/spinoff', icon: GitBranch },
+    { name: '首页', path: '/', icon: Home },
+    { name: '主线宇宙', path: '/stories', icon: Crown },
+    { name: '平行分支', path: '/branches', icon: GitBranch },
+    { name: '编辑精选', path: '/recommendations', icon: Star },
+    { name: '新书速递', path: '/new', icon: Zap },
     { name: '精选书单', path: '/booklist', icon: BookMarked },
-    { name: '完本精选', path: '/?filter=completed', icon: BookOpen },
   ];
 
   // 左侧管理功能入口
@@ -146,9 +147,14 @@ const MainLayout: React.FC = () => {
                   </button>
                 </>
               ) : (
-                <Link to="/login" className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full text-sm font-black hover:opacity-90 transition-all shadow-md">
-                  立即登录
-                </Link>
+                <div className="flex items-center gap-4">
+                  <Link to="/register" className="text-sm font-black text-gray-500 hover:text-blue-600 transition-colors hidden sm:block">
+                    注册账号
+                  </Link>
+                  <Link to="/login" className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full text-sm font-black hover:opacity-90 transition-all shadow-md">
+                    立即登录
+                  </Link>
+                </div>
               )}
             </div>
           </div>

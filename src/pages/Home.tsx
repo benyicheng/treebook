@@ -341,7 +341,10 @@ const Home: React.FC = () => {
         {/* ══════════════ 全站探索 ══════════════ */}
         <section className="mt-12 pt-8 border-t border-gray-100 dark:border-gray-800">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-lg font-medium text-gray-900 dark:text-white">探索全站</h2>
+            <Link to="/stories" className="group flex items-center gap-2">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">探索全站</h2>
+              <ChevronRight size={16} className="text-gray-300 group-hover:text-blue-600 transition-all group-hover:translate-x-1" />
+            </Link>
             <div className="flex items-center gap-6">
               {['热门', '新书', '官方', '完结'].map(tab => (
                 <span key={tab} className={`text-[13px] cursor-pointer ${tab === '热门' ? 'text-gray-900 dark:text-white font-medium border-b-2 border-gray-900 dark:border-white pb-0.5' : 'text-gray-400 hover:text-gray-600'}`}>

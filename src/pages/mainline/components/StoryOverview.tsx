@@ -34,25 +34,59 @@ const StoryOverview: React.FC<StoryOverviewProps> = ({
               <span className="w-1.5 h-6 bg-purple-600 rounded-full"></span>
               最新章节
             </h3>
-            <button onClick={() => setActiveTab('chapters')} className="text-blue-600 font-bold text-sm hover:underline">查看全部章节</button>
+            <button onClick={() => setActiveTab('chapters')} className="text-blue-600 font-bold text-sm hover:underline flex items-center gap-1">
+              查看全部
+              <ArrowRight size={14} />
+            </button>
           </div>
-          <div className="space-y-4">
-            {(currentStory.chapters || []).slice(-3).map((chapter: any) => (
-              <div key={chapter.id} className="flex items-center justify-between p-4 rounded-2xl bg-gray-50 dark:bg-gray-900/50 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors group">
-                <div className="flex items-center gap-4">
-                  <span className="w-8 h-8 flex items-center justify-center bg-white dark:bg-gray-800 rounded-lg text-xs font-black text-gray-400 border border-gray-100 dark:border-gray-700">
-                    {chapter.orderIndex}
-                  </span>
-                  <div>
-                    <h4 className="font-bold text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors">{chapter.title}</h4>
-                    <span className="text-xs text-gray-400">{new Date(chapter.createdAt).toLocaleDateString()}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(currentStory.chapters || []).slice(-6).reverse().map((chapter: any, index: number) => (
+              <Link 
+                key={chapter.id} 
+                to={`/read/${chapter.id}`}
+                className={`flex flex-col p-5 rounded-2xl transition-all border group ${
+                  index === 0 
+                    ? 'bg-blue-50/50 dark:bg-blue-900/10 border-blue-200 dark:border-blue-900/40 ring-1 ring-blue-500/10' 
+                    : 'bg-gray-50 dark:bg-gray-900/50 border-transparent hover:border-blue-200 dark:hover:border-blue-800'
+                }`}
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-3">
+                    <span className={`w-10 h-10 flex items-center justify-center rounded-xl text-sm font-black border transition-colors ${
+                      index === 0
+                        ? 'bg-blue-600 text-white border-blue-500 shadow-lg shadow-blue-500/20'
+                        : 'bg-white dark:bg-gray-800 text-gray-400 border-gray-100 dark:border-gray-700 group-hover:border-blue-200 group-hover:text-blue-600'
+                    }`}>
+                      {chapter.orderIndex}
+                    </span>
+                    {index === 0 && (
+                      <div className="flex flex-col">
+                        <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[9px] font-black rounded uppercase tracking-tight w-fit">NEW</span>
+                        <span className="text-[10px] text-blue-600 font-bold mt-0.5">最新更新</span>
+                      </div>
+                    )}
                   </div>
+                  <BookOpen size={18} className={index === 0 ? 'text-blue-600' : 'text-gray-300 group-hover:text-blue-500'} />
                 </div>
-                <Link to={`/read/${chapter.id}`} className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
-                  <BookOpen size={20} />
-                </Link>
-              </div>
+                <h4 className="font-black text-gray-900 dark:text-white text-lg group-hover:text-blue-600 transition-colors mb-2 line-clamp-1">
+                  {chapter.title}
+                </h4>
+                <div className="flex items-center justify-between mt-auto pt-3 border-t border-gray-100 dark:border-gray-700/50">
+                  <div className="flex items-center gap-2 text-xs text-gray-400 font-medium">
+                    <Sparkles size={12} className="text-amber-400" />
+                    <span>约 {((chapter.content || '').length / 2).toFixed(0)} 字</span>
+                  </div>
+                  <span className="text-[10px] text-gray-400 font-bold bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">{new Date(chapter.createdAt).toLocaleDateString()}</span>
+                </div>
+              </Link>
             ))}
+            {(currentStory.chapters || []).length === 0 && (
+              <div className="col-span-full py-16 text-center bg-gray-50 dark:bg-gray-900/50 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-700">
+                <BookOpen size={48} className="mx-auto text-gray-300 mb-4 opacity-50" />
+                <p className="text-gray-400 font-black text-lg">开启宇宙的第一章吧</p>
+                <p className="text-gray-400 text-sm mt-1">目前还没有任何章节内容</p>
+              </div>
+            )}
           </div>
         </div>
 
