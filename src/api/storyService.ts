@@ -6,6 +6,7 @@ export interface Story {
   description: string;
   coverImage: string;
   authorId: string;
+  isOfficial?: boolean;
   status: 'ongoing' | 'completed' | 'paused';
   createdAt: string;
   updatedAt: string;
