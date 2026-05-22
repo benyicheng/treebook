@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { prisma } from '../prisma';
 import bcrypt from 'bcryptjs';
 import { AppError } from '../utils/http';
+import { RbacBootstrapService } from '../domains/rbac/RbacBootstrapService';
 
 export class InitController {
   /**
@@ -46,6 +47,10 @@ export class InitController {
         }
       });
 
+      try {
+        await RbacBootstrapService.ensureBaseRbac();
+      } catch {}
+
       res.status(201).json({
         message: '管理员创建成功！系统初始化完成。',
         user: {
@@ -55,6 +60,18 @@ export class InitController {
           role: admin.role
         }
       });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async bootstrapRbac(req: any, res: Response, next: NextFunction) {
+    try {
+      if (!req.user || req.user.role !== 'admin') {
+        throw new AppError(403, 'FORBIDDEN', 'Insufficient permissions');
+      }
+      const out = await RbacBootstrapService.ensureBaseRbac();
+      res.json({ success: true, data: out });
     } catch (error) {
       next(error);
     }

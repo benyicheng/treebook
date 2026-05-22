@@ -12,7 +12,7 @@ describe('useAuthStore', () => {
 
   it('login updates state on success', async () => {
     const mockUser = { id: '1', email: 'test@example.com', username: 'test', role: 'reader', permissions: [] };
-    (authService.login as any).mockResolvedValue(mockUser);
+    (authService.login as any).mockResolvedValue({ user: mockUser, token: 'token-1' });
 
     await useAuthStore.getState().login({ email: 'test@example.com', password: 'password' });
 

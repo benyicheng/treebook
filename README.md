@@ -32,6 +32,7 @@
   - `src/controllers`: 业务逻辑控制器
   - `src/routes`: API 路由定义
   - `src/middleware`: 身份认证及权限校验中间件
+  - `src/domains`: 领域模块（如 moderation、reviewWorkflow、media）
 - `prisma/`: 数据库模型定义及迁移脚本
   - `schema.prisma`: Prisma 模型定义
   - `dev.db`: 本地 SQLite 数据库文件
@@ -101,3 +102,7 @@ npm run dev
 - 每个模块应有独立文件夹。
 - 复杂逻辑应封装在 `controllers` 或 `hooks` 中。
 - 关键功能点需添加注释。
+
+## 内容管理审计与优化
+
+- 文档入口：docs/cms_audit/README.md

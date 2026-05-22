@@ -20,6 +20,10 @@ import revenueRoutes from './routes/revenue';
 import mergeRoutes from './routes/merges';
 import aiRoutes from './routes/ai';
 import initRoutes from './routes/initRoutes';
+import moderationRoutes from './routes/moderation';
+import reviewWorkflowRoutes from './routes/reviewWorkflow';
+import mediaRoutes from './routes/media';
+import editorialRoutes from './routes/editorial';
 import { trace } from './middleware/trace';
 import { errorHandler } from './middleware/errorHandler';
 
@@ -173,6 +177,10 @@ app.use('/api/savepoints', savepointRoutes);
 app.use('/api/revenue', revenueRoutes);
 app.use('/api/merges', mergeRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api/moderation', moderationRoutes);
+app.use('/api/review-workflow', reviewWorkflowRoutes);
+app.use('/api/media', mediaRoutes);
+app.use('/api/editorial', editorialRoutes);
 app.use('/api/init', initRoutes);
 
 // Health check

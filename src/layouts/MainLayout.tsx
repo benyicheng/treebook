@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, Outlet, useLocation } from 'react-router-dom';
-import { BookOpen, GitBranch, Home, Layout, Library, LogIn, LogOut, Star, User, Shield, ChevronLeft, ChevronRight, Settings2, Bell, Search, Sparkles, BookMarked, Plus, Coins, Globe, Crown, Zap } from 'lucide-react';
+import { BookOpen, GitBranch, Home, Layout, Library, LogIn, LogOut, Star, User, Shield, ShieldCheck, ChevronLeft, ChevronRight, Settings2, Bell, Search, Sparkles, BookMarked, Plus, Coins, Globe, Crown, Zap, Edit3, ClipboardCheck } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSiteConfigStore } from '../stores/useSiteConfigStore';
 import MobileNavbar from '../components/MobileNavbar';
@@ -10,7 +10,7 @@ import PermissionGate from '../components/PermissionGate';
 const MainLayout: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, logout, hasPermission } = useAuthStore();
   const { config, fetchConfig } = useSiteConfigStore();
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -66,6 +66,8 @@ const MainLayout: React.FC = () => {
   };
 
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const showAdmin =
+    hasPermission('role:read') || hasPermission('review:case:view') || hasPermission('editorial:view');
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col transition-colors duration-300">
@@ -201,13 +203,16 @@ const MainLayout: React.FC = () => {
               </div>
 
               {/* 系统工具 */}
-              <PermissionGate permission="role:read">
+              {showAdmin && (
                 <div className="space-y-3">
                   <p className="px-4 text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest">Admin Control</p>
                   <div className="space-y-1">
                     {[
-                      { path: '/admin/roles', icon: Shield, name: '角色权限' },
-                      { path: '/admin/cms', icon: Settings2, name: '站点管理' },
+                      ...(hasPermission('role:read') ? [{ path: '/admin/roles', icon: Shield, name: '角色权限' }] : []),
+                      ...(hasPermission('role:read') ? [{ path: '/admin/cms', icon: Settings2, name: '站点管理' }] : []),
+                      ...(hasPermission('role:read') ? [{ path: '/admin/moderation', icon: ShieldCheck, name: '内容审核' }] : []),
+                      ...(hasPermission('review:case:view') ? [{ path: '/admin/review-cases', icon: ClipboardCheck, name: '人工复核' }] : []),
+                      ...(hasPermission('editorial:view') ? [{ path: '/admin/editorial', icon: Edit3, name: '编辑改稿' }] : []),
                     ].map((item) => {
                       const active = isActive(item.path);
                       return (
@@ -227,7 +232,7 @@ const MainLayout: React.FC = () => {
                     })}
                   </div>
                 </div>
-              </PermissionGate>
+              )}
             </div>
 
             {/* 底部退出 */}

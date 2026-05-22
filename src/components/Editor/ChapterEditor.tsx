@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import {
   Eye, Edit3, Save, Bold, Italic, Undo, Redo,
   SeparatorHorizontal, TextQuote, Lock, Unlock, AlertTriangle,
-  Type, List, ListOrdered, Code, Strikethrough, Underline
+  Type, List, ListOrdered, Code, Strikethrough, Underline, Image
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useMarkdownEditor } from '../../hooks/useMarkdownEditor';
 import { useEditorLock } from '../../hooks/useEditorLock';
+import { mediaService, type UploadedMedia } from '../../api/mediaService';
 
 interface ChapterEditorProps {
   chapterId: string;
@@ -20,6 +21,9 @@ const ChapterEditor: React.FC<ChapterEditorProps> = ({ chapterId, storyId, initi
   const [content, setContent] = useState(initialContent);
   const [isPreview, setIsPreview] = useState(false);
   const [wordCount, setWordCount] = useState(0);
+  const [uploaded, setUploaded] = useState<UploadedMedia[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   const { lockInfo, isLockedByOthers } = useEditorLock(chapterId, storyId);
   const { 
@@ -49,6 +53,25 @@ const ChapterEditor: React.FC<ChapterEditorProps> = ({ chapterId, storyId, initi
 
   const handleRedo = () => {
     if (textareaRef.current) document.execCommand('redo');
+  };
+
+  const handleUpload = async (file: File) => {
+    setUploadError(null);
+    setIsUploading(true);
+    try {
+      const r = await mediaService.upload(file, 'chapter_inline');
+      setUploaded((prev) => [r, ...prev].slice(0, 20));
+      if (r.kind === 'image') {
+        insertMarkdown(`![${file.name}](${r.resolvedUrl})`);
+      } else {
+        insertMarkdown(`[${r.kind}:${file.name}](${r.resolvedUrl})`);
+      }
+    } catch (e: any) {
+      const msg = e?.response?.data?.message || e?.message || '上传失败';
+      setUploadError(String(msg));
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const ToolbarButton = ({ 
@@ -165,6 +188,46 @@ const ChapterEditor: React.FC<ChapterEditorProps> = ({ chapterId, storyId, initi
             <div className="flex items-center gap-1 px-2">
               <ToolbarButton onClick={applyDivider} icon={SeparatorHorizontal} title="分隔线" />
             </div>
+
+            <div className="flex items-center gap-1 pl-2 border-l border-gray-200 dark:border-gray-700">
+              <label className={`p-2 text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-200 dark:hover:bg-gray-800 rounded-lg transition-all cursor-pointer ${isUploading ? 'opacity-50 pointer-events-none' : ''}`} title="上传媒体">
+                <Image size={18} />
+                <input
+                  type="file"
+                  className="hidden"
+                  accept="image/png,image/jpeg,image/webp,audio/mpeg,audio/wav,video/mp4"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = '';
+                    if (f) void handleUpload(f);
+                  }}
+                />
+              </label>
+            </div>
+          </div>
+        )}
+
+        {!isPreview && (uploadError || uploaded.length > 0) && (
+          <div className="px-6 py-3 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+            {uploadError && (
+              <div className="text-xs font-bold text-rose-600">{uploadError}</div>
+            )}
+            {uploaded.length > 0 && (
+              <div className="mt-2 flex gap-3 overflow-x-auto">
+                {uploaded.map((m) => (
+                  <div key={m.id} className="shrink-0 w-40">
+                    <div className="text-[10px] font-bold text-gray-500 truncate">{m.kind} · {m.mimeType}</div>
+                    {m.kind === 'image' ? (
+                      <img src={m.resolvedUrl} className="mt-1 w-40 h-24 object-cover rounded-xl border border-gray-100 dark:border-gray-800" />
+                    ) : m.kind === 'audio' ? (
+                      <audio className="mt-1 w-40" controls src={m.resolvedUrl} />
+                    ) : (
+                      <video className="mt-1 w-40 h-24 rounded-xl border border-gray-100 dark:border-gray-800" controls src={m.resolvedUrl} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

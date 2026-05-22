@@ -35,7 +35,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { user, token } = await authService.login(credentials);
       set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
-      set({ error: err.response?.data?.message || err.message, isLoading: false });
+      set({ error: err.response?.data?.error?.message || err.message, isLoading: false });
+      throw err;
     }
   },
 
@@ -45,7 +46,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { user, token } = await authService.register(userData);
       set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
-      set({ error: err.response?.data?.message || err.message, isLoading: false });
+      set({ error: err.response?.data?.error?.message || err.message, isLoading: false });
+      throw err;
     }
   },
 

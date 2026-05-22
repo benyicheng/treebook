@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { SHARE_PLATFORMS } from './interaction';
 
 export const registerSchema = z.object({
   email: z.string().email('无效的邮箱格式'),
@@ -135,4 +136,110 @@ export const bulkDeleteRolesRequest = z.object({
   body: z.object({
     ids: z.array(z.string().uuid())
   })
+});
+
+const interactionTargetParamsSchema = z.object({
+  targetType: z.enum(['story', 'chapter', 'booklist', 'spinoff']),
+  targetId: z.string().uuid('无效的目标ID'),
+});
+
+export const getInteractionStatsRequest = z.object({
+  params: interactionTargetParamsSchema,
+});
+
+export const toggleLikeRequest = z.object({
+  params: interactionTargetParamsSchema,
+});
+
+export const updateRatingRequest = z.object({
+  params: interactionTargetParamsSchema,
+  body: z.object({
+    score: z.number().min(0.5).max(5),
+    reasonTags: z.array(z.string()).optional(),
+  }),
+});
+
+export const recordShareRequest = z.object({
+  params: interactionTargetParamsSchema,
+  body: z.object({
+    platform: z.enum(SHARE_PLATFORMS).optional(),
+  }),
+});
+
+export const listReviewCasesRequest = z.object({
+  query: z.object({
+    status: z.string().optional(),
+    level: z.coerce.number().int().min(1).max(5).optional(),
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+    offset: z.coerce.number().int().min(0).optional(),
+  }),
+});
+
+export const getReviewCaseRequest = z.object({
+  params: z.object({
+    id: z.string().uuid(),
+  }),
+});
+
+export const addReviewCaseActionRequest = z.object({
+  params: z.object({
+    id: z.string().uuid(),
+  }),
+  body: z.object({
+    action: z.enum(['assign', 'annotate', 'comment', 'return', 'approve', 'reject', 'close']),
+    payload: z.any().optional(),
+  }),
+});
+
+export const listEditorialChangesRequest = z.object({
+  query: z.object({
+    status: z.string().optional(),
+    targetType: z.string().optional(),
+    targetId: z.string().optional(),
+    limit: z.coerce.number().int().min(1).max(200).optional(),
+    offset: z.coerce.number().int().min(0).optional(),
+  }),
+});
+
+export const createEditorialChangeRequest = z.object({
+  body: z.object({
+    targetType: z.enum(['story', 'chapter', 'spinoff', 'booklist']),
+    targetId: z.string().uuid(),
+    field: z.enum(['title', 'description', 'content', 'coverImage', 'notes']),
+    proposed: z.string().min(1),
+    submit: z.boolean().optional(),
+    sanitize: z.boolean().optional(),
+    normalize: z.boolean().optional(),
+  }),
+});
+
+export const getEditorialChangeRequest = z.object({
+  params: z.object({
+    id: z.string().uuid(),
+  }),
+});
+
+export const applyEditorialChangeRequest = z.object({
+  params: z.object({
+    id: z.string().uuid(),
+  }),
+});
+
+export const updateBooklistItemNotesRequest = z.object({
+  params: z.object({
+    id: z.string().uuid(),
+    itemId: z.string().uuid(),
+  }),
+  body: z.object({
+    notes: z.string().max(2000).optional().nullable(),
+  }),
+});
+
+export const updateCommentRequest = z.object({
+  params: z.object({
+    commentId: z.string().uuid(),
+  }),
+  body: z.object({
+    content: z.string().min(1).max(1000),
+  }),
 });

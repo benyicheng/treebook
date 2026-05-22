@@ -402,3 +402,188 @@ model Rating {
   @@index([targetType, targetId])
   @@map("ratings")
 }
+
+model InteractionEvent {
+  id        String   @id @default(uuid())
+  type      String
+  targetType String
+  targetId  String
+  userId    String?
+  platform  String?
+  score     Float?
+  reasonTags String?
+  traceId   String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([type, createdAt])
+  @@index([targetType, targetId])
+  @@index([userId])
+  @@map("interaction_events")
+}
+
+model ModerationJob {
+  id        String   @id @default(uuid())
+  status    String
+  request   String
+  attempts  Int      @default(0)
+  nextRunAt DateTime?
+  lockedAt  DateTime?
+  lockedBy  String?
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@index([status, nextRunAt])
+  @@index([createdAt])
+  @@map("moderation_jobs")
+}
+
+model ModerationDecision {
+  id          String   @id @default(uuid())
+  jobId       String
+  businessLine String
+  targetType  String
+  targetId    String
+  contentType String
+  field       String?
+  status      String
+  labels      String
+  reasons     String
+  score       Float?
+  provider    String?
+  traceId     String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+  @@index([status])
+  @@map("moderation_decisions")
+}
+
+model ModerationAuditLog {
+  id          String   @id @default(uuid())
+  action      String
+  actorUserId String?
+  targetType  String
+  targetId    String
+  decisionId  String?
+  payload     String?
+  traceId     String?
+  createdAt   DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([targetType, targetId])
+  @@map("moderation_audit_logs")
+}
+
+model ModerationCase {
+  id               String   @id @default(uuid())
+  businessLine     String
+  targetType       String
+  targetId         String
+  contentType      String
+  field            String?
+  status           String
+  level            Int      @default(1)
+  assigneeUserId   String?
+  sourceDecisionId String?
+  snapshot         String?
+  dueAt            DateTime?
+  reopenedCount    Int      @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  actions          ModerationCaseAction[]
+
+  @@index([targetType, targetId])
+  @@index([status, updatedAt])
+  @@map("moderation_cases")
+}
+
+model EditorialChange {
+  id          String   @id @default(uuid())
+  targetType  String
+  targetId    String
+  field       String
+  status      String
+  original    String?
+  proposed    String
+  appliedBy   String?
+  createdBy   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  actions     EditorialChangeAction[]
+
+  @@index([targetType, targetId])
+  @@index([status, updatedAt])
+  @@map("editorial_changes")
+}
+
+model EditorialChangeAction {
+  id          String   @id @default(uuid())
+  change      EditorialChange @relation(fields: [changeId], references: [id], onDelete: Cascade)
+  changeId    String
+  action      String
+  actorUserId String?
+  payload     String?
+  createdAt   DateTime @default(now())
+
+  @@index([changeId, createdAt])
+  @@map("editorial_change_actions")
+}
+
+model ModerationCaseAction {
+  id          String   @id @default(uuid())
+  case        ModerationCase @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  caseId      String
+  action      String
+  actorUserId String?
+  payload     String?
+  createdAt   DateTime @default(now())
+
+  @@index([caseId, createdAt])
+  @@map("moderation_case_actions")
+}
+
+model MediaAsset {
+  id              String   @id @default(uuid())
+  ownerUserId     String?
+  purpose         String?
+  originalName    String
+  mimeType        String
+  sizeBytes       Int
+  sha256          String
+  storageProvider String
+  storagePath     String
+  status          String
+  width           Int?
+  height          Int?
+  durationMs      Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  riskLogs        MediaRiskLog[]
+
+  @@index([ownerUserId, createdAt])
+  @@index([status, updatedAt])
+  @@index([sha256])
+  @@map("media_assets")
+}
+
+model MediaRiskLog {
+  id        String   @id @default(uuid())
+  asset     MediaAsset? @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  assetId   String?
+  kind      String
+  severity  String
+  message   String
+  payload   String?
+  createdAt DateTime @default(now())
+
+  @@index([assetId, createdAt])
+  @@map("media_risk_logs")
+}

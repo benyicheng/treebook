@@ -33,6 +33,9 @@ import FeedbackPage from './pages/about/FeedbackPage';
 import ReportPage from './pages/about/ReportPage';
 import RoleManagement from './pages/admin/RoleManagement';
 import CMSPage from './pages/admin/CMSPage';
+import ModerationDashboard from './pages/admin/ModerationDashboard';
+import ReviewCasesPage from './pages/admin/ReviewCasesPage';
+import EditorialChangesPage from './pages/admin/EditorialChangesPage';
 import { useAuthStore } from './stores/useAuthStore';
 import PermissionGate from './components/PermissionGate';
 import AppErrorBoundary from './components/AppErrorBoundary';
@@ -102,6 +105,24 @@ const App: React.FC = () => {
               <Route path="admin/cms" element={
                 <PermissionGate permission="role:read" fallback={<Navigate to="/" replace />}>
                   <CMSPage />
+                </PermissionGate>
+              } />
+
+              <Route path="admin/moderation" element={
+                <PermissionGate permission="role:read" fallback={<Navigate to="/" replace />}>
+                  <ModerationDashboard />
+                </PermissionGate>
+              } />
+
+              <Route path="admin/review-cases" element={
+                <PermissionGate permission="review:case:view" fallback={<Navigate to="/" replace />}>
+                  <ReviewCasesPage />
+                </PermissionGate>
+              } />
+
+              <Route path="admin/editorial" element={
+                <PermissionGate permission="editorial:view" fallback={<Navigate to="/" replace />}>
+                  <EditorialChangesPage />
                 </PermissionGate>
               } />
               

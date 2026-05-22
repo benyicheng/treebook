@@ -203,4 +203,22 @@ export class ChapterService {
       }
     });
   }
+
+  static async updateComment(commentId: string, actorUserId: string, actorRole: string, content: string) {
+    const comment = await prisma.comment.findUnique({ where: { id: commentId } });
+    if (!comment) throw new AppError(404, 'NOT_FOUND', 'Comment not found');
+    if (comment.authorId !== actorUserId && actorRole !== 'admin') {
+      throw new AppError(403, 'FORBIDDEN', 'Insufficient permissions');
+    }
+
+    return prisma.comment.update({
+      where: { id: commentId },
+      data: { content },
+      include: {
+        author: {
+          select: { username: true, avatarUrl: true, role: true }
+        }
+      }
+    });
+  }
 }

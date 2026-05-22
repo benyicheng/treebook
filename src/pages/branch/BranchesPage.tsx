@@ -3,6 +3,7 @@ import { branchService, Branch } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { GitBranch, ShieldCheck, Clock, User, ArrowRight, MessageSquare } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 const BranchesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -41,8 +42,22 @@ const BranchesPage: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 p-8 space-y-4">
+              <Skeleton className="h-5 w-20 rounded-full" />
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-3 w-1/2" />
+              <Skeleton className="h-16 w-full" />
+              <div className="flex items-center gap-3 pt-4 border-t border-gray-50 dark:border-gray-700">
+                <Skeleton className="w-8 h-8 rounded-full" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-2.5 w-14" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">

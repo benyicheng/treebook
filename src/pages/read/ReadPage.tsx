@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { chapterService, booklistService, savepointService, Chapter, Branch, Booklist } from '../../api/storyService';
+import { chapterService, booklistService, savepointService, branchService, Chapter, Branch, Booklist } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { 
   ArrowLeft, 
@@ -18,7 +18,9 @@ import {
   AlignLeft,
   Save,
   Clock,
-  Trash2
+  Trash2,
+  FileEdit,
+  Loader2
 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import CommentSection from './CommentSection';
@@ -64,6 +66,11 @@ const ReadPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
+  // Branch creation
+  const [isBranchModalOpen, setIsBranchModalOpen] = useState(false);
+  const [branchForm, setBranchForm] = useState({ title: '', description: '' });
+  const [isCreatingBranch, setIsCreatingBranch] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchChapter(id, referralId);
@@ -78,6 +85,37 @@ const ReadPage: React.FC = () => {
       fetchSavepoints(chapter.storyId);
     }
   }, [isSavepointsOpen, chapter?.storyId]);
+
+  const handleCreateBranch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chapter) return;
+    setIsCreatingBranch(true);
+    try {
+      const newBranch = await branchService.create({
+        parentStoryId: chapter.storyId,
+        parentChapterId: chapter.id,
+        title: branchForm.title,
+        description: branchForm.description,
+        branchType: 'parallel',
+        isOfficial: false,
+      });
+      setIsBranchModalOpen(false);
+      setBranchForm({ title: '', description: '' });
+      navigate(`/branch/${newBranch.id}`);
+    } catch (err) {
+      alert('创建分支失败');
+    } finally {
+      setIsCreatingBranch(false);
+    }
+  };
+
+  const handleCreateSpinoff = () => {
+    if (!chapter) return;
+    const url = chapter.branchId
+      ? `/spinoff/create?storyId=${chapter.storyId}&branchId=${chapter.branchId}`
+      : `/spinoff/create?storyId=${chapter.storyId}`;
+    navigate(url);
+  };
 
   const fetchChapter = async (chapterId: string, refId?: string) => {
     setIsLoading(true);
@@ -221,6 +259,24 @@ const ReadPage: React.FC = () => {
             <BookMarked size={18} />
             <span className="hidden sm:inline">加入书单</span>
           </button>
+          {isAuthenticated && (
+            <>
+              <button
+                onClick={() => setIsBranchModalOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all"
+              >
+                <GitBranch size={18} />
+                <span className="hidden sm:inline">创建分支</span>
+              </button>
+              <button
+                onClick={handleCreateSpinoff}
+                className="flex items-center gap-2 px-3 py-2 text-sm font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-xl transition-all"
+              >
+                <FileEdit size={18} />
+                <span className="hidden sm:inline">创建番外</span>
+              </button>
+            </>
+          )}
           <ShareButton
             targetType="chapter"
             targetId={chapter.id}
@@ -654,6 +710,66 @@ const ReadPage: React.FC = () => {
             </div>
           </div>
         </div>
+      </Modal>
+
+      {/* Create Branch Modal */}
+      <Modal
+        isOpen={isBranchModalOpen}
+        onClose={() => setIsBranchModalOpen(false)}
+        title="创建平行宇宙分支"
+      >
+        <form onSubmit={handleCreateBranch} className="space-y-6">
+          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-2xl border border-purple-100 dark:border-purple-900/30">
+            <p className="text-xs font-bold text-purple-700 dark:text-purple-300 mb-1">
+              基于当前章节创建分支
+            </p>
+            <p className="text-[11px] text-purple-500 dark:text-purple-400">
+              《{chapter?.story?.title}》— {chapter?.title}
+            </p>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-500">分支标题 <span className="text-red-400">*</span></label>
+            <input
+              type="text"
+              required
+              className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+              placeholder="给你的平行宇宙起个名字..."
+              value={branchForm.title}
+              onChange={e => setBranchForm(f => ({ ...f, title: e.target.value }))}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-500">分支描述 <span className="text-red-400">*</span></label>
+            <textarea
+              required
+              rows={4}
+              className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-purple-500 outline-none transition-all resize-none"
+              placeholder="描述这个分支的故事走向..."
+              value={branchForm.description}
+              onChange={e => setBranchForm(f => ({ ...f, description: e.target.value }))}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={isCreatingBranch}
+            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-2xl font-black hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-purple-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            {isCreatingBranch ? (
+              <>
+                <Loader2 size={18} className="animate-spin" />
+                正在创建分支...
+              </>
+            ) : (
+              <>
+                <GitBranch size={18} />
+                创建分支
+              </>
+            )}
+          </button>
+        </form>
       </Modal>
     </div>
   );

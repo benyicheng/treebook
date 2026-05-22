@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { storyService, Story } from '../../api/storyService';
 import { BookOpen, Search, Filter, ChevronRight, Hash, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 const AllStoriesPage: React.FC = () => {
   const [stories, setStories] = useState<Story[]>([]);
@@ -53,8 +54,22 @@ const AllStoriesPage: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="flex flex-col bg-white dark:bg-gray-800 rounded-[3rem] border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <Skeleton className="aspect-[16/10] rounded-none" />
+              <div className="p-8 space-y-3">
+                <Skeleton className="h-3 w-1/4" />
+                <Skeleton className="h-7 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <div className="flex gap-2 pt-2">
+                  <Skeleton className="h-6 w-16 rounded-lg" />
+                  <Skeleton className="h-6 w-20 rounded-lg" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">

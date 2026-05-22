@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { BookOpen, PlusCircle, Star, MessageSquare } from 'lucide-react';
 import Modal from '../../components/Modal';
 import { useNavigate } from 'react-router-dom';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 const SpinoffPage: React.FC = () => {
   const navigate = useNavigate();
@@ -53,8 +54,22 @@ const SpinoffPage: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 p-8 space-y-4">
+              <Skeleton className="h-5 w-16 rounded-full" />
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-4 w-1/3" />
+              <Skeleton className="h-20 w-full" />
+              <div className="flex items-center gap-3 pt-4 border-t border-gray-50 dark:border-gray-700">
+                <Skeleton className="w-8 h-8 rounded-full" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-2.5 w-14" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -81,7 +96,9 @@ const SpinoffPage: React.FC = () => {
                   <Star size={14} className="text-amber-400 fill-amber-400" />
                   <span>原著：{spinoff.originalStory?.title}</span>
                 </div>
-                <div className="prose prose-sm dark:prose-invert line-clamp-4 text-gray-500 dark:text-gray-400 font-light leading-relaxed" dangerouslySetInnerHTML={{ __html: spinoff.content.substring(0, 300) }} />
+                <p className="prose prose-sm dark:prose-invert line-clamp-4 text-gray-500 dark:text-gray-400 font-light leading-relaxed">
+                  {spinoff.content.substring(0, 300)}
+                </p>
               </div>
 
               <div className="mt-8 pt-6 border-t border-gray-50 dark:border-gray-700 flex items-center justify-between">

@@ -173,4 +173,21 @@ export class BooklistService {
     await prisma.booklistItem.delete({ where: { id: itemId } });
     return { success: true, message: 'Item removed from booklist' };
   }
+
+  static async updateBooklistItemNotes(itemId: string, creatorId: string, userRole: string, data: any) {
+    const item = await prisma.booklistItem.findUnique({
+      where: { id: itemId },
+      include: { booklist: true },
+    });
+
+    if (!item) throw new AppError(404, 'NOT_FOUND', 'Booklist item not found');
+    if (item.booklist.creatorId !== creatorId && userRole !== 'admin') {
+      throw new AppError(403, 'FORBIDDEN', 'Insufficient permissions');
+    }
+
+    return prisma.booklistItem.update({
+      where: { id: itemId },
+      data: { notes: data?.notes },
+    });
+  }
 }

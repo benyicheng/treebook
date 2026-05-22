@@ -3,20 +3,21 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { storyService, branchService, spinoffService, booklistService, Story, Branch, Spinoff, Booklist } from '../api/storyService';
 import { useQuery } from '@tanstack/react-query';
-import { 
-  Book, 
-  GitBranch, 
-  Star, 
-  List, 
-  Settings, 
-  Plus, 
-  ChevronRight, 
+import {
+  Book,
+  GitBranch,
+  Star,
+  List,
+  Settings,
+  Plus,
+  ChevronRight,
   Clock,
   LayoutDashboard,
   User as UserIcon,
   ShieldCheck,
   Zap
 } from 'lucide-react';
+import { Skeleton } from '../components/ui/Skeleton';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
@@ -29,44 +30,58 @@ const DashboardPage: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  const { data: stories = [], isLoading: isStoriesLoading } = useQuery({
+  const { data: stories = [], isLoading: isStoriesLoading, isError: isStoriesError } = useQuery({
     queryKey: ['myStories'],
     queryFn: storyService.getMy,
     enabled: isAuthenticated,
-    refetchInterval: 5000, // Poll every 5 seconds
-    staleTime: 2000,
+    staleTime: 30000,
   });
 
   const { data: branches = [], isLoading: isBranchesLoading } = useQuery({
     queryKey: ['myBranches'],
     queryFn: branchService.getMy,
     enabled: isAuthenticated,
-    refetchInterval: 5000,
-    staleTime: 2000,
+    staleTime: 30000,
   });
 
   const { data: spinoffs = [], isLoading: isSpinoffsLoading } = useQuery({
     queryKey: ['mySpinoffs'],
     queryFn: spinoffService.getMy,
     enabled: isAuthenticated,
-    refetchInterval: 5000,
-    staleTime: 2000,
+    staleTime: 30000,
   });
 
   const { data: booklists = [], isLoading: isBooklistsLoading } = useQuery({
     queryKey: ['myBooklists'],
     queryFn: booklistService.getMy,
     enabled: isAuthenticated,
-    refetchInterval: 5000,
-    staleTime: 2000,
+    staleTime: 30000,
   });
 
   const isLoading = isStoriesLoading || isBranchesLoading || isSpinoffsLoading || isBooklistsLoading;
 
-  if (isLoading && !stories.length && !branches.length) {
+  if (isLoading && !stories?.length && !branches?.length) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="max-w-6xl mx-auto space-y-10 animate-in fade-in duration-500">
+        <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] p-10 shadow-xl border border-gray-100 dark:border-gray-800">
+          <div className="flex flex-col md:flex-row items-center gap-10">
+            <Skeleton className="w-32 h-32 rounded-full" />
+            <div className="flex-1 space-y-4 w-full">
+              <Skeleton className="h-10 w-48" />
+              <Skeleton className="h-4 w-64" />
+              <div className="flex gap-3 pt-2">
+                <Skeleton className="h-10 w-28 rounded-xl" />
+                <Skeleton className="h-10 w-28 rounded-xl" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {[1, 2].map(i => <Skeleton key={i} className="h-24 w-28 rounded-3xl" />)}
+            </div>
+          </div>
+        </div>
+        <div className="flex p-1.5 bg-white dark:bg-gray-900 rounded-2xl w-fit border border-gray-100 dark:border-gray-800">
+          {[1, 2, 3, 4, 5].map(i => <Skeleton key={i} className="h-10 w-24 rounded-xl mx-1" />)}
+        </div>
       </div>
     );
   }
@@ -280,7 +295,7 @@ const DashboardPage: React.FC = () => {
             {spinoffList.map(spinoff => (
               <Link 
                 key={spinoff.id} 
-                to={`/spinoff`}
+                to={`/spinoff/${spinoff.id}`}
                 className="group bg-white dark:bg-gray-900 p-8 rounded-[2rem] border border-gray-100 dark:border-gray-800 hover:border-amber-500 shadow-sm hover:shadow-xl transition-all"
               >
                 <div className="flex justify-between items-start mb-6">

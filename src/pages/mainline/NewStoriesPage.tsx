@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { storyService, Story } from '../../api/storyService';
 import { Clock, Zap, BookOpen, ChevronRight, LayoutGrid, LayoutList } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { Skeleton } from '../../components/ui/Skeleton';
 
 const NewStoriesPage: React.FC = () => {
   const [stories, setStories] = useState<Story[]>([]);
@@ -55,8 +56,19 @@ const NewStoriesPage: React.FC = () => {
       </div>
 
       {isLoading ? (
-        <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <div key={i} className="flex flex-col bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+              <Skeleton className="aspect-[2/3] rounded-none" />
+              <div className="p-5 space-y-3">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-3 w-1/2" />
+                <div className="pt-4 border-t border-gray-50 dark:border-gray-700">
+                  <Skeleton className="h-3 w-1/3" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <div className={viewMode === 'grid' ? "grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6 md:gap-8" : "space-y-6"}>

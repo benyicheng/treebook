@@ -5,14 +5,16 @@ import {
   deleteChapter, 
   getChapterById, 
   getComments, 
-  createComment 
+  createComment,
+  updateComment 
 } from '../controllers/chapterController';
 import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
 import { 
   createChapterRequest, 
   updateChapterRequest, 
-  createCommentRequest 
+  createCommentRequest,
+  updateCommentRequest 
 } from '../utils/validation';
 
 const router = Router();
@@ -30,6 +32,12 @@ router.post('/:id/comments',
   authenticate, 
   validateRequest(createCommentRequest), 
   createComment
+);
+
+router.put('/comments/:commentId',
+  authenticate,
+  validateRequest(updateCommentRequest),
+  updateComment
 );
 
 router.put('/:id', 

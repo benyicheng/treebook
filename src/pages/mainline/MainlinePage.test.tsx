@@ -137,7 +137,7 @@ describe('MainlinePage', () => {
     // Initial state: Overview tab
     expect(screen.getByText('故事简介')).toBeInTheDocument();
 
-    const viewAllBtn = screen.getByText('查看全部章节');
+    const viewAllBtn = screen.getByText('查看全部');
     fireEvent.click(viewAllBtn);
 
     // Should switch to Chapters tab
