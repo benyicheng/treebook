@@ -395,7 +395,7 @@ const BranchPage: React.FC = () => {
                 <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto text-gray-400">
                   <GitBranch size={40} />
                 </div>
-                <p className="text-gray-500 font-medium">这个宇宙还在孕育中，暂无章节内容</p>
+                <p className="text-gray-500 font-medium">这个世界还在孕育中，暂无章节内容</p>
                 {isAuthor && (
                   <button 
                     onClick={() => setIsChapterModalOpen(true)}

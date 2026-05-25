@@ -5,10 +5,11 @@ import { storyService, Story } from '../../api/storyService';
 import {
   Settings, Image, Megaphone, Layout, Palette, Globe, Save,
   Plus, Trash2, ChevronUp, ChevronDown, Eye, EyeOff, Check, AlertCircle,
-  Star, Search, X, GripVertical, BookOpen
+  Star, Search, X, GripVertical, BookOpen, FileText, Edit3
 } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
-type TabKey = 'basic' | 'banner' | 'announcement' | 'editor-picks' | 'footer' | 'seo';
+type TabKey = 'basic' | 'banner' | 'announcement' | 'editor-picks' | 'footer' | 'seo' | 'pages';
 
 const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'basic', label: '基本信息', icon: <Settings size={16} /> },
@@ -17,6 +18,7 @@ const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'editor-picks', label: '编辑推荐', icon: <Star size={16} /> },
   { key: 'footer', label: '页脚设置', icon: <Layout size={16} /> },
   { key: 'seo', label: '外观/SEO', icon: <Globe size={16} /> },
+  { key: 'pages', label: '页面管理', icon: <FileText size={16} /> },
 ];
 
 interface BannerSlide {
@@ -693,6 +695,41 @@ const CMSPage: React.FC = () => {
             </>
           )}
 
+          {/* ===== 页面管理 ===== */}
+          {activeTab === 'pages' && (
+            <>
+              <SectionTitle icon={<FileText size={18} />} title="页面内容管理" desc="编辑各页面的核心内容（支持 Markdown 格式）" />
+
+              <PageEditor
+                title="关于我们"
+                fieldKey="pageAboutUs"
+                value={form.pageAboutUs || ''}
+                onChange={handleChange}
+              />
+
+              <PageEditor
+                title="创作指南"
+                fieldKey="pageCreationGuide"
+                value={form.pageCreationGuide || ''}
+                onChange={handleChange}
+              />
+
+              <PageEditor
+                title="版权保护"
+                fieldKey="pageCopyright"
+                value={form.pageCopyright || ''}
+                onChange={handleChange}
+              />
+
+              <PageEditor
+                title="帮助中心"
+                fieldKey="pageHelp"
+                value={form.pageHelp || ''}
+                onChange={handleChange}
+              />
+            </>
+          )}
+
           {/* ===== 外观/SEO ===== */}
           {activeTab === 'seo' && (
             <>
@@ -740,6 +777,55 @@ const CMSPage: React.FC = () => {
 
         </div>
       </div>
+    </div>
+  );
+};
+
+const PageEditor: React.FC<{
+  title: string;
+  fieldKey: keyof SiteConfig;
+  value: string;
+  onChange: (key: keyof SiteConfig, value: string) => void;
+}> = ({ title, fieldKey, value, onChange }) => {
+  const [preview, setPreview] = useState(false);
+
+  return (
+    <div className="space-y-3 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
+      <div className="flex items-center justify-between">
+        <h4 className="text-sm font-black text-gray-900 dark:text-white">{title}</h4>
+        <button
+          type="button"
+          onClick={() => setPreview(!preview)}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+            preview
+              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+          }`}
+        >
+          {preview ? <Edit3 size={12} /> : <Eye size={12} />}
+          {preview ? '编辑' : '预览'}
+        </button>
+      </div>
+      {preview ? (
+        <div className="prose prose-sm dark:prose-invert max-w-none min-h-[120px] p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
+          {value ? (
+            <ReactMarkdown>{value}</ReactMarkdown>
+          ) : (
+            <p className="text-gray-400 italic">暂未设置内容，将显示默认页面。</p>
+          )}
+        </div>
+      ) : (
+        <textarea
+          value={value}
+          onChange={e => onChange(fieldKey, e.target.value)}
+          placeholder={`输入 ${title} 页面的 Markdown 内容...（留空则显示默认页面）`}
+          rows={8}
+          className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-y font-mono"
+        />
+      )}
+      <p className="text-xs text-gray-400">
+        支持 Markdown 格式。留空则使用页面默认内容。
+      </p>
     </div>
   );
 };

@@ -4,6 +4,7 @@ import {
   updateChapter, 
   deleteChapter, 
   getChapterById, 
+  getChaptersByStory,
   getComments, 
   createComment,
   updateComment 
@@ -19,6 +20,7 @@ import {
 
 const router = Router();
 
+router.get('/stories/:storyId', getChaptersByStory);
 router.get('/:id', getChapterById);
 router.get('/:id/comments', getComments);
 

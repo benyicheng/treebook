@@ -50,6 +50,14 @@ export const getChapterById = catchAsync(async (req: Request, res: Response) => 
   res.json({ success: true, data: chapter });
 });
 
+export const getChaptersByStory = catchAsync(async (req: Request, res: Response) => {
+  const { storyId } = req.params;
+  const branchId = req.query.branchId as string | undefined;
+  const includeBranches = req.query.includeBranches === 'true';
+  const chapters = await ChapterService.getByStory(storyId, branchId ?? null, includeBranches);
+  res.json({ success: true, data: chapters });
+});
+
 export const getComments = catchAsync(async (req: Request, res: Response) => {
   const comments = await ChapterService.getComments(req.params.id);
   res.json({ success: true, data: comments });

@@ -18,6 +18,10 @@ export interface SiteConfig {
   icp: string;
   socialWeixin: string;
   socialWeibo: string;
+  pageAboutUs: string;
+  pageCreationGuide: string;
+  pageCopyright: string;
+  pageHelp: string;
 }
 
 // 默认配置
@@ -36,6 +40,10 @@ const DEFAULT_CONFIG: SiteConfig = {
   icp: '',
   socialWeixin: '',
   socialWeibo: '',
+  pageAboutUs: '',
+  pageCreationGuide: '',
+  pageCopyright: '',
+  pageHelp: '',
 };
 
 // Store 接口定义

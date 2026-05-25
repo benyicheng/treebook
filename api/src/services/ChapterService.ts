@@ -177,6 +177,47 @@ export class ChapterService {
     };
   }
 
+  static async getByStory(storyId: string, branchId?: string | null, includeBranches?: boolean) {
+    if (includeBranches) {
+      // Return ALL chapters for the story across all tracks, with branch info for grouping
+      return prisma.chapter.findMany({
+        where: { storyId },
+        orderBy: [
+          { branchId: 'asc' },
+          { orderIndex: 'asc' }
+        ],
+        select: {
+          id: true,
+          title: true,
+          orderIndex: true,
+          isBranchPoint: true,
+          branchId: true,
+          createdAt: true,
+          branch: {
+            select: { id: true, title: true }
+          }
+        }
+      });
+    }
+    const where: any = { storyId };
+    if (branchId !== undefined) {
+      where.branchId = branchId;
+    } else {
+      where.branchId = null; // main story chapters
+    }
+    return prisma.chapter.findMany({
+      where,
+      orderBy: { orderIndex: 'asc' },
+      select: {
+        id: true,
+        title: true,
+        orderIndex: true,
+        isBranchPoint: true,
+        createdAt: true,
+      }
+    });
+  }
+
   static async getComments(chapterId: string) {
     return prisma.comment.findMany({
       where: { chapterId },

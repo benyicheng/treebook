@@ -7,6 +7,7 @@ interface StoryOverviewProps {
   isAuthenticated: boolean;
   setActiveTab: (tab: any) => void;
   handleCreateSpinoff: (branchId?: string) => void;
+  setIsBranchModalOpen?: (open: boolean) => void;
 }
 
 const StoryOverview: React.FC<StoryOverviewProps> = ({
@@ -14,6 +15,7 @@ const StoryOverview: React.FC<StoryOverviewProps> = ({
   isAuthenticated,
   setActiveTab,
   handleCreateSpinoff,
+  setIsBranchModalOpen,
 }) => {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -249,7 +251,7 @@ const StoryOverview: React.FC<StoryOverviewProps> = ({
             觉得故事结局不尽如人意？在任何章节创建你的平行宇宙分支，开启全新的故事线。
           </p>
           <button 
-            onClick={() => setActiveTab('tree')}
+            onClick={() => setIsBranchModalOpen?.(true)}
             className="w-full py-4 bg-white text-blue-600 rounded-2xl font-black hover:bg-blue-50 transition-all shadow-lg active:scale-95"
           >
             开启新分支

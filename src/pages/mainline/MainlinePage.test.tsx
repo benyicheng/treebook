@@ -127,6 +127,20 @@ describe('MainlinePage', () => {
     expect(screen.getByDisplayValue('Test Story')).toBeInTheDocument();
   });
 
+  it('opens branch creation modal when clicking "开启新分支"', () => {
+    render(
+      <MemoryRouter>
+        <MainlinePage />
+      </MemoryRouter>
+    );
+
+    const branchBtn = screen.getByText('开启新分支');
+    fireEvent.click(branchBtn);
+
+    expect(screen.getByText('创建平行宇宙分支')).toBeInTheDocument();
+    expect(screen.getByText('开启新宇宙')).toBeInTheDocument();
+  });
+
   it('switches to chapters tab when "View All Chapters" is clicked', () => {
     render(
       <MemoryRouter>

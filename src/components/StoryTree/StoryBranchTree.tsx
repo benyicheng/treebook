@@ -5,19 +5,19 @@ import ReactFlow, {
   Background, 
   Controls, 
   MiniMap, 
-  Position, 
   MarkerType 
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Chapter, Branch } from '../../api/storyService';
+import { Chapter, Branch, Spinoff } from '../../api/storyService';
 import { nodeTypes } from './CustomNodes';
 
 interface StoryBranchTreeProps {
   chapters: Chapter[];
   branches: Branch[];
+  spinoffs?: Spinoff[];
   readingHistory?: any[]; // 传入已读历史
   savepoints?: any[];      // 传入存档点
-  onNodeClick?: (nodeId: string, type: 'chapter' | 'branch') => void;
+  onNodeClick?: (nodeId: string, type: 'chapter' | 'branch' | 'spinoff') => void;
 }
 
 const CHAPTER_X_STEP = 280;
@@ -28,6 +28,7 @@ const BRANCH_Y_STEP = 130;
 const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({ 
   chapters, 
   branches, 
+  spinoffs = [], 
   readingHistory = [], 
   savepoints = [], 
   onNodeClick 
@@ -132,8 +133,86 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({
       });
     });
 
+    // === 番外节点 (Spinoffs) ===
+    if (spinoffs.length > 0) {
+      // 计算分支区域的最大纵坐标，决定番外的起始行
+      const branchSlotCounts = Object.values(branchesByParent).map(g => g.length);
+      const maxBranchSlots = Math.max(1, ...branchSlotCounts, 0);
+      const spinoffY = BRANCH_Y_START + maxBranchSlots * BRANCH_Y_STEP + 80;
+
+      // 主线中点 x（用于无分支关联的番外定位）
+      const mainlineMidX = mainlineChapters.length > 0
+        ? (chapterXMap[mainlineChapters[0].id] + chapterXMap[mainlineChapters[mainlineChapters.length - 1].id]) / 2
+        : 0;
+
+      // 分离有分支关联和无分支的番外
+      const spinoffsWithBranch = spinoffs.filter(s => s.originalBranchId);
+      const spinoffsWithoutBranch = spinoffs.filter(s => !s.originalBranchId);
+
+      // 无分支关联的番外：居中排列
+      spinoffsWithoutBranch.forEach((spinoff, index) => {
+        const xPos = mainlineMidX + (index - (spinoffsWithoutBranch.length - 1) / 2) * CHAPTER_X_STEP;
+
+        nodes.push({
+          id: `spinoff-${spinoff.id}`,
+          type: 'spinoff',
+          data: {
+            label: spinoff.title || '番外',
+            spinoffType: spinoff.type,
+            isOfficial: spinoff.isOfficial,
+            authorName: spinoff.author?.username,
+          },
+          position: { x: xPos, y: spinoffY },
+        });
+
+        // 从第一个主线章节连接到番外（表达「故事衍生」）
+        if (mainlineChapters.length > 0) {
+          edges.push({
+            id: `edge-spinoff-${spinoff.id}`,
+            source: `chapter-${mainlineChapters[0].id}`,
+            target: `spinoff-${spinoff.id}`,
+            animated: true,
+            style: {
+              stroke: spinoff.isOfficial ? '#f59e0b' : '#818cf8',
+              strokeWidth: 2,
+              strokeDasharray: '6,4',
+            },
+            markerEnd: { type: MarkerType.ArrowClosed, color: spinoff.isOfficial ? '#f59e0b' : '#818cf8' },
+          });
+        }
+      });
+
+      // 有分支关联的番外：排列在对应分支下方
+      spinoffsWithBranch.forEach((spinoff, index) => {
+        nodes.push({
+          id: `spinoff-${spinoff.id}`,
+          type: 'spinoff',
+          data: {
+            label: spinoff.title || '番外',
+            spinoffType: spinoff.type,
+            isOfficial: spinoff.isOfficial,
+            authorName: spinoff.author?.username,
+          },
+          position: { x: mainlineMidX + (index - (spinoffsWithBranch.length - 1) / 2) * CHAPTER_X_STEP, y: spinoffY + 120 },
+        });
+
+        edges.push({
+          id: `edge-spinoff-${spinoff.id}`,
+          source: `branch-${spinoff.originalBranchId}`,
+          target: `spinoff-${spinoff.id}`,
+          animated: true,
+          style: {
+            stroke: spinoff.isOfficial ? '#f59e0b' : '#818cf8',
+            strokeWidth: 2,
+            strokeDasharray: '6,4',
+          },
+          markerEnd: { type: MarkerType.ArrowClosed, color: spinoff.isOfficial ? '#f59e0b' : '#818cf8' },
+        });
+      });
+    }
+
     return { nodes, edges };
-  }, [chapters, branches]);
+  }, [chapters, branches, spinoffs]);
 
   return (
     <div className="w-full h-[650px] border border-gray-200 dark:border-gray-800 rounded-[2rem] overflow-hidden bg-[#fafbff] dark:bg-gray-950 shadow-inner">
@@ -142,10 +221,13 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({
         edges={edges}
         nodeTypes={nodeTypes}
         onNodeClick={(_, node) => {
-          let type: 'chapter' | 'branch';
+          let type: 'chapter' | 'branch' | 'spinoff';
           let id: string;
 
-          if (node.id.startsWith('branch-')) {
+          if (node.id.startsWith('spinoff-')) {
+            type = 'spinoff';
+            id = node.id.slice(8);
+          } else if (node.id.startsWith('branch-')) {
             type = 'branch';
             id = node.id.slice(7);
           } else {
@@ -165,6 +247,7 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({
         <MiniMap 
           nodeColor={(node) => {
             if (node.type === 'chapter') return '#3b82f6';
+            if (node.type === 'spinoff') return (node.data as any).isOfficial ? '#f59e0b' : '#818cf8';
             return (node.data as any).isOfficial ? '#f59e0b' : '#8b5cf6';
           }}
           className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-lg"

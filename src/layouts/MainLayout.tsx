@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, Outlet, useLocation } from 'react-router-dom';
-import { BookOpen, GitBranch, Home, Layout, Library, LogIn, LogOut, Star, User, Shield, ShieldCheck, ChevronLeft, ChevronRight, Settings2, Bell, Search, Sparkles, BookMarked, Plus, Coins, Globe, Crown, Zap, Edit3, ClipboardCheck } from 'lucide-react';
+import { GitBranch, Home, Layout, LogOut, Star, User, Shield, ShieldCheck, Settings2, Bell, Search, BookMarked, Plus, Coins, Crown, Zap, Edit3, ClipboardCheck } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSiteConfigStore } from '../stores/useSiteConfigStore';
 import MobileNavbar from '../components/MobileNavbar';
@@ -36,11 +36,11 @@ const MainLayout: React.FC = () => {
   // 顶部主要分类入口
   const categoryItems = [
     { name: '首页', path: '/', icon: Home },
-    { name: '主线宇宙', path: '/stories', icon: Crown },
-    { name: '平行分支', path: '/branches', icon: GitBranch },
+    { name: '主线', path: '/stories', icon: Crown },
+    { name: '分支', path: '/branches', icon: GitBranch },
     { name: '编辑精选', path: '/recommendations', icon: Star },
-    { name: '新书速递', path: '/new', icon: Zap },
-    { name: '精选书单', path: '/booklist', icon: BookMarked },
+    { name: '新书', path: '/new', icon: Zap },
+    { name: '书单', path: '/booklist', icon: BookMarked },
   ];
 
   // 左侧管理功能入口

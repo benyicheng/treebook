@@ -88,7 +88,7 @@ npx tsx prisma/seed.ts
 # 启动前端 (默认端口 5173)
 npm run dev
 
-# 启动后端 (默认端口 3000)
+# 启动后端 (默认端口 3001)
 cd api
 npm run dev
 ```

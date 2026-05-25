@@ -2,6 +2,7 @@ import path from 'path';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { Server } from 'socket.io';
 import http from 'http';
@@ -81,6 +82,16 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 // 静态文件服务：提供前端编译后的资源
 const distPath = path.join(process.cwd(), 'dist');
 app.use(express.static(distPath));
+
+// Global rate limiter: 100 requests per minute per IP (generous in dev for hot-reload)
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: process.env.NODE_ENV === 'production' ? 100 : 500,
+  message: { error: 'TOO_MANY_REQUESTS', message: 'Too many requests, please slow down' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api/', globalLimiter);
 
 // Request logging middleware
 app.use((req, res, next) => {

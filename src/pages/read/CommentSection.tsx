@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { chapterService, Comment } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { MessageSquare, Send, User, Clock, Trash2 } from 'lucide-react';
+import { MessageSquare, Send, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface CommentSectionProps {

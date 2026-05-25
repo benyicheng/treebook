@@ -48,16 +48,4 @@ export class AIGenerationService {
     };
   }
 
-  /**
-   * 宇宙视觉风格同步 (Visual Style Consistency)
-   * 通过对原著描述的分析，生成一致的风格参数 (ControlNet/LoRA)
-   */
-  static async getUniverseVisualParams(storyId: string) {
-    // 逻辑：分析故事所有章节内容，提取视觉关键词
-    return {
-      basePrompt: "Cyberpunk aesthetic, neon lighting, highly detailed",
-      negativePrompt: "low quality, blurry, extra limbs",
-      loraId: "story-style-v1"
-    };
-  }
 }

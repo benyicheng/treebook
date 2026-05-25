@@ -33,14 +33,6 @@ export interface Chapter {
   createdAt: string;
 }
 
-export interface Tag {
-  id: string;
-  name: string;
-  _count?: {
-    stories: number;
-  };
-}
-
 export interface Branch {
   id: string;
   parentStoryId: string;
@@ -197,6 +189,14 @@ export const chapterService = {
     return data.data || data;
   },
 
+  getByStory: async (storyId: string, branchId?: string, includeBranches?: boolean) => {
+    const params: any = {};
+    if (branchId) params.branchId = branchId;
+    if (includeBranches) params.includeBranches = 'true';
+    const { data } = await client.get<any>(`/chapters/stories/${storyId}`, { params });
+    return data.data || data;
+  },
+
   create: async (chapterData: Partial<Chapter>) => {
     const { data } = await client.post<any>('/chapters', chapterData);
     return data.data || data;
@@ -272,19 +272,6 @@ export const branchService = {
     return data.data || data;
   },
 };
-
-export interface ReadingSavepoint {
-  id: string;
-  userId: string;
-  storyId: string;
-  branchId?: string;
-  chapterId: string;
-  name?: string;
-  createdAt: string;
-  chapter?: { title: string; orderIndex: number };
-  branch?: { title: string };
-  story?: { title: string };
-}
 
 export const savepointService = {
   create: async (savepointData: { storyId: string, branchId?: string, chapterId: string, name?: string }) => {

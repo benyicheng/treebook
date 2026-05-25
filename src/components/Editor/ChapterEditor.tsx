@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import {
   Eye, Edit3, Save, Bold, Italic, Undo, Redo,
   SeparatorHorizontal, TextQuote, Lock, Unlock, AlertTriangle,
-  Type, List, ListOrdered, Code, Strikethrough, Underline, Image
+  Type, List, ListOrdered, Code, Strikethrough, Image
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useAuthStore } from '../../stores/useAuthStore';

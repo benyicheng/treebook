@@ -1,6 +1,22 @@
 import React from 'react';
+import { useSiteConfigStore } from '../../stores/useSiteConfigStore';
+import ReactMarkdown from 'react-markdown';
 
 const AuthorGuidePage: React.FC = () => {
+  const { config } = useSiteConfigStore();
+
+  if (config.pageCreationGuide) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm">
+          <div className="prose prose-lg dark:prose-invert max-w-none">
+            <ReactMarkdown>{config.pageCreationGuide}</ReactMarkdown>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm">

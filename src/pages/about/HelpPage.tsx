@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
+import { useSiteConfigStore } from '../../stores/useSiteConfigStore';
+import ReactMarkdown from 'react-markdown';
 
 const HelpPage: React.FC = () => {
+  const { config } = useSiteConfigStore();
   const [expandedItem, setExpandedItem] = useState<number | null>(null);
 
   const faqItems = [
@@ -52,6 +55,12 @@ const HelpPage: React.FC = () => {
         <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-8">
           常见问题
         </h1>
+
+        {config.pageHelp && (
+          <div className="prose prose-lg dark:prose-invert max-w-none mb-8 pb-8 border-b border-gray-100 dark:border-gray-800">
+            <ReactMarkdown>{config.pageHelp}</ReactMarkdown>
+          </div>
+        )}
 
         <div className="space-y-4">
           {faqItems.map((item, index) => (

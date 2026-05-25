@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { booklistService, storyService, Booklist, Chapter, Story } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import Modal from '../../components/Modal';
@@ -7,29 +7,18 @@ import {
   ArrowLeft, 
   CheckCircle2,
   Play, 
-  MapPin, 
-  User, 
-  Calendar, 
-  BookOpen, 
-  ChevronRight,
-  ChevronLeft,
-  GitBranch,
-  Quote,
-  Edit3,
-  Trash2,
-  GripVertical,
-  Plus,
-  X,
-  Save,
-  AlertCircle,
-  Search,
-  Check,
   ArrowUp,
   ArrowDown,
   Heart,
   Share2,
   Eye,
-  MoreHorizontal,
+  Edit3,
+  Trash2,
+  Plus,
+  X,
+  AlertCircle,
+  Search,
+  Check,
   Copy,
   Twitter,
   Facebook,
@@ -37,6 +26,10 @@ import {
   Link2
 } from 'lucide-react';
 import { interactionService, InteractionStats } from '../../api/interactionService';
+import BooklistHeader from './components/BooklistHeader';
+import BooklistTimeline from './components/BooklistTimeline';
+import ReadingDrawer from './components/ReadingDrawer';
+import { useBooklistProgress } from '../../hooks/useBooklistProgress';
 
 const BooklistDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -79,6 +72,24 @@ const BooklistDetailPage: React.FC = () => {
   const [newItemNotes, setNewItemNotes] = useState('');
   const [isLoadingChapters, setIsLoadingChapters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // 阅读抽屉状态
+  const [isReadingDrawerOpen, setIsReadingDrawerOpen] = useState(false);
+  const [drawerStartIndex, setDrawerStartIndex] = useState(0);
+
+  // 阅读进度追踪
+  const {
+    isCompleted,
+    continueReading,
+    setCurrentItem,
+    markCompleted,
+    completionPercentage,
+    completedCount,
+    totalItems,
+  } = useBooklistProgress({
+    booklistId: id || '',
+    totalItems: booklist?.items?.length || 0,
+  });
 
   useEffect(() => {
     if (id) {
@@ -345,6 +356,29 @@ const BooklistDetailPage: React.FC = () => {
     }
   };
 
+  // 打开阅读抽屉
+  const handleOpenReadingDrawer = (item?: any, index?: number) => {
+    if (item !== undefined && index !== undefined) {
+      setDrawerStartIndex(index);
+      setCurrentItem(index);
+    } else {
+      // Start journey / continue reading
+      const startIdx = continueReading();
+      setDrawerStartIndex(startIdx);
+      setCurrentItem(startIdx);
+    }
+    setIsReadingDrawerOpen(true);
+  };
+
+  // 阅读抽屉进度回调
+  const handleDrawerProgress = (index: number, completed: boolean) => {
+    if (completed) {
+      const item = booklist?.items?.[index];
+      if (item) markCompleted(item.id);
+    }
+    setCurrentItem(index);
+  };
+
   if (isLoading || !booklist) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -355,289 +389,42 @@ const BooklistDetailPage: React.FC = () => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-12 pb-20">
-      {/* Header Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 md:p-12 shadow-xl border border-gray-100 dark:border-gray-700 space-y-8 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
-        
-        <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm font-bold text-gray-500 hover:text-emerald-600 transition-colors">
-          <ArrowLeft size={16} />
-          返回书单列表
-        </button>
+      <BooklistHeader
+        booklist={booklist}
+        isCreator={isCreator}
+        stats={stats}
+        completedCount={completedCount}
+        totalItems={totalItems}
+        onStartJourney={() => handleOpenReadingDrawer()}
+        onToggleLike={handleToggleLike}
+        onShare={() => setIsShareModalOpen(true)}
+        onEdit={() => setIsEditModalOpen(true)}
+        onDelete={() => setIsDeleteModalOpen(true)}
+      />
 
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-8">
-          <div className="space-y-4 flex-1">
-            <div className="flex items-center gap-2">
-              <span className={`px-3 py-1 text-white text-xs font-black rounded-full uppercase tracking-wider shadow-sm ${
-                (booklist as any).type === 'TIMELINE' ? 'bg-indigo-600' : 'bg-emerald-600'
-              }`}>
-                {(booklist as any).type === 'TIMELINE' ? '时空导览' : '精选书单'}
-              </span>
-              {(booklist as any).tags?.split(',').filter(Boolean).map(tag => (
-                <span key={tag} className="px-2 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 text-[10px] font-bold rounded-lg">
-                  #{tag.trim()}
-                </span>
-              ))}
-              <span className="px-3 py-1 bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-xs font-black rounded-full uppercase tracking-wider">
-                {booklist.items.length} 站
-              </span>
-              {stats && (
-                <div className="flex items-center gap-4 ml-4 text-gray-400">
-                  <div className="flex items-center gap-1.5" title="阅读次数">
-                    <Eye size={14} />
-                    <span className="text-xs font-bold">{(stats as any).viewCount}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5" title="点赞数">
-                    <Heart size={14} className={stats.liked ? "fill-red-500 text-red-500" : ""} />
-                    <span className="text-xs font-bold">{stats.likeCount}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5" title="分享次数">
-                    <Share2 size={14} />
-                    <span className="text-xs font-bold">{stats.shareCount}</span>
-                  </div>
-                </div>
-              )}
-            </div>
-            <h1 className="text-4xl md:text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-tight">
-              {booklist.title}
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-xl font-light leading-relaxed max-w-2xl italic">
-              "{booklist.description || '这位导游很懒，没有留下任何简介。'}"
-            </p>
-            <div className="flex items-center gap-6 pt-4 text-gray-400">
-              <div className="flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400 font-bold">
-                  {booklist.creator?.username?.[0] || 'U'}
-                </div>
-                <div className="text-left">
-                  <p className="text-xs font-black uppercase tracking-widest leading-none mb-1">策划人</p>
-                  <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{booklist.creator?.username}</p>
-                </div>
-              </div>
-              <div className="h-8 w-[1px] bg-gray-100 dark:bg-gray-700"></div>
-              <div className="text-left">
-                <p className="text-xs font-black uppercase tracking-widest leading-none mb-1">最后更新</p>
-                <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{new Date(booklist.updatedAt).toLocaleDateString()}</p>
-              </div>
-              {isCreator && (
-                <>
-                  <div className="h-8 w-[1px] bg-gray-100 dark:bg-gray-700"></div>
-                  <div className="text-left">
-                    <p className="text-xs font-black uppercase tracking-widest leading-none mb-1 text-emerald-600">累计分润</p>
-                    <p className="text-sm font-bold text-emerald-600">{((booklist as any).totalEarnings || 0).toFixed(2)} USD</p>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-          
-          <div className="flex flex-col gap-3 min-w-[240px]">
-            <button 
-              onClick={() => booklist.items[0] && navigate(`/read/${booklist.items[0].chapterId}?referralId=${booklist.id}`)}
-              className="w-full flex items-center justify-center gap-3 px-10 py-5 bg-emerald-600 text-white rounded-2xl font-black text-lg hover:bg-emerald-700 transition-all shadow-xl shadow-emerald-500/20 active:scale-95 group"
-            >
-              <Play size={24} fill="currentColor" className="group-hover:scale-110 transition-transform" />
-              开始旅程
-            </button>
-            
-            <div className="flex gap-2">
-              <button
-                onClick={handleToggleLike}
-                className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all border ${
-                  stats?.liked 
-                    ? "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-900/30" 
-                    : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700"
-                }`}
-              >
-                <Heart size={18} className={stats?.liked ? "fill-red-500" : ""} />
-                {stats?.liked ? '已点赞' : '点赞'}
-              </button>
-              
-              <button
-                onClick={() => setIsShareModalOpen(true)}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-100 dark:border-gray-700 rounded-xl font-bold text-sm hover:bg-gray-50 dark:hover:bg-gray-700 transition-all"
-              >
-                <Share2 size={18} />
-                分享
-              </button>
-            </div>
+      <BooklistTimeline
+        items={booklist.items || []}
+        booklistId={booklist.id}
+        isCreator={isCreator}
+        onAddChapter={openAddChapterModal}
+        onRead={(item, index) => handleOpenReadingDrawer(item, index)}
+        onEditNotes={(item) => {
+          setEditingItem(item);
+          setItemNotes(item.notes || '');
+        }}
+        onMoveItem={handleMoveItem}
+        onRemoveItem={handleRemoveItem}
+      />
 
-            {isCreator && (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setIsEditModalOpen(true)}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
-                >
-                  <Edit3 size={16} />
-                  编辑书单
-                </button>
-                <button
-                  onClick={() => setIsDeleteModalOpen(true)}
-                  className="flex items-center justify-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-bold text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
-                >
-                  <Trash2 size={16} />
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Guided Tour Path */}
-      <div className="space-y-12 px-4 relative">
-        <div className="absolute left-10 md:left-12 top-0 bottom-0 w-1 bg-gradient-to-b from-emerald-500 via-emerald-500/20 to-transparent rounded-full -z-10"></div>
-        
-        <div className="ml-20 md:ml-24 flex items-center justify-between">
-          <h2 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-            <MapPin className="text-emerald-600" />
-            阅读路线详情
-          </h2>
-          {isCreator && (
-            <button
-              onClick={openAddChapterModal}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-xl font-bold text-sm hover:bg-emerald-700 transition-all"
-            >
-              <Plus size={16} />
-              添加章节
-            </button>
-          )}
-        </div>
-
-        <div className="space-y-12">
-          {booklist.items.map((item, index) => (
-            <div key={item.id} className="relative flex gap-8 md:gap-12 animate-in slide-in-from-bottom-8 duration-500" style={{ animationDelay: `${index * 100}ms` }}>
-              {/* Timeline Marker */}
-              <div className="relative flex flex-col items-center">
-                <div className="w-20 h-20 rounded-3xl bg-white dark:bg-gray-800 border-4 border-emerald-500 shadow-xl flex items-center justify-center text-3xl font-black text-emerald-600 z-10">
-                  {(index + 1).toString().padStart(2, '0')}
-                </div>
-                {index < booklist.items.length - 1 && (
-                  <div className="absolute top-20 bottom-[-48px] w-1 bg-emerald-500 rounded-full"></div>
-                )}
-              </div>
-
-              {/* Station Card */}
-              <div className="flex-1 space-y-6 pt-4">
-                <div className="bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all group">
-                  <div className="flex flex-col md:flex-row justify-between gap-6 mb-8">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-3">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                          item.chapter.branchId ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
-                        }`}>
-                          {item.chapter.branchId ? '平行分支' : '主线章节'}
-                        </span>
-                        <span className="text-xs font-bold text-gray-400">
-                          {item.chapter.story.title}
-                        </span>
-                      </div>
-                      <h3 className="text-2xl font-black text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors">
-                        {item.chapter.title}
-                      </h3>
-                    </div>
-                    <Link 
-                      to={`/read/${item.chapterId}${booklist ? `?referralId=${booklist.id}` : ''}`}
-                      className="inline-flex items-center justify-center gap-2 px-6 py-3 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl font-bold text-sm hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600 transition-all active:scale-95"
-                    >
-                      阅读此章节
-                      <ChevronRight size={16} />
-                    </Link>
-                  </div>
-
-                  {(item.notes || isCreator) && (
-                    <div className="p-6 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border-l-4 border-emerald-500 space-y-2">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-emerald-600 font-black text-xs uppercase tracking-widest">
-                          <Quote size={14} fill="currentColor" />
-                          导游点评
-                        </div>
-                        {isCreator && (
-                          <button
-                            onClick={() => {
-                              setEditingItem(item);
-                              setItemNotes(item.notes || '');
-                            }}
-                            className="text-gray-400 hover:text-emerald-600 transition-colors"
-                          >
-                            <Edit3 size={14} />
-                          </button>
-                        )}
-                      </div>
-                      {item.notes ? (
-                        <p className="text-gray-600 dark:text-gray-400 text-lg font-light leading-relaxed italic">
-                          {item.notes}
-                        </p>
-                      ) : (
-                        <p className="text-gray-400 text-sm italic">暂无点评，点击编辑添加...</p>
-                      )}
-                    </div>
-                  )}
-                  
-                  <div className="mt-6 flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
-                      <div className="flex items-center gap-1.5">
-                        <User size={14} />
-                        {item.chapter?.story?.author?.username || '未知作者'}
-                      </div>
-                      <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
-                      <div className="flex items-center gap-1.5">
-                        <BookOpen size={14} />
-                        约 {((item.chapter?.content?.length || 0) / 2).toFixed(0)} 字
-                      </div>
-                    </div>
-                    
-                    {isCreator && (
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleMoveItem(item.id, 'up')}
-                          disabled={index === 0}
-                          className="text-gray-300 hover:text-emerald-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                          title="上移"
-                        >
-                          <ArrowUp size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleMoveItem(item.id, 'down')}
-                          disabled={index === booklist.items.length - 1}
-                          className="text-gray-300 hover:text-emerald-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                          title="下移"
-                        >
-                          <ArrowDown size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleRemoveItem(item.id)}
-                          className="text-gray-300 hover:text-red-500 transition-colors ml-2"
-                          title="删除此章节"
-                        >
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Journey End */}
-        <div className="ml-20 md:ml-24 pt-12 pb-20">
-          <div className="flex flex-col items-center justify-center text-center p-12 bg-gray-100 dark:bg-gray-900/30 rounded-3xl border-2 border-dashed border-gray-200 dark:border-gray-800 space-y-4">
-            <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full shadow-lg flex items-center justify-center text-emerald-600">
-              <CheckCircle2 size={32} />
-            </div>
-            <div className="space-y-1">
-              <h3 className="text-xl font-black text-gray-900 dark:text-white">旅程终点</h3>
-              <p className="text-gray-500 dark:text-gray-400 font-medium">这就是本条阅读路线的所有推荐内容。</p>
-            </div>
-            <button 
-              onClick={() => navigate('/booklist')}
-              className="mt-4 px-8 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-xl font-black text-sm hover:shadow-lg transition-all active:scale-95"
-            >
-              探索更多路线
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Reading Drawer (方案A) */}
+      <ReadingDrawer
+        isOpen={isReadingDrawerOpen}
+        onClose={() => setIsReadingDrawerOpen(false)}
+        items={booklist.items || []}
+        initialIndex={drawerStartIndex}
+        booklistTitle={booklist.title}
+        onProgressUpdate={handleDrawerProgress}
+      />
 
       {/* 编辑书单弹窗 */}
       <Modal

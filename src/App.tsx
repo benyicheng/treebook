@@ -67,24 +67,24 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={<MainLayout />}>
               <Route index element={<Home />} />
-              <Route path="story/create" element={<CreateStoryPage />} />
-              <Route path="story/:id" element={<MainlinePage />} />
-              <Route path="stories" element={<AllStoriesPage />} />
-              <Route path="recommendations" element={<RecommendationsPage />} />
-              <Route path="new" element={<NewStoriesPage />} />
-              <Route path="branch/:id" element={<BranchPage />} />
-              <Route path="branches" element={<BranchesPage />} />
-              <Route path="read/:id" element={<ReadPage />} />
-              <Route path="spinoff" element={<SpinoffPage />} />
-              <Route path="spinoff/:id" element={<SpinoffDetailPage />} />
-              <Route path="spinoff/create" element={<SpinoffEditorPage />} />
-              <Route path="spinoff/edit/:id" element={<SpinoffEditorPage />} />
-              <Route path="booklist" element={<BooklistPage />} />
-              <Route path="booklist/:id" element={<BooklistDetailPage />} />
-              <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="dashboard/create" element={<CreateStoryPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-              <Route path="revenue" element={<RevenuePage />} />
+              <Route path="story/create" element={<AppErrorBoundary><CreateStoryPage /></AppErrorBoundary>} />
+              <Route path="story/:id" element={<AppErrorBoundary><MainlinePage /></AppErrorBoundary>} />
+              <Route path="stories" element={<AppErrorBoundary><AllStoriesPage /></AppErrorBoundary>} />
+              <Route path="recommendations" element={<AppErrorBoundary><RecommendationsPage /></AppErrorBoundary>} />
+              <Route path="new" element={<AppErrorBoundary><NewStoriesPage /></AppErrorBoundary>} />
+              <Route path="branch/:id" element={<AppErrorBoundary><BranchPage /></AppErrorBoundary>} />
+              <Route path="branches" element={<AppErrorBoundary><BranchesPage /></AppErrorBoundary>} />
+              <Route path="read/:id" element={<AppErrorBoundary><ReadPage /></AppErrorBoundary>} />
+              <Route path="spinoff" element={<AppErrorBoundary><SpinoffPage /></AppErrorBoundary>} />
+              <Route path="spinoff/:id" element={<AppErrorBoundary><SpinoffDetailPage /></AppErrorBoundary>} />
+              <Route path="spinoff/create" element={<AppErrorBoundary><SpinoffEditorPage /></AppErrorBoundary>} />
+              <Route path="spinoff/edit/:id" element={<AppErrorBoundary><SpinoffEditorPage /></AppErrorBoundary>} />
+              <Route path="booklist" element={<AppErrorBoundary><BooklistPage /></AppErrorBoundary>} />
+              <Route path="booklist/:id" element={<AppErrorBoundary><BooklistDetailPage /></AppErrorBoundary>} />
+              <Route path="dashboard" element={<AppErrorBoundary><DashboardPage /></AppErrorBoundary>} />
+              <Route path="dashboard/create" element={<AppErrorBoundary><CreateStoryPage /></AppErrorBoundary>} />
+              <Route path="profile" element={<AppErrorBoundary><ProfilePage /></AppErrorBoundary>} />
+              <Route path="revenue" element={<AppErrorBoundary><RevenuePage /></AppErrorBoundary>} />
               
               <Route path="about" element={<AboutPage />} />
               <Route path="contact" element={<ContactPage />} />
@@ -97,33 +97,43 @@ const App: React.FC = () => {
               <Route path="report" element={<ReportPage />} />
               
               <Route path="admin/roles" element={
-                <PermissionGate permission="role:read" fallback={<Navigate to="/" replace />}>
-                  <RoleManagement />
-                </PermissionGate>
+                <AppErrorBoundary>
+                  <PermissionGate permission="role:read" fallback={<Navigate to="/" replace />}>
+                    <RoleManagement />
+                  </PermissionGate>
+                </AppErrorBoundary>
               } />
 
               <Route path="admin/cms" element={
-                <PermissionGate permission="role:read" fallback={<Navigate to="/" replace />}>
-                  <CMSPage />
-                </PermissionGate>
+                <AppErrorBoundary>
+                  <PermissionGate permission="cms:manage" fallback={<Navigate to="/" replace />}>
+                    <CMSPage />
+                  </PermissionGate>
+                </AppErrorBoundary>
               } />
 
               <Route path="admin/moderation" element={
-                <PermissionGate permission="role:read" fallback={<Navigate to="/" replace />}>
-                  <ModerationDashboard />
-                </PermissionGate>
+                <AppErrorBoundary>
+                  <PermissionGate permission="moderation:view" fallback={<Navigate to="/" replace />}>
+                    <ModerationDashboard />
+                  </PermissionGate>
+                </AppErrorBoundary>
               } />
 
               <Route path="admin/review-cases" element={
-                <PermissionGate permission="review:case:view" fallback={<Navigate to="/" replace />}>
-                  <ReviewCasesPage />
-                </PermissionGate>
+                <AppErrorBoundary>
+                  <PermissionGate permission="review:case:view" fallback={<Navigate to="/" replace />}>
+                    <ReviewCasesPage />
+                  </PermissionGate>
+                </AppErrorBoundary>
               } />
 
               <Route path="admin/editorial" element={
-                <PermissionGate permission="editorial:view" fallback={<Navigate to="/" replace />}>
-                  <EditorialChangesPage />
-                </PermissionGate>
+                <AppErrorBoundary>
+                  <PermissionGate permission="editorial:view" fallback={<Navigate to="/" replace />}>
+                    <EditorialChangesPage />
+                  </PermissionGate>
+                </AppErrorBoundary>
               } />
               
               <Route path="login" element={<LoginPage />} />

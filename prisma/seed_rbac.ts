@@ -31,6 +31,14 @@ const PERMISSIONS = [
   { code: 'story:delete', description: 'Delete stories' },
   { code: 'story:audit', description: 'Audit stories' },
 
+  // CMS & Site Configuration
+  { code: 'cms:manage', description: 'Manage site CMS configuration' },
+
+  // Moderation
+  { code: 'moderation:view', description: 'View moderation dashboard' },
+  { code: 'moderation:manage', description: 'Manage moderation decisions' },
+  { code: 'moderation:review', description: 'Review moderation cases' },
+
   // System
   { code: 'system:settings', description: 'Manage system settings' },
   { code: 'system:logs', description: 'View system logs' },

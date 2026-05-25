@@ -7,7 +7,6 @@ import {
   ArrowLeft, 
   ArrowRight, 
   GitBranch, 
-  Plus, 
   BookMarked, 
   Settings,
   MoreVertical,
@@ -20,7 +19,12 @@ import {
   Clock,
   Trash2,
   FileEdit,
-  Loader2
+  Loader2,
+  List,
+  X,
+  MapPin,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import CommentSection from './CommentSection';
@@ -71,6 +75,61 @@ const ReadPage: React.FC = () => {
   const [branchForm, setBranchForm] = useState({ title: '', description: '' });
   const [isCreatingBranch, setIsCreatingBranch] = useState(false);
 
+  // Booklist context navigation (when coming from a booklist)
+  const [booklistContext, setBooklistContext] = useState<{
+    id: string;
+    title: string;
+    items: { id: string; chapterId: string; chapter: { title: string } }[];
+  } | null>(null);
+  const [currentBooklistItemIndex, setCurrentBooklistItemIndex] = useState(-1);
+
+  // Fetch booklist context once when referralId is present (do NOT re-fetch on id change)
+  useEffect(() => {
+    if (referralId) {
+      booklistService.getById(referralId).then(data => {
+        setBooklistContext(data);
+        if (data?.items && id) {
+          const idx = data.items.findIndex((item: any) => item.chapterId === id);
+          setCurrentBooklistItemIndex(idx);
+        }
+      }).catch(() => {});
+    } else {
+      setBooklistContext(null);
+      setCurrentBooklistItemIndex(-1);
+    }
+    // Intentionally not including `id` — booklist data is stable once fetched
+  }, [referralId]);
+
+  // Recompute current position when chapter id changes within the cached booklist
+  useEffect(() => {
+    if (booklistContext?.items && id) {
+      const idx = booklistContext.items.findIndex((item: any) => item.chapterId === id);
+      setCurrentBooklistItemIndex(idx);
+    }
+  }, [id, booklistContext]);
+
+  // Navigate to prev/next chapter in booklist
+  const navigateBooklist = (direction: 'prev' | 'next') => {
+    if (!booklistContext || currentBooklistItemIndex < 0) return;
+    const newIndex = direction === 'prev' ? currentBooklistItemIndex - 1 : currentBooklistItemIndex + 1;
+    const targetItem = booklistContext.items[newIndex];
+    if (!targetItem) return;
+    navigate(`/read/${targetItem.chapterId}?referralId=${booklistContext.id}`);
+  };
+
+  // Table of Contents — unified universe navigation
+  const [isTocOpen, setIsTocOpen] = useState(false);
+  const [tocChapters, setTocChapters] = useState<{
+    id: string;
+    title: string;
+    orderIndex: number;
+    isBranchPoint: boolean;
+    branchId: string | null;
+    branch: { id: string; title: string } | null;
+    createdAt: string;
+  }[]>([]);
+  const [isTocLoading, setIsTocLoading] = useState(false);
+
   useEffect(() => {
     if (id) {
       fetchChapter(id, referralId);
@@ -78,7 +137,9 @@ const ReadPage: React.FC = () => {
     if (isAuthenticated) {
       fetchMyBooklists();
     }
-  }, [id, isAuthenticated, referralId]);
+    // Fetch chapter only when id changes; referralId is just a tracking hint
+    // that doesn't warrant re-fetching the whole chapter (contributes to 429)
+  }, [id, isAuthenticated]);
 
   useEffect(() => {
     if (isSavepointsOpen && chapter?.storyId) {
@@ -122,6 +183,14 @@ const ReadPage: React.FC = () => {
     try {
       const data = await chapterService.getById(chapterId, refId);
       setChapter(data);
+      // Fetch TOC for ALL tracks (mainline + branches)
+      if (data?.story?.id) {
+        setIsTocLoading(true);
+        chapterService.getByStory(data.story.id, undefined, true)
+          .then(setTocChapters)
+          .catch(() => {})
+          .finally(() => setIsTocLoading(false));
+      }
       window.scrollTo(0, 0);
     } catch (err) {
       console.error('Failed to fetch chapter');
@@ -241,15 +310,72 @@ const ReadPage: React.FC = () => {
       {/* Top Navigation */}
       <header className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-100 dark:border-gray-800 h-16 flex items-center justify-between px-4 md:px-8">
         <div className="flex items-center gap-4 flex-1 min-w-0">
-          <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors shrink-0">
-            <ArrowLeft size={20} />
-          </button>
-          <div className="flex-1 min-w-0">
-            <h2 className="text-sm font-black text-gray-900 dark:text-white line-clamp-1">{chapter.title}</h2>
-            <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest line-clamp-1">
-              {chapter.branch ? `分支：${chapter.branch.title}` : `主线：${chapter.story.title}`}
-            </p>
-          </div>
+
+          {/* Booklist Context Navigation */}
+          {booklistContext ? (
+            <>
+              <button
+                onClick={() => navigate(`/booklist/${booklistContext.id}`)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors shrink-0"
+                title="返回书单"
+              >
+                <MapPin size={18} className="text-emerald-600" />
+              </button>
+              <div className="flex-1 min-w-0">
+                <p className="text-[10px] text-emerald-600 uppercase font-bold tracking-widest line-clamp-1">
+                  {booklistContext.title}
+                </p>
+                <h2 className="text-sm font-black text-gray-900 dark:text-white line-clamp-1 flex items-center gap-2">
+                  <span className="text-emerald-600 font-mono">
+                    {currentBooklistItemIndex >= 0 ? `#${currentBooklistItemIndex + 1}` : ''}
+                  </span>
+                  {chapter.title}
+                </h2>
+              </div>
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => navigateBooklist('prev')}
+                  disabled={currentBooklistItemIndex <= 0}
+                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="书单上一站"
+                >
+                  <ChevronLeft size={18} />
+                </button>
+                <span className="text-[10px] font-bold text-gray-400 min-w-[32px] text-center">
+                  {currentBooklistItemIndex >= 0
+                    ? `${currentBooklistItemIndex + 1}/${booklistContext.items.length}`
+                    : ''}
+                </span>
+                <button
+                  onClick={() => navigateBooklist('next')}
+                  disabled={currentBooklistItemIndex < 0 || currentBooklistItemIndex >= booklistContext.items.length - 1}
+                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  title="书单下一站"
+                >
+                  <ChevronRight size={18} />
+                </button>
+                <button
+                  onClick={() => navigate(`/booklist/${booklistContext.id}`)}
+                  className="ml-1 px-2 py-1 text-[10px] font-bold text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-lg transition-colors"
+                  title="退出路线"
+                >
+                  <X size={14} />
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors shrink-0">
+                <ArrowLeft size={20} />
+              </button>
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-black text-gray-900 dark:text-white line-clamp-1">{chapter.title}</h2>
+                <p className="text-[10px] text-gray-500 uppercase font-bold tracking-widest line-clamp-1">
+                  {chapter.branch ? `分支：${chapter.branch.title}` : `主线：${chapter.story.title}`}
+                </p>
+              </div>
+            </>
+          )}
         </div>
         <div className="flex items-center gap-1 md:gap-2 shrink-0">
           <button
@@ -286,6 +412,13 @@ const ReadPage: React.FC = () => {
             variant="ghost"
           />
           <button
+            onClick={() => setIsTocOpen(!isTocOpen)}
+            className={`p-2 transition-colors ${isTocOpen ? 'text-blue-600' : 'text-gray-400 hover:text-blue-600'}`}
+            title="目录"
+          >
+            <List size={20} />
+          </button>
+          <button
             onClick={() => setIsSettingsOpen(true)}
             className="p-2 text-gray-400 hover:text-blue-600 transition-colors"
             title="阅读设置"
@@ -303,6 +436,127 @@ const ReadPage: React.FC = () => {
           )}
         </div>
       </header>
+
+      {/* TOC Floating Panel — unified universe navigation */}
+      {isTocOpen && (
+        <>
+          {/* Backdrop (click outside to close) */}
+          <div
+            className="fixed inset-0 z-40 bg-black/20 md:bg-transparent"
+            onClick={() => setIsTocOpen(false)}
+          />
+          {/* Panel - Desktop: right sidebar, Mobile: bottom drawer */}
+          <aside
+            className={`
+              fixed z-50 bg-white dark:bg-gray-900 shadow-2xl border-gray-200 dark:border-gray-700
+              md:right-6 md:top-24 md:w-80 md:max-h-[calc(100vh-8rem)] md:rounded-2xl md:border md:overflow-y-auto
+              inset-x-0 bottom-0 rounded-t-2xl border-t max-h-[65vh] overflow-y-auto
+              md:inset-x-auto
+            `}
+          >
+            {/* Header */}
+            <div className="sticky top-0 bg-white dark:bg-gray-900 px-4 py-3 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between z-10">
+              <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                全宇宙目录
+                {tocChapters.length > 0 && (
+                  <span className="ml-2 text-xs font-normal text-gray-400">
+                    {tocChapters.length} 章
+                  </span>
+                )}
+              </h3>
+              <button
+                onClick={() => setIsTocOpen(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Track-grouped chapter list */}
+            {isTocLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 size={20} className="animate-spin text-gray-400" />
+              </div>
+            ) : tocChapters.length === 0 ? (
+              <div className="px-4 py-6 text-center text-sm text-gray-400">
+                暂无章节
+              </div>
+            ) : (
+              (() => {
+                // Group chapters by branchId
+                const tracks = new Map<string, { title: string; icon: 'main' | 'branch'; chapters: typeof tocChapters }>();
+                for (const ch of tocChapters) {
+                  const key = ch.branchId || '__main__';
+                  if (!tracks.has(key)) {
+                    tracks.set(key, {
+                      title: ch.branch?.title || '主线',
+                      icon: ch.branchId ? 'branch' : 'main',
+                      chapters: []
+                    });
+                  }
+                  tracks.get(key)!.chapters.push(ch);
+                }
+                return [...tracks.entries()].map(([key, track]) => {
+                  const isCurrentTrack = track.chapters.some(ch => ch.id === chapter?.id);
+                  return (
+                    <div key={key}>
+                      {/* Track header */}
+                      <div className={`
+                        flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-wider border-b
+                        ${track.icon === 'main'
+                          ? 'text-blue-500 dark:text-blue-400 border-blue-50 dark:border-blue-950/20'
+                          : 'text-purple-500 dark:text-purple-400 border-purple-50 dark:border-purple-950/20'
+                        }
+                        ${isCurrentTrack ? 'bg-blue-50/30 dark:bg-blue-950/10' : 'bg-gray-50/50 dark:bg-gray-800/20'}
+                      `}>
+                        {track.icon === 'main' ? (
+                          <BookMarked size={12} />
+                        ) : (
+                          <GitBranch size={12} />
+                        )}
+                        <span>{track.title}</span>
+                        <span className="ml-auto text-[10px] font-normal opacity-60">
+                          {track.chapters.length} 节
+                        </span>
+                      </div>
+                      {/* Chapters in this track */}
+                      <ul>
+                        {track.chapters.map((ch) => {
+                          const isCurrent = ch.id === chapter?.id;
+                          return (
+                            <li key={ch.id}>
+                              <Link
+                                to={`/read/${ch.id}`}
+                                onClick={() => setIsTocOpen(false)}
+                                className={`
+                                  flex items-center gap-2 px-4 py-2 text-sm transition-colors
+                                  ${isCurrent
+                                    ? 'bg-blue-50 dark:bg-blue-950/30 text-blue-700 dark:text-blue-300 font-semibold'
+                                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-gray-200'
+                                  }
+                                  ${ch.branchId && !isCurrent ? 'pl-10' : ''}
+                                `}
+                              >
+                                <span className="w-5 text-center text-xs text-gray-400 shrink-0 font-mono">
+                                  {ch.orderIndex}
+                                </span>
+                                <span className="line-clamp-1 flex-1 min-w-0">{ch.title}</span>
+                                {ch.isBranchPoint && (
+                                  <GitBranch size={12} className="shrink-0 text-amber-400" />
+                                )}
+                              </Link>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  );
+                });
+              })()
+            )}
+          </aside>
+        </>
+      )}
 
       {/* Reading Area */}
       <div className="max-w-3xl mx-auto px-6 py-12 md:py-20">

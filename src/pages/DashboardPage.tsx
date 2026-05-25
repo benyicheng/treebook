@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
-import { storyService, branchService, spinoffService, booklistService, Story, Branch, Spinoff, Booklist } from '../api/storyService';
+import { storyService, branchService, spinoffService, booklistService } from '../api/storyService';
 import { useQuery } from '@tanstack/react-query';
 import {
   Book,
@@ -13,8 +13,6 @@ import {
   ChevronRight,
   Clock,
   LayoutDashboard,
-  User as UserIcon,
-  ShieldCheck,
   Zap
 } from 'lucide-react';
 import { Skeleton } from '../components/ui/Skeleton';
@@ -30,7 +28,7 @@ const DashboardPage: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
-  const { data: stories = [], isLoading: isStoriesLoading, isError: isStoriesError } = useQuery({
+  const { data: stories = [], isLoading: isStoriesLoading } = useQuery({
     queryKey: ['myStories'],
     queryFn: storyService.getMy,
     enabled: isAuthenticated,

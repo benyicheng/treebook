@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useStoryStore } from '../../../stores/useStoryStore';
 import { useAuthStore } from '../../../stores/useAuthStore';
 import { chapterService, branchService, storyService, savepointService } from '../../../api/storyService';
@@ -8,10 +8,12 @@ import { revenueService } from '../../../api/revenueService';
 export const useStoryDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { currentStory, fetchStoryById, isLoading } = useStoryStore();
   const { user, isAuthenticated } = useAuthStore();
   
-  const [activeTab, setActiveTab] = useState<'overview' | 'tree' | 'chapters' | 'characters'>('overview');
+  const initialTab = (searchParams.get('tab') as 'overview' | 'tree' | 'chapters' | 'characters') || 'overview';
+  const [activeTab, setActiveTab] = useState<'overview' | 'tree' | 'chapters' | 'characters'>(initialTab);
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSettling, setIsSettling] = useState(false);

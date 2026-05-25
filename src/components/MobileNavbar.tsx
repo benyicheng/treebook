@@ -10,7 +10,7 @@ const MobileNavbar: React.FC = () => {
   const navItems = [
     { name: '首页', path: '/', icon: Home },
     { name: '宇宙', path: '/stories', icon: Crown },
-    { name: '平行', path: '/branches', icon: GitBranch },
+    { name: '分支', path: '/branches', icon: GitBranch },
     { name: '书单', path: '/booklist', icon: Library },
     { name: '我的', path: isAuthenticated ? '/dashboard' : '/login', icon: User },
   ];

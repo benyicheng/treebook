@@ -95,6 +95,7 @@ const MainlinePage: React.FC = () => {
             isAuthenticated={isAuthenticated}
             setActiveTab={setActiveTab}
             handleCreateSpinoff={handleCreateSpinoff}
+            setIsBranchModalOpen={setIsBranchModalOpen}
           />
         )}
 
@@ -115,12 +116,17 @@ const MainlinePage: React.FC = () => {
                   <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
                   <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">平行宇宙</span>
                 </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-3 h-3 bg-indigo-400 rounded-full"></div>
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">精彩番外</span>
+                </div>
               </div>
             </div>
             <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 h-[700px] overflow-hidden shadow-2xl">
               <StoryBranchTree 
                 chapters={currentStory.chapters || []} 
                 branches={currentStory.branches || []}
+                spinoffs={currentStory.spinoffs || []}
                 savepoints={savepoints}
                 readingHistory={readingHistory}
                 onNodeClick={(id, type) => {
@@ -133,6 +139,8 @@ const MainlinePage: React.FC = () => {
                     }
                   } else if (type === 'branch') {
                     navigate(`/branch/${id}`);
+                  } else if (type === 'spinoff') {
+                    navigate(`/spinoff/${id}`);
                   }
                 }}
               />

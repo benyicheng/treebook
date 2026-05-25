@@ -57,19 +57,4 @@ export class StorageService {
     }
   }
 
-  /**
-   * 上传到 IPFS (区块链协作推荐)
-   * 这是一个预留的接口
-   */
-  static async uploadToIPFS(file: Buffer): Promise<UploadResult> {
-    // 实际应集成 Pinata 或 Infura
-    console.log('Mock: Uploading to IPFS...');
-    const mockCID = `Qm${uuidv4().replace(/-/g, '')}`;
-    
-    return {
-      url: `ipfs://${mockCID}`,
-      provider: 'ipfs',
-      metadata: { cid: mockCID }
-    };
-  }
 }

@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
-import { GitBranch, BookOpen, Star, ShieldCheck, User, Crown, Save } from 'lucide-react';
+import { GitBranch, BookOpen, Star, ShieldCheck, User, Crown, Save, Sparkles } from 'lucide-react';
 
 const ChapterNode = ({ data }: NodeProps) => {
   const isRead = data.isRead;
@@ -88,7 +88,54 @@ const BranchNode = ({ data }: NodeProps) => {
 };
 
 
+const SpinoffNode = ({ data }: NodeProps) => {
+  const isOfficial = data.isOfficial;
+  const spinoffType = data.spinoffType;
+
+  const typeLabel =
+    spinoffType === 'biography' ? '传记' :
+    spinoffType === 'world_expansion' ? '设定' : '平行线';
+
+  const borderColor = isOfficial ? 'border-amber-400 shadow-amber-100' : 'border-indigo-400';
+  const iconBg = isOfficial ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400' : 'bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400';
+
+  return (
+    <div className={`px-4 py-3 shadow-xl rounded-2xl bg-white dark:bg-gray-900 border-2 ${borderColor} min-w-[190px] max-w-[220px] group transition-all hover:scale-105 hover:shadow-indigo-200 dark:hover:shadow-indigo-900/40 hover:border-indigo-600 cursor-pointer relative`}>
+      <Handle type="target" position={Position.Top} className={`w-2.5 h-2.5 ${isOfficial ? 'bg-amber-500' : 'bg-indigo-500'} border-2 border-white dark:border-gray-900`} />
+      <div className="flex items-start gap-2.5">
+        <div className={`p-1.5 ${iconBg} rounded-xl shrink-0 mt-0.5`}>
+          <Sparkles size={16} />
+        </div>
+        <div className="text-left min-w-0 flex-1">
+          <div className="flex items-center gap-1 mb-0.5">
+            <p className={`text-[9px] font-black uppercase tracking-widest ${isOfficial ? 'text-amber-500' : 'text-indigo-500'}`}>
+              番外
+            </p>
+            <span className={`px-1 py-0.5 rounded text-[8px] font-bold ${
+              spinoffType === 'biography' ? 'bg-blue-100 text-blue-600' :
+              spinoffType === 'world_expansion' ? 'bg-purple-100 text-purple-600' :
+              'bg-indigo-100 text-indigo-600'
+            }`}>
+              {typeLabel}
+            </span>
+          </div>
+          <p className="text-sm font-black text-gray-900 dark:text-white line-clamp-2 leading-tight">{data.label || '番外'}</p>
+          {data.authorName && (
+            <div className="flex items-center gap-2 mt-1.5 pt-1.5 border-t border-gray-100 dark:border-gray-800">
+              <span className="flex items-center gap-0.5 text-[10px] text-gray-400">
+                <User size={9} />
+                {data.authorName}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export const nodeTypes = {
   chapter: memo(ChapterNode),
   branch: memo(BranchNode),
+  spinoff: memo(SpinoffNode),
 };
