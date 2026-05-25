@@ -51,6 +51,11 @@ prisma/*.db-journal
 .acc-temp/
 .accio-debug/
 
+# Agent/IDE internal files (not project code)
+.opencode/
+.claude/
+thoughts/
+
 # Temporary files
 *.tmp
 *.temp
