@@ -139,7 +139,8 @@ const ReadingDrawer: React.FC<ReadingDrawerProps> = ({
       .finally(() => {
         setIsContentLoading(false);
       });
-  }, [currentItem?.chapterId, chapterContent, currentItem?.chapter.content, fetchContent]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentItem?.chapterId, currentItem?.chapter.content, fetchContent]);
 
   // Preload next chapter (D2)
   useEffect(() => {
@@ -159,7 +160,8 @@ const ReadingDrawer: React.FC<ReadingDrawerProps> = ({
         setChapterContent(prev => ({ ...prev, [nextChapterId]: content }));
       }
     });
-  }, [currentItem?.chapterId, currentIndex, items, totalItems, chapterContent, fetchContent]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentItem?.chapterId, currentIndex, items, totalItems, fetchContent]);
 
   const resolvedContent = currentItem?.chapter.content || chapterContent[currentItem?.chapterId || ''] || '';
 
