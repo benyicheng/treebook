@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   User,
   BookOpen,
@@ -10,7 +12,7 @@ import {
   ArrowDown,
   Trash2,
   Eye,
-  MapPin,
+  GripVertical,
 } from 'lucide-react';
 
 interface ChapterItem {
@@ -61,7 +63,26 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
   onMoveDown,
   onRemove,
 }) => {
+  const navigate = useNavigate();
   const [showPreview, setShowPreview] = useState(false);
+
+  // ─── DnD sortable ──────────────────────────────────────────────
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const dndStyle: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 50 : 1,
+    position: 'relative' as const,
+  };
 
   const wordCount = item.chapter.content
     ? Math.round((item.chapter.content.length / 2))
@@ -72,8 +93,12 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
     : '';
 
   return (
-    <div className="relative flex gap-8 md:gap-12 animate-in slide-in-from-bottom-8 duration-500"
-      style={{ animationDelay: `${index * 100}ms` }}
+    <div
+      ref={setNodeRef}
+      style={{ ...dndStyle, animationDelay: `${index * 100}ms` }}
+      className={`relative flex gap-8 md:gap-12 animate-in slide-in-from-bottom-8 duration-500 ${
+        isDragging ? 'cursor-grabbing' : ''
+      }`}
     >
       {/* Timeline Marker */}
       <div className="relative flex flex-col items-center">
@@ -192,7 +217,7 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
             </div>
           )}
 
-          {/* Footer Meta */}
+          {/* Footer Meta + Drag handle + Reorder buttons */}
           <div className="mt-6 flex items-center justify-between">
             <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
               <div className="flex items-center gap-1.5">
@@ -207,11 +232,24 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
             </div>
 
             {isCreator && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
+                {/* Drag handle (dnd-kit) */}
+                <button
+                  {...attributes}
+                  {...listeners}
+                  className="p-1.5 text-gray-300 hover:text-emerald-600 transition-colors cursor-grab active:cursor-grabbing touch-none"
+                  title="拖拽排序"
+                  aria-label="拖拽排序"
+                >
+                  <GripVertical size={16} />
+                </button>
+
+                <span className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1" />
+
                 <button
                   onClick={() => onMoveUp(item.id)}
                   disabled={index === 0}
-                  className="text-gray-300 hover:text-emerald-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-1.5 text-gray-300 hover:text-emerald-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   title="上移"
                 >
                   <ArrowUp size={14} />
@@ -219,14 +257,15 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
                 <button
                   onClick={() => onMoveDown(item.id)}
                   disabled={index === totalItems - 1}
-                  className="text-gray-300 hover:text-emerald-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-1.5 text-gray-300 hover:text-emerald-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   title="下移"
                 >
                   <ArrowDown size={14} />
                 </button>
+                <span className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1" />
                 <button
                   onClick={() => onRemove(item.id)}
-                  className="text-gray-300 hover:text-red-500 transition-colors ml-2"
+                  className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
                   title="删除此章节"
                 >
                   <Trash2 size={14} />

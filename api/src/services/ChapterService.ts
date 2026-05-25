@@ -218,6 +218,33 @@ export class ChapterService {
     });
   }
 
+  static async searchChapters(query: string) {
+    if (!query || query.trim().length === 0) return [];
+
+    return prisma.chapter.findMany({
+      where: {
+        OR: [
+          { title: { contains: query } },
+          { story: { title: { contains: query } } },
+        ],
+      },
+      include: {
+        story: {
+          select: {
+            id: true,
+            title: true,
+            author: { select: { username: true } },
+          },
+        },
+      },
+      orderBy: [
+        { storyId: 'asc' },
+        { orderIndex: 'asc' },
+      ],
+      take: 50,
+    });
+  }
+
   static async getComments(chapterId: string) {
     return prisma.comment.findMany({
       where: { chapterId },

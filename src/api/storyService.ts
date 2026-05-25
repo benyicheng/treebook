@@ -182,6 +182,13 @@ export const storyService = {
 };
 
 export const chapterService = {
+  search: async (query: string) => {
+    const { data } = await client.get<any>('/chapters/search', {
+      params: { q: query }
+    });
+    return data.data || data;
+  },
+
   getById: async (id: string, referralId?: string) => {
     const { data } = await client.get<any>(`/chapters/${id}`, {
       params: { referralId }
@@ -370,6 +377,16 @@ export const booklistService = {
 
   reorderItems: async (booklistId: string, itemOrders: { id: string, orderIndex: number }[]) => {
     const { data } = await client.patch<any>(`/booklists/${booklistId}/reorder`, { itemOrders });
+    return data.data || data;
+  },
+
+  updateProgress: async (booklistId: string, progress: { currentItemIndex?: number; completedItemIds?: string[] }) => {
+    const { data } = await client.patch<any>(`/booklists/${booklistId}/progress`, progress);
+    return data.data || data;
+  },
+
+  getProgress: async (booklistId: string) => {
+    const { data } = await client.get<any>(`/booklists/${booklistId}/progress`);
     return data.data || data;
   }
 };

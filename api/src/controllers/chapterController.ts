@@ -50,6 +50,12 @@ export const getChapterById = catchAsync(async (req: Request, res: Response) => 
   res.json({ success: true, data: chapter });
 });
 
+export const searchChapters = catchAsync(async (req: Request, res: Response) => {
+  const query = (req.query.q as string) || '';
+  const chapters = await ChapterService.searchChapters(query);
+  res.json({ success: true, data: chapters });
+});
+
 export const getChaptersByStory = catchAsync(async (req: Request, res: Response) => {
   const { storyId } = req.params;
   const branchId = req.query.branchId as string | undefined;

@@ -6,7 +6,11 @@ import {
   Filter, 
   Sparkles, 
   Map, 
-  Tag
+  Tag,
+  Layers,
+  ArrowRight,
+  Check,
+  LayoutList
 } from 'lucide-react';
 import Modal from '../../components/Modal';
 import BooklistCard from '../../components/Booklist/BooklistCard';
@@ -202,28 +206,101 @@ const BooklistPage: React.FC = () => {
               onChange={e => setNewBooklist(prev => ({ ...prev, title: e.target.value }))}
             />
           </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-500">导览类型</label>
-              <select 
-                className="w-full px-6 py-4 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold"
-                value={newBooklist.type}
-                onChange={e => setNewBooklist(prev => ({ ...prev, type: e.target.value as any }))}
+          {/* C4: 可视化类型选择卡片 */}
+          <div className="space-y-3">
+            <label className="text-sm font-bold text-gray-500">导览类型</label>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => setNewBooklist(prev => ({ ...prev, type: 'TIMELINE' }))}
+                className={`relative p-5 rounded-2xl border-2 text-left transition-all ${
+                  newBooklist.type === 'TIMELINE'
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-lg shadow-emerald-500/10'
+                    : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 hover:border-emerald-200 dark:hover:border-emerald-800'
+                }`}
               >
-                <option value="COLLECTION">普通合集 (Collection)</option>
-                <option value="TIMELINE">时空导览 (Timeline)</option>
-              </select>
+                {newBooklist.type === 'TIMELINE' && (
+                  <div className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                    <Check size={14} className="text-white" />
+                  </div>
+                )}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    newBooklist.type === 'TIMELINE'
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+                  }`}>
+                    <Map size={20} />
+                  </div>
+                  <div>
+                    <div className={`font-black text-sm ${
+                      newBooklist.type === 'TIMELINE' ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'
+                    }`}>
+                      时空导览
+                    </div>
+                    <div className="text-[10px] text-gray-400 font-medium">Timeline</div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  按时间/逻辑顺序排列章节，带领读者沿指定路线穿越平行宇宙。
+                </p>
+                <div className="flex items-center gap-1.5 mt-2 text-[10px] text-gray-400">
+                  <ArrowRight size={11} />
+                  <span>适合：推荐阅读路线、系列导读</span>
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setNewBooklist(prev => ({ ...prev, type: 'COLLECTION' }))}
+                className={`relative p-5 rounded-2xl border-2 text-left transition-all ${
+                  newBooklist.type === 'COLLECTION'
+                    ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 shadow-lg shadow-emerald-500/10'
+                    : 'border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 hover:border-emerald-200 dark:hover:border-emerald-800'
+                }`}
+              >
+                {newBooklist.type === 'COLLECTION' && (
+                  <div className="absolute -top-2.5 -right-2.5 w-6 h-6 bg-emerald-500 rounded-full flex items-center justify-center">
+                    <Check size={14} className="text-white" />
+                  </div>
+                )}
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    newBooklist.type === 'COLLECTION'
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+                  }`}>
+                    <Layers size={20} />
+                  </div>
+                  <div>
+                    <div className={`font-black text-sm ${
+                      newBooklist.type === 'COLLECTION' ? 'text-emerald-700 dark:text-emerald-400' : 'text-gray-700 dark:text-gray-300'
+                    }`}>
+                      主题合集
+                    </div>
+                    <div className="text-[10px] text-gray-400 font-medium">Collection</div>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  自由收藏精选章节，按主题聚合，读者可按任意顺序浏览。
+                </p>
+                <div className="flex items-center gap-1.5 mt-2 text-[10px] text-gray-400">
+                  <LayoutList size={11} />
+                  <span>适合：主题精选、角色聚焦、风格合集</span>
+                </div>
+              </button>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-500">标签 (逗号分隔)</label>
-              <input 
-                type="text" 
-                className="w-full px-6 py-4 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold"
-                placeholder="治愈, 虐心..."
-                value={newBooklist.tags}
-                onChange={e => setNewBooklist(prev => ({ ...prev, tags: e.target.value }))}
-              />
-            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-gray-500">标签 (逗号分隔)</label>
+            <input 
+              type="text" 
+              className="w-full px-6 py-4 rounded-2xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all font-bold"
+              placeholder="治愈, 虐心..."
+              value={newBooklist.tags}
+              onChange={e => setNewBooklist(prev => ({ ...prev, tags: e.target.value }))}
+            />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-bold text-gray-500">导览简介</label>
@@ -246,9 +323,19 @@ const BooklistPage: React.FC = () => {
             />
           </div>
           <div className="p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl border border-emerald-100 dark:border-emerald-900/30">
-            <p className="text-xs text-emerald-700 dark:text-emerald-400 font-medium">
-              温馨提示：优质的标题和简介能显著提升引流分润。时空导览建议按故事逻辑顺序排列章节。
-            </p>
+            <div className="flex items-start gap-3">
+              <Sparkles size={16} className="text-emerald-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-xs text-emerald-700 dark:text-emerald-400 font-semibold mb-1">
+                  创作建议
+                </p>
+                <p className="text-xs text-emerald-600 dark:text-emerald-500 leading-relaxed">
+                  {newBooklist.type === 'TIMELINE'
+                    ? '时空导览适合按故事发展顺序呈现章节，建议从第一章开始依次添加，保持逻辑连贯性。读者会按你设定的顺序逐站阅读。'
+                    : '主题合集没有固定的阅读顺序，可以自由搭配不同故事中主题相似的章节。建议精选 5-10 个最具代表性的章节。'}
+                </p>
+              </div>
+            </div>
           </div>
           <button 
             type="submit"

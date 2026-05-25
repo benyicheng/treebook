@@ -71,7 +71,7 @@ export class BooklistService {
     const booklist = await prisma.booklist.findUnique({
       where: { id },
       include: {
-        creator: { select: { username: true } },
+        creator: { select: { id: true, username: true } },
         items: {
           include: {
             chapter: {
@@ -157,6 +157,44 @@ export class BooklistService {
         notes: data.notes
       }
     });
+  }
+
+  static async upsertProgress(booklistId: string, userId: string, data: { currentItemIndex?: number; completedItemIds?: string[] }) {
+    const booklist = await prisma.booklist.findUnique({ where: { id: booklistId } });
+    if (!booklist) throw new AppError(404, 'NOT_FOUND', 'Booklist not found');
+
+    return prisma.booklistProgress.upsert({
+      where: {
+        userId_booklistId: { userId, booklistId },
+      },
+      create: {
+        userId,
+        booklistId,
+        currentItemIndex: data.currentItemIndex ?? -1,
+        completedItemIds: JSON.stringify(data.completedItemIds ?? []),
+      },
+      update: {
+        currentItemIndex: data.currentItemIndex ?? undefined,
+        completedItemIds: data.completedItemIds !== undefined
+          ? JSON.stringify(data.completedItemIds)
+          : undefined,
+      },
+    });
+  }
+
+  static async getProgress(booklistId: string, userId: string) {
+    const progress = await prisma.booklistProgress.findUnique({
+      where: {
+        userId_booklistId: { userId, booklistId },
+      },
+    });
+
+    if (!progress) return null;
+
+    return {
+      ...progress,
+      completedItemIds: JSON.parse(progress.completedItemIds),
+    };
   }
 
   static async removeItemFromBooklist(itemId: string, creatorId: string, userRole: string) {

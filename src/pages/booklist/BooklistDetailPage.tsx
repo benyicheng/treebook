@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { booklistService, storyService, Booklist, Chapter, Story } from '../../api/storyService';
+import { booklistService, chapterService, Booklist } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import Modal from '../../components/Modal';
 import { 
@@ -63,15 +63,14 @@ const BooklistDetailPage: React.FC = () => {
   const [editingItem, setEditingItem] = useState<any>(null);
   const [itemNotes, setItemNotes] = useState('');
 
-  // 添加章节状态
+  // 添加章节状态 (C2: 全局搜索 + 批量添加)
   const [isAddChapterModalOpen, setIsAddChapterModalOpen] = useState(false);
-  const [stories, setStories] = useState<Story[]>([]);
-  const [selectedStoryId, setSelectedStoryId] = useState<string>('');
-  const [chapters, setChapters] = useState<Chapter[]>([]);
-  const [selectedChapterId, setSelectedChapterId] = useState<string>('');
-  const [newItemNotes, setNewItemNotes] = useState('');
-  const [isLoadingChapters, setIsLoadingChapters] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [selectedChapterIds, setSelectedChapterIds] = useState<Set<string>>(new Set());
+  const [batchNotes, setBatchNotes] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 阅读抽屉状态
   const [isReadingDrawerOpen, setIsReadingDrawerOpen] = useState(false);
@@ -200,7 +199,10 @@ const BooklistDetailPage: React.FC = () => {
   };
   
   // 检查当前用户是否是创建者
-  const isCreator = user && booklist && user.id === booklist.creator?.id;
+  const isCreator = user && booklist && (
+    user.id === booklist.creator?.id || 
+    user.id === booklist.creatorId
+  );
 
   // 更新书单信息
   const handleUpdateBooklist = async (e: React.FormEvent) => {
@@ -263,64 +265,133 @@ const BooklistDetailPage: React.FC = () => {
     }
   };
 
-  // 打开添加章节弹窗时加载故事列表
-  const openAddChapterModal = async () => {
+  // 打开添加章节弹窗 (C2: 重置搜索状态)
+  const openAddChapterModal = () => {
     setIsAddChapterModalOpen(true);
-    setSelectedStoryId('');
-    setSelectedChapterId('');
-    setChapters([]);
-    setNewItemNotes('');
     setSearchQuery('');
-    try {
-      const data = await storyService.getAll();
-      setStories(data);
-    } catch (err) {
-      console.error('Failed to fetch stories');
-    }
+    setSearchResults([]);
+    setSelectedChapterIds(new Set());
+    setBatchNotes('');
   };
 
-  // 选择故事后加载章节列表
-  const handleStorySelect = async (storyId: string) => {
-    setSelectedStoryId(storyId);
-    setSelectedChapterId('');
-    setIsLoadingChapters(true);
-    try {
-      const data = await storyService.getById(storyId);
-      setChapters(data.chapters || []);
-    } catch (err) {
-      console.error('Failed to fetch chapters');
-    } finally {
-      setIsLoadingChapters(false);
+  // C2: 搜索输入变化处理 (防抖 300ms)
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
     }
+    
+    if (value.trim().length === 0) {
+      setSearchResults([]);
+      return;
+    }
+    
+    setIsSearching(true);
+    searchTimerRef.current = setTimeout(async () => {
+      try {
+        const results = await chapterService.search(value.trim());
+        setSearchResults(results);
+      } catch (err) {
+        console.error('Failed to search chapters');
+        setSearchResults([]);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
   };
 
-  // 添加章节到书单
-  const handleAddChapter = async () => {
-    if (!id || !selectedChapterId) return;
+  // C2: 切换章节多选
+  const toggleChapterSelection = (chapterId: string) => {
+    setSelectedChapterIds(prev => {
+      const next = new Set(prev);
+      if (next.has(chapterId)) {
+        next.delete(chapterId);
+      } else {
+        next.add(chapterId);
+      }
+      return next;
+    });
+  };
+
+  // C2: 全选/取消全选当前搜索结果
+  const toggleSelectAll = () => {
+    const availableIds = searchResults
+      .filter(ch => !existingChapterIds.has(ch.id))
+      .map(ch => ch.id);
+    if (availableIds.length === 0) return;
+    
+    const allSelected = availableIds.every(id => selectedChapterIds.has(id));
+    setSelectedChapterIds(prev => {
+      const next = new Set(prev);
+      if (allSelected) {
+        // 取消全选
+        availableIds.forEach(id => next.delete(id));
+      } else {
+        // 全选
+        availableIds.forEach(id => next.add(id));
+      }
+      return next;
+    });
+  };
+
+  // C2: 批量添加章节到书单
+  const handleBatchAddChapters = async () => {
+    if (!id || selectedChapterIds.size === 0) return;
     
     setIsSubmitting(true);
-    try {
-      await booklistService.addItem(id, { 
-        chapterId: selectedChapterId, 
-        notes: newItemNotes 
-      });
+    const chapterIds = Array.from(selectedChapterIds);
+    let successCount = 0;
+    let failCount = 0;
+    
+    const results = await Promise.allSettled(
+      chapterIds.map(chapterId =>
+        booklistService.addItem(id, {
+          chapterId,
+          notes: batchNotes,
+        })
+      )
+    );
+    
+    results.forEach(result => {
+      if (result.status === 'fulfilled') {
+        successCount++;
+      } else {
+        failCount++;
+      }
+    });
+    
+    setIsSubmitting(false);
+    
+    if (successCount > 0) {
       setIsAddChapterModalOpen(false);
       fetchBooklist(id);
-    } catch (err: any) {
-      if (err.response?.data?.message === 'Chapter already in booklist') {
-        alert('该章节已在书单中');
-      } else {
-        alert('添加章节失败');
+      if (failCount > 0) {
+        alert(`成功添加 ${successCount} 个章节，${failCount} 个添加失败（可能已在书单中）`);
       }
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      alert('添加失败，章节可能已在书单中');
     }
   };
 
-  // 过滤故事列表
-  const filteredStories = stories.filter(story => 
-    story.title.toLowerCase().includes(searchQuery.toLowerCase())
+  // C2: 获取已存在章节 ID 集合（用于去重）
+  const existingChapterIds = new Set(
+    (booklist?.items || []).map((item: any) => item.chapterId).filter(Boolean)
   );
+
+  // C2: 按故事分组搜索结果
+  const groupByStory = (chapters: any[]) => {
+    const map = new Map<string, { storyId: string; storyTitle: string; chapters: any[] }>();
+    chapters.forEach(ch => {
+      const storyId = ch.story?.id || 'unknown';
+      if (!map.has(storyId)) {
+        map.set(storyId, { storyId, storyTitle: ch.story?.title || '未知故事', chapters: [] });
+      }
+      map.get(storyId)!.chapters.push(ch);
+    });
+    return Array.from(map.values());
+  };
 
   // 调整章节顺序 - 优化为单次批量提交
   const handleMoveItem = async (itemId: string, direction: 'up' | 'down') => {
@@ -354,6 +425,26 @@ const BooklistDetailPage: React.FC = () => {
       alert('调整顺序失败，已还原');
       fetchBooklist(id); // 还原数据
     }
+  };
+
+  // 拖拽排序 - 批量更新顺序
+  const handleReorder = (reorderedItems: any[]) => {
+    if (!id || !booklist) return;
+
+    // 1. 乐观更新 UI
+    const updatedBooklist = { ...booklist, items: reorderedItems };
+    setBooklist(updatedBooklist);
+
+    // 2. 批量提交到后端
+    const itemOrders = reorderedItems.map((item, i) => ({
+      id: item.id,
+      orderIndex: i + 1
+    }));
+
+    booklistService.reorderItems(id, itemOrders).catch(() => {
+      alert('调整顺序失败，已还原');
+      fetchBooklist(id); // 还原数据
+    });
   };
 
   // 打开阅读抽屉
@@ -414,6 +505,7 @@ const BooklistDetailPage: React.FC = () => {
         }}
         onMoveItem={handleMoveItem}
         onRemoveItem={handleRemoveItem}
+        onReorder={handleReorder}
       />
 
       {/* Reading Drawer (方案A) */}
@@ -636,100 +728,128 @@ const BooklistDetailPage: React.FC = () => {
         </div>
       </Modal>
 
-      {/* 添加章节弹窗 */}
+      {/* 添加章节弹窗 (C2: 全局搜索 + 批量添加) */}
       <Modal
         isOpen={isAddChapterModalOpen}
         onClose={() => setIsAddChapterModalOpen(false)}
         title="添加章节到书单"
       >
         <div className="space-y-4 max-h-[70vh] overflow-y-auto">
-          {/* 搜索故事 */}
+          {/* 全局搜索 */}
           <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-500">搜索故事</label>
+            <label className="text-sm font-bold text-gray-500">
+              搜索章节
+              {selectedChapterIds.size > 0 && (
+                <span className="ml-2 text-emerald-600 font-bold">
+                  (已选 {selectedChapterIds.size} 项)
+                </span>
+              )}
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
               <input
                 type="text"
-                placeholder="输入故事标题搜索..."
+                placeholder="输入章节标题或故事标题搜索..."
                 className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all"
                 value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
+                onChange={handleSearchChange}
               />
-            </div>
-          </div>
-
-          {/* 故事列表 */}
-          <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-500">选择故事</label>
-            <div className="max-h-32 overflow-y-auto space-y-2 border border-gray-100 dark:border-gray-700 rounded-xl p-2">
-              {filteredStories.length === 0 ? (
-                <p className="text-gray-400 text-sm text-center py-4">暂无故事</p>
-              ) : (
-                filteredStories.map(story => (
-                  <button
-                    key={story.id}
-                    onClick={() => handleStorySelect(story.id)}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-                      selectedStoryId === story.id
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{story.title}</span>
-                      {selectedStoryId === story.id && <Check size={16} className="text-emerald-600" />}
-                    </div>
-                  </button>
-                ))
+              {isSearching && (
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600"></div>
+                </div>
               )}
             </div>
           </div>
 
-          {/* 章节列表 */}
-          {selectedStoryId && (
+          {/* 搜索结果 */}
+          {searchQuery.trim().length > 0 && (
             <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-500">选择章节</label>
-              {isLoadingChapters ? (
+              <div className="flex items-center justify-between">
+                <label className="text-sm font-bold text-gray-500">
+                  搜索结果
+                  {searchResults.length > 0 && (
+                    <span className="ml-1 text-gray-400 font-normal">
+                      ({searchResults.length} 个章节)
+                    </span>
+                  )}
+                </label>
+                {searchResults.length > 0 && (
+                  <button
+                    onClick={toggleSelectAll}
+                    className="text-xs text-emerald-600 font-bold hover:text-emerald-700 transition-colors"
+                  >
+                    {searchResults.filter(ch => !existingChapterIds.has(ch.id)).every(ch => selectedChapterIds.has(ch.id))
+                      ? '取消全选'
+                      : '全选'}
+                  </button>
+                )}
+              </div>
+
+              {isSearching ? (
                 <div className="flex items-center justify-center py-8">
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600"></div>
                 </div>
-              ) : chapters.length === 0 ? (
+              ) : searchResults.length === 0 ? (
                 <p className="text-gray-400 text-sm text-center py-4 border border-gray-100 dark:border-gray-700 rounded-xl">
-                  该故事暂无章节
+                  未找到匹配的章节
                 </p>
               ) : (
-                <div className="max-h-40 overflow-y-auto space-y-2 border border-gray-100 dark:border-gray-700 rounded-xl p-2">
-                  {chapters.map((chapter, index) => (
-                    <button
-                      key={chapter.id}
-                      onClick={() => setSelectedChapterId(chapter.id)}
-                      className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-all ${
-                        selectedChapterId === chapter.id
-                          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                          : 'hover:bg-gray-100 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-medium">{index + 1}. {chapter.title}</span>
-                        {selectedChapterId === chapter.id && <Check size={16} className="text-emerald-600" />}
+                <div className="max-h-48 overflow-y-auto space-y-1 border border-gray-100 dark:border-gray-700 rounded-xl p-2">
+                  {groupByStory(searchResults).map(({ storyId, storyTitle, chapters }) => (
+                    <div key={storyId}>
+                      <div className="text-xs font-bold text-gray-400 px-2 py-1 mt-1 first:mt-0">
+                        {storyTitle}
                       </div>
-                    </button>
+                      {chapters.map((chapter: any) => {
+                        const isExisting = existingChapterIds.has(chapter.id);
+                        const isSelected = selectedChapterIds.has(chapter.id);
+                        return (
+                          <label
+                            key={chapter.id}
+                            className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-all cursor-pointer ${
+                              isExisting
+                                ? 'opacity-40 cursor-not-allowed'
+                                : isSelected
+                                ? 'bg-emerald-50 dark:bg-emerald-900/20'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              disabled={isExisting}
+                              onChange={() => toggleChapterSelection(chapter.id)}
+                              className="w-4 h-4 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                            />
+                            <span className="flex-1 font-medium truncate">
+                              {chapter.orderIndex}. {chapter.title}
+                            </span>
+                            {isExisting && (
+                              <span className="text-xs text-gray-400 flex-shrink-0">已添加</span>
+                            )}
+                          </label>
+                        );
+                      })}
+                    </div>
                   ))}
                 </div>
               )}
             </div>
           )}
 
-          {/* 导游点评 */}
-          {selectedChapterId && (
+          {/* 批量导游点评 */}
+          {selectedChapterIds.size > 0 && (
             <div className="space-y-2">
-              <label className="text-sm font-bold text-gray-500">导游点评（可选）</label>
+              <label className="text-sm font-bold text-gray-500">
+                导游点评（批量，共 {selectedChapterIds.size} 个章节）
+              </label>
               <textarea
                 rows={3}
                 className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-emerald-500 outline-none transition-all resize-none"
-                placeholder="写下你对这个章节的推荐理由..."
-                value={newItemNotes}
-                onChange={e => setNewItemNotes(e.target.value)}
+                placeholder="为所有选中的章节填写统一的推荐理由..."
+                value={batchNotes}
+                onChange={e => setBatchNotes(e.target.value)}
               />
             </div>
           )}
@@ -742,11 +862,15 @@ const BooklistDetailPage: React.FC = () => {
               取消
             </button>
             <button
-              onClick={handleAddChapter}
-              disabled={!selectedChapterId || isSubmitting}
+              onClick={handleBatchAddChapters}
+              disabled={selectedChapterIds.size === 0 || isSubmitting}
               className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? '添加中...' : '添加章节'}
+              {isSubmitting
+                ? '添加中...'
+                : selectedChapterIds.size > 0
+                ? `添加所选章节 (${selectedChapterIds.size})`
+                : '添加章节'}
             </button>
           </div>
         </div>
