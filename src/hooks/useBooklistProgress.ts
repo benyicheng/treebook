@@ -1,4 +1,6 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useAuthStore } from '../stores/useAuthStore';
+import { booklistService } from '../api/storyService';
 
 const STORAGE_PREFIX = 'booklist_progress_';
 
@@ -15,12 +17,12 @@ interface UseBooklistProgressOptions {
 }
 
 export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgressOptions) {
+  const { user } = useAuthStore();
   const [progress, setProgress] = useState<BooklistProgress>(() => {
     try {
       const stored = localStorage.getItem(STORAGE_PREFIX + booklistId);
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Validate: if totalItems changed (booklist was edited), reset
         return parsed;
       }
     } catch {
@@ -34,6 +36,55 @@ export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgr
     };
   });
 
+  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isInitialLoadDone = useRef(false);
+
+  // D4: On mount, load progress from backend and merge with local
+  useEffect(() => {
+    if (!user || !booklistId) {
+      isInitialLoadDone.current = true;
+      return;
+    }
+
+    const fetchBackendProgress = async () => {
+      try {
+        const backendProgress = await booklistService.getProgress(booklistId);
+        if (backendProgress && backendProgress.updatedAt) {
+          const backendTs = new Date(backendProgress.updatedAt).getTime();
+          const localProgress = localStorage.getItem(STORAGE_PREFIX + booklistId);
+          
+          if (localProgress) {
+            const local = JSON.parse(localProgress);
+            // Use whichever version is newer
+            if (backendTs > local.updatedAt) {
+              const merged: BooklistProgress = {
+                booklistId,
+                currentItemIndex: backendProgress.currentItemIndex ?? -1,
+                completedItemIds: backendProgress.completedItemIds ?? [],
+                updatedAt: backendTs,
+              };
+              setProgress(merged);
+            }
+          } else {
+            // No local progress, use backend
+            setProgress({
+              booklistId,
+              currentItemIndex: backendProgress.currentItemIndex ?? -1,
+              completedItemIds: backendProgress.completedItemIds ?? [],
+              updatedAt: backendTs,
+            });
+          }
+        }
+      } catch {
+        // Backend unavailable, use local-only
+      } finally {
+        isInitialLoadDone.current = true;
+      }
+    };
+
+    fetchBackendProgress();
+  }, [user, booklistId]);
+
   // Persist to localStorage whenever progress changes
   useEffect(() => {
     try {
@@ -42,6 +93,30 @@ export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgr
       // localStorage full or unavailable
     }
   }, [progress, booklistId]);
+
+  // D4: Sync to backend with debounce (only when initial load is done)
+  useEffect(() => {
+    if (!user || !booklistId || !isInitialLoadDone.current) return;
+
+    if (syncTimerRef.current) {
+      clearTimeout(syncTimerRef.current);
+    }
+
+    syncTimerRef.current = setTimeout(() => {
+      booklistService.updateProgress(booklistId, {
+        currentItemIndex: progress.currentItemIndex,
+        completedItemIds: progress.completedItemIds,
+      }).catch(() => {
+        // Silent fail - localStorage is the primary source
+      });
+    }, 1000);
+
+    return () => {
+      if (syncTimerRef.current) {
+        clearTimeout(syncTimerRef.current);
+      }
+    };
+  }, [progress, user, booklistId]);
 
   const markCompleted = useCallback((itemId: string) => {
     setProgress(prev => {
@@ -71,17 +146,11 @@ export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgr
   }, []);
 
   const continueReading = useCallback((): number => {
-    // If there's a current item (in-progress), return that
     if (progress.currentItemIndex >= 0 && progress.currentItemIndex < totalItems) {
-      // Check if it's already completed — if so, return next uncompleted
-      const itemIds = progress.completedItemIds;
-      // We don't track which itemId maps to which index here, so trust currentItemIndex
       return progress.currentItemIndex;
     }
-    // If no current item, find first uncompleted
-    // Return 0 as default — start from beginning
     return 0;
-  }, [progress.currentItemIndex, totalItems, progress.completedItemIds]);
+  }, [progress.currentItemIndex, totalItems]);
 
   const resetProgress = useCallback(() => {
     setProgress({

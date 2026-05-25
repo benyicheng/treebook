@@ -9,6 +9,8 @@ import {
   addItemToBooklist,
   updateBooklistItemNotes,
   removeItemFromBooklist,
+  upsertProgress,
+  getProgress,
 } from '../controllers/booklistController';
 import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
@@ -26,5 +28,8 @@ router.delete('/:id', authenticate, deleteBooklist);
 router.post('/:id/items', authenticate, addItemToBooklist);
 router.put('/:id/items/:itemId', authenticate, validateRequest(updateBooklistItemNotesRequest), updateBooklistItemNotes);
 router.delete('/:id/items/:itemId', authenticate, removeItemFromBooklist);
+
+router.get('/:id/progress', authenticate, getProgress);
+router.patch('/:id/progress', authenticate, upsertProgress);
 
 export default router;

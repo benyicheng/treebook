@@ -93,6 +93,22 @@ export const updateBooklistItemNotes = catchAsync(async (req: AuthRequest, res: 
   res.json({ success: true, data: item });
 });
 
+export const upsertProgress = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+
+  const progress = await BooklistService.upsertProgress(req.params.id, userId, req.body);
+  res.json({ success: true, data: progress });
+});
+
+export const getProgress = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+
+  const progress = await BooklistService.getProgress(req.params.id, userId);
+  res.json({ success: true, data: progress });
+});
+
 export const removeItemFromBooklist = catchAsync(async (req: AuthRequest, res: Response) => {
   const creatorId = req.user?.id;
   const userRole = req.user?.role;

@@ -1,6 +1,20 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { MapPin, Plus, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
 import BooklistChapterCard from './BooklistChapterCard';
 import BooklistProgressBar from './BooklistProgressBar';
 import { useBooklistProgress } from '../../../hooks/useBooklistProgress';
@@ -33,6 +47,7 @@ interface BooklistTimelineProps {
   onEditNotes: (item: ChapterItem) => void;
   onMoveItem: (itemId: string, direction: 'up' | 'down') => void;
   onRemoveItem: (itemId: string) => void;
+  onReorder: (items: ChapterItem[]) => void;
 }
 
 const BooklistTimeline: React.FC<BooklistTimelineProps> = ({
@@ -44,6 +59,7 @@ const BooklistTimeline: React.FC<BooklistTimelineProps> = ({
   onEditNotes,
   onMoveItem,
   onRemoveItem,
+  onReorder,
 }) => {
   const navigate = useNavigate();
 
@@ -59,6 +75,30 @@ const BooklistTimeline: React.FC<BooklistTimelineProps> = ({
   });
 
   const currentIndex = continueReading();
+
+  // ─── DnD Sensors ──────────────────────────────────────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 }, // 8px threshold prevents accidental drag
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = items.findIndex(i => i.id === active.id);
+    const newIndex = items.findIndex(i => i.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const reordered = [...items];
+    const [moved] = reordered.splice(oldIndex, 1);
+    reordered.splice(newIndex, 0, moved);
+    onReorder(reordered);
+  }, [items, onReorder]);
 
   return (
     <div className="space-y-12 px-4 relative">
@@ -87,6 +127,11 @@ const BooklistTimeline: React.FC<BooklistTimelineProps> = ({
               添加章节
             </button>
           )}
+          {isCreator && items.length > 1 && (
+            <span className="text-[10px] text-gray-400 font-medium hidden md:inline">
+              💡 拖拽卡片可调整顺序
+            </span>
+          )}
         </div>
       </div>
 
@@ -101,26 +146,37 @@ const BooklistTimeline: React.FC<BooklistTimelineProps> = ({
         </div>
       )}
 
-      {/* Chapter Cards */}
-      <div className="space-y-12">
-        {items.map((item, index) => (
-          <BooklistChapterCard
-            key={item.id}
-            item={item}
-            index={index}
-            totalItems={items.length}
-            booklistId={booklistId}
-            isCreator={isCreator}
-            isCompleted={isCompleted(item.id)}
-            isCurrent={index === currentIndex && !isCompleted(item.id)}
-            onRead={onRead}
-            onEditNotes={onEditNotes}
-            onMoveUp={(id) => onMoveItem(id, 'up')}
-            onMoveDown={(id) => onMoveItem(id, 'down')}
-            onRemove={onRemoveItem}
-          />
-        ))}
-      </div>
+      {/* Chapter Cards (DnD context) */}
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={items.map(i => i.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-12">
+            {items.map((item, index) => (
+              <BooklistChapterCard
+                key={item.id}
+                item={item}
+                index={index}
+                totalItems={items.length}
+                booklistId={booklistId}
+                isCreator={isCreator}
+                isCompleted={isCompleted(item.id)}
+                isCurrent={index === currentIndex && !isCompleted(item.id)}
+                onRead={onRead}
+                onEditNotes={onEditNotes}
+                onMoveUp={(id) => onMoveItem(id, 'up')}
+                onMoveDown={(id) => onMoveItem(id, 'down')}
+                onRemove={onRemoveItem}
+              />
+            ))}
+          </div>
+        </SortableContext>
+      </DndContext>
 
       {/* Journey End */}
       <div className="ml-20 md:ml-24 pt-12 pb-20">
