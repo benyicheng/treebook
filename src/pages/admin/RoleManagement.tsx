@@ -1,29 +1,17 @@
 import React, { useState } from 'react';
-import client from '../../api/client';
-import { Shield, Plus, Edit3, Trash2, Check, X, AlertCircle } from 'lucide-react';
+import { Shield, Plus, Edit3, Trash2, Check, X } from 'lucide-react';
 import PermissionGate from '../../components/PermissionGate';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/useAuthStore';
-
-interface Permission {
-  id: string;
-  code: string;
-  description: string;
-}
-
-interface Role {
-  id: string;
-  name: string;
-  description?: string;
-  permissions?: { permission: Permission }[];
-  _count: { users: number; permissions?: number };
-}
+import { useToast } from '../../components/Toast';
+import roleService, { Permission, RoleItem } from '../../api/roleService';
 
 const RoleManagement: React.FC = () => {
   const queryClient = useQueryClient();
   const { hasPermission } = useAuthStore();
+  const { addToast } = useToast();
 
-  const [editingRole, setEditingRole] = useState<Role | null>(null);
+  const [editingRole, setEditingRole] = useState<RoleItem | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPermissions, setSelectedPermissions] = useState<string[]>([]);
   const [newRoleName, setNewRoleName] = useState('');
@@ -37,39 +25,32 @@ const RoleManagement: React.FC = () => {
 
   const rolesQuery = useQuery({
     queryKey: ['adminRoles', page, pageSize, q],
-    queryFn: async () => {
-      const res = await client.get('/roles', { params: { page, pageSize, q: q.trim() || undefined } });
-      return res.data as { items: Role[]; total: number; page: number; pageSize: number };
-    },
+    queryFn: () => roleService.listRoles({ page, pageSize, q: q.trim() || undefined }),
   });
 
   const permissionsQuery = useQuery({
     queryKey: ['adminPermissions'],
-    queryFn: async () => {
-      const res = await client.get('/roles/permissions');
-      return res.data as Permission[];
-    },
+    queryFn: () => roleService.listPermissions(),
     staleTime: 60_000,
   });
 
   const roles = rolesQuery.data?.items || [];
   const total = rolesQuery.data?.total || 0;
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
-  const permissions = permissionsQuery.data || [];
+  const permissions: Permission[] = permissionsQuery.data || [];
   const isLoading = rolesQuery.isLoading || permissionsQuery.isLoading;
   const errorMessage = (rolesQuery.error as any)?.message || (permissionsQuery.error as any)?.message || null;
 
-  const handleEdit = (role: Role) => {
+  const handleEdit = (role: RoleItem) => {
     const run = async () => {
-      const res = await client.get(`/roles/${role.id}`);
-      const full = res.data as Role;
+      const full = await roleService.getRole(role.id);
       setEditingRole(full);
       setNewRoleName(full.name);
       setNewRoleDesc(full.description || '');
-      setSelectedPermissions(full.permissions.map((p) => p.permission.id));
+      setSelectedPermissions(full.permissions?.map((p) => p.permission.id) || []);
       setIsModalOpen(true);
     };
-    run().catch(() => alert('加载角色详情失败'));
+    run().catch(() => addToast('error', '加载角色详情失败'));
   };
 
   const handleCreate = () => {
@@ -85,27 +66,24 @@ const RoleManagement: React.FC = () => {
       const permissionIds = Array.from(new Set(selectedPermissions));
       if (editingRole) {
         if (canUpdateRole) {
-          await client.put(`/roles/${editingRole.id}`, {
-            name: newRoleName,
-            description: newRoleDesc,
-          });
+          await roleService.updateRole(editingRole.id, { name: newRoleName, description: newRoleDesc });
         }
         if (canAssignPermissions) {
-          await client.put(`/roles/${editingRole.id}/permissions`, { permissionIds });
+          await roleService.updateRolePermissions(editingRole.id, permissionIds);
         }
       } else {
-        await client.post('/roles', { name: newRoleName, description: newRoleDesc, permissionIds });
+        await roleService.createRole({ name: newRoleName, description: newRoleDesc, permissionIds });
       }
       setIsModalOpen(false);
       await queryClient.invalidateQueries({ queryKey: ['adminRoles'] });
     } catch (error) {
-      const msg = error?.response?.data?.error?.message || error?.response?.data?.message || error?.message || '操作失败';
-      alert(msg);
+      const msg = (error as any)?.response?.data?.error?.message || (error as any)?.response?.data?.message || (error as any)?.message || '操作失败';
+      addToast('error', msg);
     }
   };
 
   const togglePermission = (id: string) => {
-    setSelectedPermissions(prev => 
+    setSelectedPermissions(prev =>
       prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
     );
   };
@@ -120,30 +98,29 @@ const RoleManagement: React.FC = () => {
     if (selectedRoleIds.length === 0) return;
     if (!confirm(`确认删除 ${selectedRoleIds.length} 个角色？（已绑定用户的角色无法删除）`)) return;
     try {
-      await client.post('/roles/bulk-delete', { ids: selectedRoleIds });
+      await roleService.bulkDeleteRoles(selectedRoleIds);
       clearSelection();
       await queryClient.invalidateQueries({ queryKey: ['adminRoles'] });
     } catch (error: any) {
       const msg = error?.response?.data?.error?.message || error?.message || '批量删除失败';
-      alert(msg);
+      addToast('error', msg);
     }
   };
 
   const deleteRole = async (id: string) => {
     if (!confirm('确认删除该角色？（已绑定用户的角色无法删除）')) return;
     try {
-      await client.delete(`/roles/${id}`);
+      await roleService.deleteRole(id);
       await queryClient.invalidateQueries({ queryKey: ['adminRoles'] });
     } catch (error: any) {
       const msg = error?.response?.data?.error?.message || error?.message || '删除失败';
-      alert(msg);
+      addToast('error', msg);
     }
   };
 
   const exportRoles = async () => {
     try {
-      const res = await client.get('/roles/export', { params: { format: 'csv' }, responseType: 'blob' as any });
-      const blob = new Blob([res.data], { type: 'text/csv;charset=utf-8' });
+      const blob = await roleService.exportRolesCsv();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -154,7 +131,7 @@ const RoleManagement: React.FC = () => {
       URL.revokeObjectURL(url);
     } catch (error: any) {
       const msg = error?.response?.data?.error?.message || error?.message || '导出失败';
-      alert(msg);
+      addToast('error', msg);
     }
   };
 
@@ -164,16 +141,16 @@ const RoleManagement: React.FC = () => {
     <div className="p-8 max-w-7xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-            <Shield className="text-blue-600" size={32} />
+          <h1 className="text-3xl font-black text-ink-800 dark:text-white flex items-center gap-3">
+            <Shield className="text-accent-500" size={32} />
             角色与权限管理
           </h1>
-          <p className="text-gray-500 mt-2">管理系统角色及其对应的功能权限</p>
+          <p className="text-ink-500 mt-2">管理系统角色及其对应的功能权限</p>
         </div>
         <PermissionGate permission="role:create">
-          <button 
+          <button
             onClick={handleCreate}
-            className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
+            className="flex items-center gap-2 px-6 py-3 bg-accent-500 text-white rounded-xl font-bold hover:bg-accent-600 transition-all shadow-lg shadow-accent-400/20"
           >
             <Plus size={20} />
             新建角色
@@ -189,12 +166,12 @@ const RoleManagement: React.FC = () => {
               setPage(1);
               setQ(e.target.value);
             }}
-            className="px-4 py-3 rounded-2xl bg-gray-50 dark:bg-gray-800 border border-transparent focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none font-bold text-gray-900 dark:text-white w-full md:w-80"
+            className="px-4 py-3 rounded-2xl bg-ink-50 dark:bg-ink-700 border border-transparent focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 outline-none font-bold text-ink-800 dark:text-white w-full md:w-80"
             placeholder="搜索角色名称或描述..."
           />
           <button
             onClick={() => rolesQuery.refetch()}
-            className="px-4 py-3 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-black hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95"
+            className="px-4 py-3 rounded-2xl bg-ink-100 dark:bg-ink-700 text-ink-800 dark:text-white font-black hover:bg-ink-200 dark:hover:bg-ink-600 transition-all active:scale-95"
           >
             刷新
           </button>
@@ -203,7 +180,7 @@ const RoleManagement: React.FC = () => {
           <PermissionGate permission="role:read">
             <button
               onClick={exportRoles}
-              className="px-4 py-3 rounded-2xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-black hover:bg-gray-200 dark:hover:bg-gray-700 transition-all active:scale-95"
+              className="px-4 py-3 rounded-2xl bg-ink-100 dark:bg-ink-700 text-ink-800 dark:text-white font-black hover:bg-ink-200 dark:hover:bg-ink-600 transition-all active:scale-95"
             >
               导出 CSV
             </button>
@@ -228,11 +205,11 @@ const RoleManagement: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {roles.map(role => (
-          <div key={role.id} className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-100 dark:border-gray-700 hover:shadow-xl transition-all">
+          <div key={role.id} className="bg-white dark:bg-ink-700 rounded-3xl p-6 border border-ink-100 dark:border-ink-600 hover:shadow-xl transition-all">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="text-xl font-black text-gray-900 dark:text-white">{role.name}</h3>
-                <p className="text-sm text-gray-500 mt-1">{role.description}</p>
+                <h3 className="text-xl font-black text-ink-800 dark:text-white">{role.name}</h3>
+                <p className="text-sm text-ink-500 mt-1">{role.description}</p>
               </div>
               <div className="flex items-center gap-2">
                 <input
@@ -245,7 +222,7 @@ const RoleManagement: React.FC = () => {
                 {(canUpdateRole || canAssignPermissions) && (
                   <button
                     onClick={() => handleEdit(role)}
-                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                    className="p-2 text-ink-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-500/10 rounded-lg transition-colors"
                     aria-label={`编辑角色 ${role.name}`}
                   >
                     <Edit3 size={18} />
@@ -254,7 +231,7 @@ const RoleManagement: React.FC = () => {
                 {hasPermission('role:delete') && (
                   <button
                     onClick={() => deleteRole(role.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                    className="p-2 text-ink-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                     aria-label={`删除角色 ${role.name}`}
                   >
                     <Trash2 size={18} />
@@ -262,14 +239,14 @@ const RoleManagement: React.FC = () => {
                 )}
               </div>
             </div>
-            
+
             <div className="space-y-4">
-              <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 dark:bg-gray-900/50 p-3 rounded-xl">
+              <div className="flex items-center gap-2 text-sm text-ink-500 bg-ink-50 dark:bg-ink-800/50 p-3 rounded-xl">
                 <Shield size={16} />
                 <span>包含 {role._count?.permissions ?? role.permissions?.length ?? 0} 项权限</span>
               </div>
-              
-              <div className="text-xs text-gray-400 font-bold uppercase tracking-wider">
+
+              <div className="text-xs text-ink-400 font-bold uppercase tracking-wider">
                 已绑定用户：{role._count?.users ?? 0}
               </div>
             </div>
@@ -278,21 +255,21 @@ const RoleManagement: React.FC = () => {
       </div>
 
       <div className="mt-8 flex items-center justify-between">
-        <div className="text-sm text-gray-500 font-bold">
+        <div className="text-sm text-ink-500 font-bold">
           共 {total} 条 · 第 {page}/{totalPages} 页
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-black disabled:opacity-50"
+            className="px-4 py-2 rounded-xl bg-ink-100 dark:bg-ink-700 text-ink-800 dark:text-white font-black disabled:opacity-50"
           >
             上一页
           </button>
           <button
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="px-4 py-2 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-black disabled:opacity-50"
+            className="px-4 py-2 rounded-xl bg-ink-100 dark:bg-ink-700 text-ink-800 dark:text-white font-black disabled:opacity-50"
           >
             下一页
           </button>
@@ -303,22 +280,22 @@ const RoleManagement: React.FC = () => {
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
-          <div className="relative bg-white dark:bg-gray-900 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center">
-              <h3 className="text-xl font-black text-gray-900 dark:text-white">
+          <div className="relative bg-ink-50 dark:bg-ink-800 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="p-6 border-b border-ink-100 dark:border-ink-700 flex justify-between items-center">
+              <h3 className="text-xl font-black text-ink-800 dark:text-white">
                 {editingRole ? '编辑角色权限' : '新建角色'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
+              <button onClick={() => setIsModalOpen(false)} className="text-ink-400 hover:text-ink-500">
                 <X size={24} />
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase">角色名称</label>
-                  <input 
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  <label className="text-xs font-bold text-ink-500 uppercase">角色名称</label>
+                  <input
+                    className="w-full px-4 py-3 bg-ink-50 dark:bg-ink-700 border-none rounded-xl focus:ring-2 focus:ring-accent-400 outline-none"
                     placeholder="例如: editor"
                     value={newRoleName}
                     onChange={e => setNewRoleName(e.target.value)}
@@ -326,9 +303,9 @@ const RoleManagement: React.FC = () => {
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-gray-500 uppercase">描述</label>
-                  <input 
-                    className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border-none rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  <label className="text-xs font-bold text-ink-500 uppercase">描述</label>
+                  <input
+                    className="w-full px-4 py-3 bg-ink-50 dark:bg-ink-700 border-none rounded-xl focus:ring-2 focus:ring-accent-400 outline-none"
                     placeholder="角色职能描述"
                     value={newRoleDesc}
                     onChange={e => setNewRoleDesc(e.target.value)}
@@ -339,29 +316,29 @@ const RoleManagement: React.FC = () => {
 
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-gray-500 uppercase">权限配置</label>
-                  <span className="text-xs text-blue-600 font-bold">{selectedPermissions.length} 已选择</span>
+                  <label className="text-xs font-bold text-ink-500 uppercase">权限配置</label>
+                  <span className="text-xs text-accent-500 font-bold">{selectedPermissions.length} 已选择</span>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {permissions.map(perm => (
-                    <div 
+                    <div
                       key={perm.id}
                       onClick={() => (canAssignPermissions ? togglePermission(perm.id) : undefined)}
                       className={`p-3 rounded-xl border-2 cursor-pointer transition-all ${
                         selectedPermissions.includes(perm.id)
-                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                          : 'border-transparent bg-gray-50 dark:bg-gray-800 hover:bg-gray-100'
+                          ? 'border-accent-400 bg-accent-50 dark:bg-accent-500/10'
+                          : 'border-transparent bg-ink-50 dark:bg-ink-700 hover:bg-ink-100'
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         <div className={`w-5 h-5 rounded-full flex items-center justify-center border ${
-                          selectedPermissions.includes(perm.id) ? 'bg-blue-500 border-blue-500 text-white' : 'border-gray-300'
+                          selectedPermissions.includes(perm.id) ? 'bg-accent-400 border-accent-400 text-white' : 'border-ink-300'
                         }`}>
                           {selectedPermissions.includes(perm.id) && <Check size={12} strokeWidth={4} />}
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-gray-900 dark:text-white">{perm.code}</div>
-                          <div className="text-xs text-gray-500">{perm.description}</div>
+                          <div className="text-sm font-bold text-ink-800 dark:text-white">{perm.code}</div>
+                          <div className="text-xs text-ink-500">{perm.description}</div>
                         </div>
                       </div>
                     </div>
@@ -370,16 +347,16 @@ const RoleManagement: React.FC = () => {
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-100 dark:border-gray-800 flex justify-end gap-3">
-              <button 
+            <div className="p-6 border-t border-ink-100 dark:border-ink-700 flex justify-end gap-3">
+              <button
                 onClick={() => setIsModalOpen(false)}
-                className="px-6 py-3 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200"
+                className="px-6 py-3 bg-ink-100 dark:bg-ink-700 text-ink-500 dark:text-ink-300 rounded-xl font-bold hover:bg-ink-200"
               >
                 取消
               </button>
-              <button 
+              <button
                 onClick={handleSubmit}
-                className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20"
+                className="px-6 py-3 bg-accent-500 text-white rounded-xl font-bold hover:bg-accent-600 shadow-lg shadow-accent-400/20"
               >
                 保存配置
               </button>

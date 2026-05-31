@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, Outlet, useLocation } from 'react-router-dom';
-import { GitBranch, Home, Layout, LogOut, Star, User, Shield, ShieldCheck, Settings2, Bell, Search, BookMarked, Plus, Coins, Crown, Zap, Edit3, ClipboardCheck } from 'lucide-react';
+import { GitBranch, Home, Layout, LogOut, Star, User, Users, Shield, ShieldCheck, Settings2, Search, BookMarked, Plus, Coins, Crown, Zap, Edit3, ClipboardCheck, Compass, Route } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSiteConfigStore } from '../stores/useSiteConfigStore';
 import MobileNavbar from '../components/MobileNavbar';
+import NotificationDropdown from '../components/NotificationDropdown';
 import { motion, AnimatePresence } from 'framer-motion';
 import PermissionGate from '../components/PermissionGate';
 
@@ -39,6 +40,9 @@ const MainLayout: React.FC = () => {
     { name: '主线', path: '/stories', icon: Crown },
     { name: '分支', path: '/branches', icon: GitBranch },
     { name: '编辑精选', path: '/recommendations', icon: Star },
+    { name: '关注', path: '/follow', icon: Users },
+    { name: '路径', path: '/reading-paths', icon: Route },
+    { name: '探索', path: '/discover', icon: Compass },
     { name: '新书', path: '/new', icon: Zap },
     { name: '书单', path: '/booklist', icon: BookMarked },
   ];
@@ -53,7 +57,7 @@ const MainLayout: React.FC = () => {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      navigate(`/?search=${encodeURIComponent(searchQuery)}`);
+      navigate(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
     }
   };
 
@@ -70,21 +74,21 @@ const MainLayout: React.FC = () => {
     hasPermission('role:read') || hasPermission('review:case:view') || hasPermission('editorial:view');
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col transition-colors duration-300">
+    <div className="min-h-screen bg-ink-50 dark:bg-ink-800 flex flex-col transition-colors duration-page">
       
       {/* ══════ 顶部主导航 (Fixed Top - Single Row) ══════ */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-md border-b border-gray-100 dark:border-gray-800 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 bg-ink-50 dark:bg-ink-800 backdrop-blur-xl border-b border-ink-100 dark:border-ink-700 shadow-sm">
         <div className="max-w-[1600px] mx-auto h-20 flex items-center justify-between px-6 gap-8">
           
           {/* 左侧：Logo */}
           <Link to="/" className="flex items-center gap-3 group shrink-0">
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-110 transition-transform">
+            <div className="w-10 h-10 bg-gradient-to-br from-accent-400 to-accent-600 rounded-xl flex items-center justify-center shadow-md shadow-accent-500/20 group-hover:scale-110 transition-transform duration-fast ease-out-expo">
               {config.logoUrl
                 ? <img src={config.logoUrl} alt="logo" className="w-full h-full object-contain" />
-                : <Layout size={22} className="text-white" />
+                : <Layout size={22} className="text-ink-50" />
               }
             </div>
-            <span className="text-xl font-black tracking-tight text-gray-900 dark:text-white hidden lg:block">
+            <span className="text-xl font-black tracking-tight text-ink-800 dark:text-ink-50 hidden lg:block font-display">
               {config.siteName || '平行宇宙'}
             </span>
           </Link>
@@ -97,13 +101,13 @@ const MainLayout: React.FC = () => {
                 <Link
                   key={item.name}
                   to={item.path}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all relative whitespace-nowrap
+                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-black transition-all duration-fast ease-out-expo relative whitespace-nowrap
                     ${active 
-                      ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600' 
-                      : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                      ? 'bg-accent-50 dark:bg-accent-500/15 text-accent-600 dark:text-accent-400' 
+                      : 'text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-700/50'
                     }`}
                 >
-                  <item.icon size={16} className={active ? 'text-blue-600' : 'opacity-60'} />
+                  <item.icon size={16} className={active ? 'text-accent-600 dark:text-accent-400' : 'opacity-60'} />
                   {item.name}
                 </Link>
               );
@@ -113,33 +117,25 @@ const MainLayout: React.FC = () => {
           {/* 右侧：搜索 + 用户操作 */}
           <div className="flex items-center gap-4 shrink-0">
             <form onSubmit={handleSearch} className="relative hidden xl:flex items-center group">
-              <Search size={16} className="absolute left-4 text-gray-400 group-focus-within:text-blue-500 transition-colors" />
+              <button type="submit" className="absolute left-4 text-ink-400 group-focus-within:text-accent-500 transition-colors duration-instant" aria-label="搜索">
+                <Search size={16} />
+              </button>
               <input 
                 type="text" 
                 placeholder="搜索..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-48 h-10 bg-gray-100 dark:bg-gray-800 border-none rounded-full pl-11 pr-4 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:bg-white dark:focus:bg-gray-800 focus:w-64 transition-all outline-none"
+                className="w-48 h-10 bg-ink-100 dark:bg-ink-700 border-none rounded-full pl-11 pr-4 text-sm font-medium focus:ring-2 focus:ring-accent-500/20 focus:bg-ink-50 dark:focus:bg-ink-700 focus:w-64 transition-all duration-normal ease-out-expo outline-none text-ink-700 dark:text-ink-200 placeholder:text-ink-400"
               />
             </form>
 
             <div className="flex items-center gap-3">
               {isAuthenticated ? (
                 <>
-                  <Link 
-                    to="/story/create"
-                    className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-xs font-black transition-all shadow-lg shadow-blue-500/20 active:scale-95"
-                  >
-                    <Plus size={16} strokeWidth={3} />
-                    开始创作
-                  </Link>
-                  <button className="p-2.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-full transition-all relative">
-                    <Bell size={20} />
-                    <span className="absolute top-2.5 right-2.5 w-2 h-2 bg-red-500 border-2 border-white dark:border-gray-900 rounded-full" />
-                  </button>
-                  <div className="w-px h-8 bg-gray-200 dark:bg-gray-700 mx-1" />
-                  <button onClick={() => navigate('/profile')} className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 p-0.5 shadow-sm hover:ring-2 hover:ring-blue-500 transition-all overflow-hidden">
-                    <div className="w-full h-full rounded-full bg-white dark:bg-gray-900 flex items-center justify-center text-blue-600 font-black text-sm overflow-hidden">
+                  <NotificationDropdown />
+                  <div className="w-px h-8 bg-ink-200 dark:bg-ink-600 mx-1" />
+                  <button onClick={() => navigate('/profile')} className="w-10 h-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 p-0.5 shadow-sm hover:ring-2 hover:ring-accent-500 transition-all duration-fast overflow-hidden">
+                    <div className="w-full h-full rounded-full bg-ink-50 dark:bg-ink-800 flex items-center justify-center text-accent-600 font-black text-sm overflow-hidden">
                       {user?.avatarUrl ? (
                         <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
                       ) : (
@@ -150,10 +146,10 @@ const MainLayout: React.FC = () => {
                 </>
               ) : (
                 <div className="flex items-center gap-4">
-                  <Link to="/register" className="text-sm font-black text-gray-500 hover:text-blue-600 transition-colors hidden sm:block">
+                  <Link to="/register" className="text-sm font-black text-ink-400 hover:text-accent-600 transition-colors duration-instant hidden sm:block">
                     注册账号
                   </Link>
-                  <Link to="/login" className="px-6 py-2.5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-full text-sm font-black hover:opacity-90 transition-all shadow-md">
+                  <Link to="/login" className="px-6 py-2.5 bg-ink-800 dark:bg-ink-50 text-ink-50 dark:text-ink-800 rounded-full text-sm font-black hover:opacity-90 transition-all duration-instant shadow-md">
                     立即登录
                   </Link>
                 </div>
@@ -169,18 +165,19 @@ const MainLayout: React.FC = () => {
           onMouseEnter={() => setIsSidebarHovered(true)}
           onMouseLeave={() => setIsSidebarHovered(false)}
           className={`
-            fixed left-0 bottom-0 top-20 z-40 transition-all duration-500 ease-in-out group
+            fixed left-0 bottom-0 top-20 z-40 transition-all duration-slow ease-out-expo group
             ${isSidebarHovered 
-              ? 'w-72 bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl border-r border-gray-100 dark:border-gray-800 shadow-[20px_0_40px_-15px_rgba(0,0,0,0.1)]' 
-              : 'w-2 bg-transparent hover:bg-blue-500/10'}
+              ? 'w-72 bg-ink-50/95 dark:bg-ink-800/95 backdrop-blur-xl border-r border-ink-100 dark:border-ink-700 shadow-[20px_0_40px_-15px_rgba(0,0,0,0.1)]' 
+              : 'w-3 bg-transparent hover:bg-accent-500/20 hover:border-r hover:border-accent-200 dark:hover:border-accent-800/30'}
             hidden lg:flex flex-col overflow-hidden
+            ${!isSidebarHovered ? 'cursor-pointer' : ''}
           `}
         >
-          <div className={`flex-1 flex flex-col px-8 pb-8 overflow-y-auto no-scrollbar transition-all duration-500 transform ${isSidebarHovered ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8 pointer-events-none'}`}>
+          <div className={`flex-1 flex flex-col px-8 pb-8 overflow-y-auto no-scrollbar transition-all duration-slow ease-out-expo transform ${isSidebarHovered ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-8 pointer-events-none'}`}>
             <div className="space-y-10 pt-4">
               {/* 管理中心 */}
               <div className="space-y-3">
-                <p className="px-4 text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest">Workbench</p>
+                <p className="px-4 text-[10px] font-black text-ink-400 dark:text-ink-500 uppercase tracking-widest">Workbench</p>
                 <div className="space-y-1">
                   {managementItems.map((item) => {
                     const active = isActive(item.path);
@@ -188,13 +185,13 @@ const MainLayout: React.FC = () => {
                       <Link
                         key={item.path}
                         to={item.path}
-                        className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group/item
+                        className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-normal group/item
                           ${active
-                            ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/30 translate-x-1'
-                            : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'
+                            ? 'bg-accent-500 text-ink-50 shadow-md shadow-accent-500/20 translate-x-1'
+                            : 'text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-700/50 hover:text-ink-700 dark:hover:text-ink-200'
                           }`}
                       >
-                        <item.icon size={20} className={`transition-transform group-hover/item:scale-110 ${active ? 'text-white' : 'opacity-60'}`} />
+                        <item.icon size={20} className={`transition-transform duration-fast group-hover/item:scale-110 ${active ? 'text-ink-50' : 'opacity-60'}`} />
                         <span className="text-sm font-black">{item.name}</span>
                       </Link>
                     );
@@ -205,12 +202,13 @@ const MainLayout: React.FC = () => {
               {/* 系统工具 */}
               {showAdmin && (
                 <div className="space-y-3">
-                  <p className="px-4 text-[10px] font-black text-gray-400 dark:text-gray-600 uppercase tracking-widest">Admin Control</p>
+                  <p className="px-4 text-[10px] font-black text-ink-400 dark:text-ink-500 uppercase tracking-widest">Admin Control</p>
                   <div className="space-y-1">
                     {[
                       ...(hasPermission('role:read') ? [{ path: '/admin/roles', icon: Shield, name: '角色权限' }] : []),
-                      ...(hasPermission('role:read') ? [{ path: '/admin/cms', icon: Settings2, name: '站点管理' }] : []),
-                      ...(hasPermission('role:read') ? [{ path: '/admin/moderation', icon: ShieldCheck, name: '内容审核' }] : []),
+                      ...(hasPermission('user:role:assign') ? [{ path: '/admin/users', icon: Users, name: '用户管理' }] : []),
+                      ...(hasPermission('cms:manage') ? [{ path: '/admin/cms', icon: Settings2, name: '站点管理' }] : []),
+                      ...(hasPermission('moderation:view') ? [{ path: '/admin/moderation', icon: ShieldCheck, name: '内容审核' }] : []),
                       ...(hasPermission('review:case:view') ? [{ path: '/admin/review-cases', icon: ClipboardCheck, name: '人工复核' }] : []),
                       ...(hasPermission('editorial:view') ? [{ path: '/admin/editorial', icon: Edit3, name: '编辑改稿' }] : []),
                     ].map((item) => {
@@ -219,13 +217,13 @@ const MainLayout: React.FC = () => {
                         <Link
                           key={item.path}
                           to={item.path}
-                          className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-300 group/item
+                          className={`flex items-center gap-4 px-4 py-3.5 rounded-2xl transition-all duration-normal group/item
                             ${active
-                              ? 'bg-violet-600 text-white shadow-xl shadow-violet-500/30 translate-x-1'
-                              : 'text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/50 hover:text-gray-900 dark:hover:text-white'
+                              ? 'bg-accent-600 text-ink-50 shadow-md shadow-accent-600/20 translate-x-1'
+                              : 'text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-700/50 hover:text-ink-700 dark:hover:text-ink-200'
                             }`}
                         >
-                          <item.icon size={20} className={`transition-transform group-hover/item:scale-110 ${active ? 'text-white' : 'opacity-60'}`} />
+                          <item.icon size={20} className={`transition-transform duration-fast group-hover/item:scale-110 ${active ? 'text-ink-50' : 'opacity-60'}`} />
                           <span className="text-sm font-black">{item.name}</span>
                         </Link>
                       );
@@ -237,10 +235,10 @@ const MainLayout: React.FC = () => {
 
             {/* 底部退出 */}
             {isAuthenticated && (
-              <div className="mt-auto pt-8 border-t border-gray-50 dark:border-gray-800/50">
+              <div className="mt-auto pt-8 border-t border-ink-100 dark:border-ink-700/50">
                 <button 
                   onClick={() => logout()}
-                  className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all font-black text-sm uppercase tracking-widest"
+                  className="w-full flex items-center gap-4 px-4 py-4 rounded-2xl text-ink-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 transition-all duration-instant font-black text-sm uppercase tracking-widest"
                 >
                   <LogOut size={20} />
                   Sign Out
@@ -251,14 +249,14 @@ const MainLayout: React.FC = () => {
         </aside>
 
         {/* ══════ 主内容区 (Main Scrollable) ══════ */}
-        <main className="flex-1 p-8 overflow-hidden transition-all duration-500">
+        <main className="flex-1 p-8 transition-all duration-slow">
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname + location.search}
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
               <Outlet />
             </motion.div>

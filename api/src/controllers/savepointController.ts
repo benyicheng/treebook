@@ -25,5 +25,5 @@ export const deleteSavepoint = catchAsync(async (req: AuthRequest, res: Response
   if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
 
   const result = await SavepointService.deleteSavepoint(req.params.id, userId);
-  res.json(result);
+  res.json({ success: true, data: result });
 });

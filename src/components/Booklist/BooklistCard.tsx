@@ -13,7 +13,7 @@ const BooklistCard: React.FC<BooklistCardProps> = ({ booklist }) => {
   return (
     <div 
       onClick={() => navigate(`/booklist/${booklist.id}`)}
-      className="group cursor-pointer bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 overflow-hidden hover:border-emerald-300 dark:hover:border-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/10 transition-all duration-500 flex flex-col"
+      className="group cursor-pointer bg-ink-50 dark:bg-ink-700 rounded-[2.5rem] border border-ink-100 dark:border-ink-600 overflow-hidden hover:border-emerald-300 dark:hover:border-accent-400 hover:shadow-2xl hover:shadow-accent-400/10 transition-all duration-500 flex flex-col"
     >
       {/* Cover Image Area */}
       <div className="relative h-48 overflow-hidden bg-slate-200">
@@ -25,7 +25,7 @@ const BooklistCard: React.FC<BooklistCardProps> = ({ booklist }) => {
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
         <div className="absolute top-4 left-4 flex gap-2">
           <span className={`px-3 py-1 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg ${
-            (booklist as any).type === 'TIMELINE' ? 'bg-indigo-600' : 'bg-emerald-600'
+            (booklist as any).type === 'TIMELINE' ? 'bg-accent-600' : 'bg-accent-500'
           }`}>
             {(booklist as any).type === 'TIMELINE' ? '时空导览' : '精选合集'}
           </span>
@@ -52,24 +52,24 @@ const BooklistCard: React.FC<BooklistCardProps> = ({ booklist }) => {
       
       <div className="p-8 space-y-4 flex-1 flex flex-col">
         <div className="flex flex-wrap gap-2">
-          {(booklist as any).tags?.split(',').filter(Boolean).map(tag => (
-            <span key={tag} className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+          {(booklist as any).tags?.split(',').filter(Boolean).map((tag: string) => (
+            <span key={tag} className="text-[10px] font-black text-accent-500 dark:text-accent-400 uppercase tracking-widest">
               #{tag.trim()}
             </span>
           ))}
         </div>
-        <h3 className="text-2xl font-black text-gray-900 dark:text-white group-hover:text-emerald-600 transition-colors line-clamp-2">
+        <h3 className="text-2xl font-black text-ink-800 dark:text-white group-hover:text-accent-500 transition-colors line-clamp-2">
           {booklist.title}
         </h3>
-        <p className="text-gray-500 dark:text-gray-400 font-light leading-relaxed text-sm line-clamp-3 italic">
+        <p className="text-ink-500 dark:text-ink-400 font-light leading-relaxed text-sm line-clamp-3 italic">
           "{booklist.description || '暂无描述'}"
         </p>
-        <div className="pt-6 mt-auto flex items-center justify-between border-t border-gray-50 dark:border-gray-700/50">
-          <div className="flex items-center gap-2 text-xs font-bold text-gray-400">
+        <div className="pt-6 mt-auto flex items-center justify-between border-t border-ink-50 dark:border-ink-600/50">
+          <div className="flex items-center gap-2 text-xs font-bold text-ink-400">
             <Layers size={14} />
-            <span>{booklist.items?.length || 0} 站旅程</span>
+            <span>{booklist._count?.items || 0} 站旅程</span>
           </div>
-          <div className="flex items-center gap-1 text-xs font-black text-emerald-600 group-hover:gap-2 transition-all">
+          <div className="flex items-center gap-1 text-xs font-black text-accent-500 group-hover:gap-2 transition-all">
             进入时空
             <ChevronRight size={14} />
           </div>

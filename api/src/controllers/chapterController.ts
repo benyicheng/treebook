@@ -2,9 +2,11 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { ChapterService } from '../services/ChapterService';
+import { NotificationService } from '../services/NotificationService';
 import { AppError } from '../utils/http';
 import { moderateText, reviewContent } from '../utils/contentModeration';
 import { ModerationVisibilityService } from '../domains/moderation/ModerationVisibilityService';
+import { prisma } from '../prisma';
 
 export const createChapter = catchAsync(async (req: AuthRequest, res: Response) => {
   const authorId = req.user?.id;
@@ -36,7 +38,7 @@ export const deleteChapter = catchAsync(async (req: AuthRequest, res: Response) 
   if (!authorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
 
   const result = await ChapterService.deleteChapter(req.params.id, authorId, userRole);
-  res.json(result);
+  res.json({ success: true, data: result });
 });
 
 export const getChapterById = catchAsync(async (req: Request, res: Response) => {
@@ -75,6 +77,34 @@ export const createComment = catchAsync(async (req: AuthRequest, res: Response) 
 
   const comment = await ChapterService.createComment(req.params.id, authorId, req.body.content);
   moderateText(req, 'comments', 'comment', comment.id, 'content', comment.content, authorId);
+
+  // 通知章节所属故事作者：有人评论了你的章节
+  try {
+    const chapter = await prisma.chapter.findUnique({
+      where: { id: req.params.id },
+      select: { storyId: true, title: true },
+    });
+    if (chapter) {
+      const story = await prisma.story.findUnique({
+        where: { id: chapter.storyId },
+        select: { authorId: true },
+      });
+      if (story && story.authorId !== authorId) {
+        await NotificationService.createNotification({
+          userId: story.authorId,
+          actorId: authorId,
+          type: 'comment_reply',
+          targetType: 'comment',
+          targetId: comment.id,
+          message: `有人评论了你的章节「${chapter.title}」`,
+        });
+      }
+    }
+  } catch (err) {
+    // 通知失败不影响主流程
+    console.error('Failed to create comment notification:', err);
+  }
+
   res.status(201).json({ success: true, data: comment });
 });
 

@@ -1,65 +1,107 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import MainlinePage from './MainlinePage';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { useStoryStore } from '../../stores/useStoryStore';
-import { useAuthStore } from '../../stores/useAuthStore';
-import * as matchers from '@testing-library/jest-dom/matchers';
+import { MemoryRouter } from 'react-router-dom';
+import '@testing-library/jest-dom';
 
-expect.extend(matchers);
+// Mock useStoryDetails hook — controls all data/logic for MainlinePage
+const mockUseStoryDetails = vi.fn();
 
-// Mock stores
-vi.mock('../../stores/useStoryStore');
-vi.mock('../../stores/useAuthStore');
-vi.mock('../../api/storyService'); // Mock API services if needed
+vi.mock('./hooks/useStoryDetails', () => ({
+  useStoryDetails: () => mockUseStoryDetails(),
+}));
+
+// Mock toast
+const mockAddToast = vi.fn();
+vi.mock('../../components/Toast', () => ({
+  useToast: () => ({ addToast: mockAddToast }),
+}));
+
+vi.mock('../../components/FollowButton', () => ({
+  default: () => null,
+}));
 
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
-  const actual = await vi.importActual('react-router-dom');
+  const actual = await vi.importActual<any>('react-router-dom');
   return {
     ...actual,
     useNavigate: () => mockNavigate,
     useParams: () => ({ id: 'story-123' }),
+    useSearchParams: () => [new URLSearchParams()],
   };
 });
 
+// Default story data
+const defaultStory = {
+  id: 'story-123',
+  title: 'Test Story',
+  authorId: 'author-123',
+  description: 'Test description',
+  coverImage: '',
+  isOfficial: true,
+  genres: [],
+  chapters: [
+    { id: 'chap-1', title: 'Chapter 1', orderIndex: 1, content: 'Some content', branchId: null },
+  ],
+  branches: [],
+  spinoffs: [],
+  characters: [],
+  createdAt: new Date().toISOString(),
+  updatedAt: new Date().toISOString(),
+};
+
+const defaultHookReturn = {
+  id: 'story-123',
+  currentStory: defaultStory,
+  isLoading: false,
+  user: { id: 'author-123', username: 'Test Author' },
+  isAuthenticated: true,
+  isAuthor: true,
+  activeTab: 'overview' as const,
+  setActiveTab: vi.fn(),
+  editingChapterId: null as string | null,
+  setEditingChapterId: vi.fn(),
+  isSubmitting: false,
+  isSettling: false,
+  isBranchModalOpen: false,
+  setIsBranchModalOpen: vi.fn(),
+  isChapterModalOpen: false,
+  setIsChapterModalOpen: vi.fn(),
+  isManageModalOpen: false,
+  setIsManageModalOpen: vi.fn(),
+  isMergeModalOpen: false,
+  setIsMergeModalOpen: vi.fn(),
+  booklistTargetChapter: null as { id: string; title: string } | null,
+  setBooklistTargetChapter: vi.fn(),
+  newBranchData: { title: '', description: '', parentChapterId: 'chap-1' },
+  setNewBranchData: vi.fn(),
+  newChapterData: { title: '', orderIndex: 2 },
+  setNewChapterData: vi.fn(),
+  editStoryData: { title: 'Test Story', description: '', coverImage: '' },
+  setEditStoryData: vi.fn(),
+  savepoints: [],
+  readingHistory: [],
+  handleSaveChapter: vi.fn(),
+  handleCreateBranch: vi.fn(),
+  handleCreateChapter: vi.fn(),
+  handleUpdateStory: vi.fn(),
+  handleSettleRevenue: vi.fn(),
+};
+
 describe('MainlinePage', () => {
-  const mockStory = {
-    id: 'story-123',
-    title: 'Test Story',
-    authorId: 'author-123',
-    chapters: [
-      { id: 'chap-1', title: 'Chapter 1', orderIndex: 1, content: 'Some content' }
-    ],
-    branches: [],
-    createdAt: new Date().toISOString(),
-  };
-
-  const mockUser = {
-    id: 'author-123',
-    username: 'Test Author',
-  };
-
   beforeEach(() => {
     vi.clearAllMocks();
-    (useStoryStore as any).mockReturnValue({
-      currentStory: mockStory,
-      fetchStoryById: vi.fn(),
-      isLoading: false,
-    });
-    (useAuthStore as any).mockReturnValue({
-      user: mockUser,
-      isAuthenticated: true,
-    });
-    // Mock window.alert
+    mockUseStoryDetails.mockReturnValue(defaultHookReturn);
     vi.stubGlobal('alert', vi.fn());
+    vi.stubGlobal('confirm', vi.fn(() => true));
   });
 
   it('navigates to reading page when "Start Reading" is clicked', () => {
     render(
       <MemoryRouter>
         <MainlinePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const startReadingBtn = screen.getByText('开始阅读');
@@ -68,23 +110,22 @@ describe('MainlinePage', () => {
     expect(mockNavigate).toHaveBeenCalledWith('/read/chap-1');
   });
 
-  it('shows alert when "Start Reading" is clicked but no chapters exist', () => {
-    (useStoryStore as any).mockReturnValue({
-      currentStory: { ...mockStory, chapters: [] },
-      fetchStoryById: vi.fn(),
-      isLoading: false,
+  it('shows toast when "Start Reading" is clicked but no chapters exist', () => {
+    mockUseStoryDetails.mockReturnValue({
+      ...defaultHookReturn,
+      currentStory: { ...defaultStory, chapters: [] },
     });
 
     render(
       <MemoryRouter>
         <MainlinePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const startReadingBtn = screen.getByText('开始阅读');
     fireEvent.click(startReadingBtn);
 
-    expect(window.alert).toHaveBeenCalledWith('该故事暂无章节，请先添加章节');
+    expect(mockAddToast).toHaveBeenCalledWith('warning', '该故事暂无章节，请先添加章节');
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
@@ -92,69 +133,84 @@ describe('MainlinePage', () => {
     render(
       <MemoryRouter>
         <MainlinePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText('管理故事')).toBeInTheDocument();
   });
 
   it('hides "Manage Story" button for non-author', () => {
-    (useAuthStore as any).mockReturnValue({
-      user: { id: 'other-user' },
-      isAuthenticated: true,
+    mockUseStoryDetails.mockReturnValue({
+      ...defaultHookReturn,
+      isAuthor: false,
+      user: { id: 'other-user', username: 'Other' },
     });
 
     render(
       <MemoryRouter>
         <MainlinePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     expect(screen.queryByText('管理故事')).not.toBeInTheDocument();
   });
 
-  it('opens management modal when "Manage Story" is clicked', async () => {
+  it('opens management modal when "Manage Story" is clicked', () => {
+    const setIsManageModalOpen = vi.fn();
+    mockUseStoryDetails.mockReturnValue({
+      ...defaultHookReturn,
+      setIsManageModalOpen,
+    });
+
     render(
       <MemoryRouter>
         <MainlinePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const manageBtn = screen.getByText('管理故事');
     fireEvent.click(manageBtn);
 
-    expect(screen.getByText('管理故事信息')).toBeInTheDocument();
-    expect(screen.getByDisplayValue('Test Story')).toBeInTheDocument();
+    expect(setIsManageModalOpen).toHaveBeenCalledWith(true);
   });
 
   it('opens branch creation modal when clicking "开启新分支"', () => {
+    const setIsBranchModalOpen = vi.fn();
+    mockUseStoryDetails.mockReturnValue({
+      ...defaultHookReturn,
+      setIsBranchModalOpen,
+    });
+
     render(
       <MemoryRouter>
         <MainlinePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     const branchBtn = screen.getByText('开启新分支');
     fireEvent.click(branchBtn);
 
-    expect(screen.getByText('创建平行宇宙分支')).toBeInTheDocument();
-    expect(screen.getByText('开启新宇宙')).toBeInTheDocument();
+    expect(setIsBranchModalOpen).toHaveBeenCalledWith(true);
   });
 
   it('switches to chapters tab when "View All Chapters" is clicked', () => {
+    const setActiveTab = vi.fn();
+    mockUseStoryDetails.mockReturnValue({
+      ...defaultHookReturn,
+      setActiveTab,
+    });
+
     render(
       <MemoryRouter>
         <MainlinePage />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
-    // Initial state: Overview tab
     expect(screen.getByText('故事简介')).toBeInTheDocument();
 
     const viewAllBtn = screen.getByText('查看全部');
     fireEvent.click(viewAllBtn);
 
-    // Should switch to Chapters tab
-    expect(screen.getByText('全书目录')).toBeInTheDocument();
+    expect(setActiveTab).toHaveBeenCalledWith('chapters');
   });
 });

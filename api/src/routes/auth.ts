@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { register, login, getMe, updateMe } from '../controllers/authController';
-import { authenticate } from '../middleware/auth';
+import { register, login, getMe, getPublicProfile, updateMe } from '../controllers/authController';
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 
 // Rate limiter for auth endpoints: 10 attempts per 15 minutes per IP
 const authLimiter = rateLimit({
@@ -18,5 +18,6 @@ router.post('/register', authLimiter, register);
 router.post('/login', authLimiter, login);
 router.get('/me', authenticate, getMe);
 router.put('/me', authenticate, updateMe);
+router.get('/profile/:userId', optionalAuthenticate, getPublicProfile);
 
 export default router;

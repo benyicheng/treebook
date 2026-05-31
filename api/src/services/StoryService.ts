@@ -1,10 +1,36 @@
 import { prisma } from '../prisma';
 import { AppError } from '../utils/http';
+import { parsePagination, paginatedResponse, PaginatedResponse } from '../utils/pagination';
 import { Prisma } from '@prisma/client';
 
+export interface StoryListQuery {
+  isOfficial?: string;
+  tag?: string;
+  q?: string;
+  page?: string;
+  limit?: string;
+}
+
+export interface StoryListItem {
+  id: string;
+  title: string;
+  description: string;
+  coverImage: string | null;
+  status: string;
+  isOfficial: boolean;
+  viewCount: number;
+  branchCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  author: { username: string; role: string };
+  tags: { name: string }[];
+  _count: { branches: number; chapters: number };
+}
+
 export class StoryService {
-  static async getAllStories(query: { isOfficial?: string; tag?: string; q?: string }) {
+  static async getAllStories(query: StoryListQuery): Promise<PaginatedResponse<StoryListItem>> {
     const { isOfficial, tag, q } = query;
+    const { page, limit } = parsePagination(query);
     const where: Prisma.StoryWhereInput = {};
 
     if (q) {
@@ -25,38 +51,50 @@ export class StoryService {
     if (typeof isOfficial === 'string') {
       const v = isOfficial.toLowerCase();
       if (v === 'true' || v === '1') {
-        where.author = { role: { in: ['author', 'admin'] } };
+        where.isOfficial = true;
       } else if (v === 'false' || v === '0') {
-        where.author = { role: { in: ['reader'] } };
+        where.isOfficial = false;
       }
     }
 
-    return prisma.story.findMany({
-      where,
-      select: {
-        id: true,
-        title: true,
-        description: true,
-        coverImage: true,
-        status: true,
-        createdAt: true,
-        updatedAt: true,
-        author: {
-          select: {
-            username: true,
-            role: true,
-          },
-        },
-        tags: true,
-        _count: {
-          select: {
-            branches: true,
-            chapters: true,
-          },
+    const select = {
+      id: true,
+      title: true,
+      description: true,
+      coverImage: true,
+      status: true,
+      isOfficial: true,
+      viewCount: true,
+      branchCount: true,
+      createdAt: true,
+      updatedAt: true,
+      author: {
+        select: {
+          username: true,
+          role: true,
         },
       },
-      orderBy: { createdAt: 'desc' },
-    });
+      tags: true,
+      _count: {
+        select: {
+          branches: true,
+          chapters: true,
+        },
+      },
+    } as const;
+
+    const [items, total] = await Promise.all([
+      prisma.story.findMany({
+        where,
+        select,
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.story.count({ where }),
+    ]);
+
+    return paginatedResponse(items as StoryListItem[], total, page, limit);
   }
 
   static async getStoryById(id: string) {
@@ -65,6 +103,7 @@ export class StoryService {
       include: {
         author: {
           select: {
+            id: true,
             username: true,
             role: true,
           },
@@ -86,6 +125,7 @@ export class StoryService {
           include: {
             author: {
               select: {
+                id: true,
                 username: true,
                 role: true,
               },
@@ -106,7 +146,7 @@ export class StoryService {
         spinoffs: {
           include: {
             author: {
-              select: { username: true },
+              select: { id: true, username: true },
             },
           },
           orderBy: { createdAt: 'desc' },
@@ -124,11 +164,16 @@ export class StoryService {
   static async createStory(authorId: string, data: Prisma.StoryCreateInput & { tags?: string[] }) {
     const { title, description, coverImage, metadata, tags } = data;
 
+    // Determine isOfficial based on author's role
+    const author = await prisma.user.findUnique({ where: { id: authorId }, select: { role: true } });
+    const isOfficial = author?.role === 'author' || author?.role === 'admin';
+
     return prisma.story.create({
       data: {
         title,
         description,
         coverImage,
+        isOfficial,
         metadata: metadata ? JSON.stringify(metadata) : null,
         authorId,
         tags: tags ? {
@@ -189,20 +234,30 @@ export class StoryService {
     return { success: true, message: 'Story deleted successfully' };
   }
 
-  static async getMyStories(authorId: string) {
-    return prisma.story.findMany({
-      where: { authorId },
-      include: {
-        tags: true,
-        _count: {
-          select: {
-            branches: true,
-            chapters: true,
+  static async getMyStories(authorId: string, query: { page?: string; limit?: string } = {}) {
+    const { page, limit } = parsePagination(query);
+
+    const where = { authorId };
+    const [items, total] = await Promise.all([
+      prisma.story.findMany({
+        where,
+        include: {
+          tags: true,
+          _count: {
+            select: {
+              branches: true,
+              chapters: true,
+            },
           },
         },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.story.count({ where }),
+    ]);
+
+    return paginatedResponse(items, total, page, limit);
   }
 
   static async getStoryCharacters(storyId: string) {
@@ -294,6 +349,54 @@ export class StoryService {
         contributionScore: isCertified ? 1000 : 0
       }
     });
+  }
+
+  static async getStoryCharacterAppearances(storyId: string) {
+    return prisma.characterAppearance.findMany({
+      where: {
+        character: { storyId },
+      },
+      include: {
+        character: {
+          select: { id: true, name: true, avatarUrl: true },
+        },
+      },
+    });
+  }
+
+  static async batchUpdateCharacterAppearances(
+    storyId: string,
+    authorId: string,
+    role: string,
+    appearances: { characterId: string; targetType: string; targetId: string; appearanceType: string }[]
+  ) {
+    const story = await prisma.story.findUnique({ where: { id: storyId } });
+    if (!story) throw new AppError(404, 'NOT_FOUND', 'Story not found');
+    if (story.authorId !== authorId && role !== 'admin') {
+      throw new AppError(403, 'FORBIDDEN', 'Insufficient permissions');
+    }
+
+    // Delete existing appearances for this story and create new ones atomically
+    const result = await prisma.$transaction(async (tx) => {
+      await tx.characterAppearance.deleteMany({
+        where: {
+          character: { storyId },
+        },
+      });
+
+      if (appearances.length === 0) return [];
+
+      return tx.characterAppearance.createMany({
+        data: appearances.map((a) => ({
+          characterId: a.characterId,
+          targetType: a.targetType,
+          targetId: a.targetId,
+          appearanceType: a.appearanceType,
+        })),
+      });
+    });
+
+    return { success: true, count: appearances.length };
   }
 
   static async getRecentReads(userId: string) {

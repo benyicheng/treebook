@@ -1,6 +1,9 @@
 import type { TargetType } from './types';
 
-export type InteractionEventType = 'like' | 'unlike' | 'rating' | 'share';
+export type InteractionEventType =
+  | 'like' | 'unlike' | 'rating' | 'share'
+  | 'page_view' | 'session_start' | 'reading_progress'
+  | 'content_created' | 'search_performed';
 
 export type InteractionEvent = {
   type: InteractionEventType;

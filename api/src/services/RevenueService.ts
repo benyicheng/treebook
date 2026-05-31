@@ -149,24 +149,34 @@ export class RevenueService {
     });
   }
 
-  // Helper: 统一分发书单奖金
+  // Helper: 统一分发书单奖金（批量查询，避免 N+1）
   private static async distributeCurationRewards(tx: any, stats: any[], totalViews: number, pool: number, descSuffix: string) {
-    for (const stat of stats) {
-      if (!stat.referralBooklistId) continue;
-      
-      const booklist = await tx.booklist.findUnique({
-        where: { id: stat.referralBooklistId },
-        select: { creatorId: true, title: true, isIncentiveEnabled: true }
+    // Collect unique referral IDs
+    const referralIds = [...new Set(
+      stats.map((s: any) => s.referralBooklistId).filter(Boolean) as string[]
+    )];
+    if (!referralIds.length) return;
+
+    // Batch fetch all relevant booklists in one query
+    const booklists: Array<{ id: string; creatorId: string; title: string; isIncentiveEnabled: boolean }> =
+      await tx.booklist.findMany({
+        where: { id: { in: referralIds }, isIncentiveEnabled: true },
+        select: { id: true, creatorId: true, title: true, isIncentiveEnabled: true },
       });
 
-      if (booklist && booklist.isIncentiveEnabled) {
-        const reward = (stat._count._all / totalViews) * pool;
-        await this.updateWallet(tx, booklist.creatorId, reward, 'CURATION_REWARD', 'BOOKLIST', stat.referralBooklistId, `书单《${booklist.title}》${descSuffix}`);
-        await tx.booklist.update({
-          where: { id: stat.referralBooklistId },
-          data: { totalEarnings: { increment: reward } }
-        });
-      }
+    const booklistMap = new Map(booklists.map((b: { id: string; creatorId: string; title: string; isIncentiveEnabled: boolean }) => [b.id, b]));
+
+    for (const stat of stats) {
+      if (!stat.referralBooklistId) continue;
+      const booklist = booklistMap.get(stat.referralBooklistId);
+      if (!booklist) continue;
+
+      const reward = (stat._count._all / totalViews) * pool;
+      await this.updateWallet(tx, booklist.creatorId, reward, 'CURATION_REWARD', 'BOOKLIST', stat.referralBooklistId, `书单《${booklist.title}》${descSuffix}`);
+      await tx.booklist.update({
+        where: { id: stat.referralBooklistId },
+        data: { totalEarnings: { increment: reward } },
+      });
     }
   }
 }

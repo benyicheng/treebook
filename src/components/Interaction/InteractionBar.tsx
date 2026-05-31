@@ -91,16 +91,16 @@ export const InteractionBar: React.FC<InteractionBarProps> = ({
   if (isLoading) {
     return (
       <div className="flex items-center gap-4 animate-pulse">
-        <div className="w-20 h-8 bg-gray-200 dark:bg-gray-700 rounded-full" />
-        <div className="w-20 h-8 bg-gray-200 dark:bg-gray-700 rounded-full" />
-        <div className="w-20 h-8 bg-gray-200 dark:bg-gray-700 rounded-full" />
+        <div className="w-20 h-8 bg-ink-200 dark:bg-ink-600 rounded-full" />
+        <div className="w-20 h-8 bg-ink-200 dark:bg-ink-600 rounded-full" />
+        <div className="w-20 h-8 bg-ink-200 dark:bg-ink-600 rounded-full" />
       </div>
     );
   }
 
   if (error || !stats) {
     return (
-      <div className="text-sm text-gray-400">
+      <div className="text-sm text-ink-400">
         互动数据加载失败
       </div>
     );
@@ -156,13 +156,13 @@ export const InteractionBar: React.FC<InteractionBarProps> = ({
         />
 
         {/* 浏览量 */}
-        <div className="flex items-center gap-1.5 text-gray-400">
+        <div className="flex items-center gap-1.5 text-ink-400">
           <Eye size={18} />
           <span className="text-sm font-medium">{viewCount.toLocaleString()}</span>
         </div>
 
         {/* 评论数 */}
-        <div className="flex items-center gap-1.5 text-gray-400">
+        <div className="flex items-center gap-1.5 text-ink-400">
           <MessageSquare size={18} />
           <span className="text-sm font-medium">{commentCount.toLocaleString()}</span>
         </div>
@@ -170,7 +170,7 @@ export const InteractionBar: React.FC<InteractionBarProps> = ({
 
       {/* 评分区域 */}
       {showRating && (
-        <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+        <div className="pt-4 border-t border-ink-100 dark:border-ink-700">
           <RatingComponent
             targetType={targetType}
             targetId={targetId}

@@ -24,8 +24,8 @@ const normalize = (raw: any): ReviewWorkflowConfig => {
   const levels = Array.isArray(raw?.levels) ? raw.levels : [];
   const fixed: LevelCfg[] = levels
     .map((l: any) => ({ level: Number(l.level), slaMinutes: Number(l.slaMinutes) }))
-    .filter((l) => Number.isFinite(l.level) && l.level >= 1 && Number.isFinite(l.slaMinutes) && l.slaMinutes >= 1)
-    .sort((a, b) => a.level - b.level);
+    .filter((l: { level: number; slaMinutes: number }) => Number.isFinite(l.level) && l.level >= 1 && Number.isFinite(l.slaMinutes) && l.slaMinutes >= 1)
+    .sort((a: { level: number }, b: { level: number }) => a.level - b.level);
 
   const maxLevel = Number.isFinite(Number(raw?.maxLevel)) ? Math.max(1, Math.min(10, Number(raw.maxLevel))) : 3;
   const withDefaults = fixed.length > 0 ? fixed : [{ level: 1, slaMinutes: 30 }, { level: 2, slaMinutes: 30 }, { level: 3, slaMinutes: 60 }];

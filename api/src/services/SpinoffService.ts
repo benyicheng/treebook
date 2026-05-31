@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { AppError } from '../utils/http';
+import { parsePagination, paginatedResponse, PaginatedResponse } from '../utils/pagination';
 import { Prisma } from '@prisma/client';
 import { ensure } from '../utils/entity';
 
@@ -32,29 +33,75 @@ export class SpinoffService {
     });
   }
 
-  static async getAllSpinoffs(query?: any) {
-    const { storyId, branchId, limit } = query || {};
-    return prisma.spinoff.findMany({
-      where: {
-        originalStoryId: storyId,
-        originalBranchId: branchId,
-      },
-      include: {
-        author: { select: { username: true } },
-        originalStory: { select: { title: true } }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit ? parseInt(limit as string) : undefined
+  static async getAllSpinoffs(query?: any): Promise<PaginatedResponse<any>> {
+    const { storyId, branchId } = query || {};
+    const { page, limit } = parsePagination(query || {});
+
+    const where: Prisma.SpinoffWhereInput = {};
+    if (storyId) where.originalStoryId = storyId as string;
+    if (branchId) where.originalBranchId = branchId as string;
+
+    const [items, total] = await Promise.all([
+      prisma.spinoff.findMany({
+        where,
+        include: {
+          author: { select: { username: true } },
+          originalStory: { select: { title: true } }
+        },
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.spinoff.count({ where }),
+    ]);
+
+    // Collect referenced character IDs from all spinoffs and batch-fetch them
+    const uniqueCharIds = [...new Set(
+      items.flatMap(item => {
+        try {
+          return item.referencedCharacters ? JSON.parse(item.referencedCharacters) : [];
+        } catch { return []; }
+      })
+    )];
+
+    const charMap = new Map<string, { id: string; name: string; role: string; avatarUrl?: string }>();
+    if (uniqueCharIds.length > 0) {
+      const chars = await prisma.character.findMany({
+        where: { id: { in: uniqueCharIds } },
+        select: { id: true, name: true, role: true, avatarUrl: true },
+      });
+      chars.forEach(c => charMap.set(c.id, { ...c, avatarUrl: c.avatarUrl ?? undefined }));
+    }
+
+    const enrichedItems = items.map(item => {
+      let characters: any[] = [];
+      try {
+        const ids = item.referencedCharacters ? JSON.parse(item.referencedCharacters) : [];
+        characters = ids.map((id: string) => charMap.get(id)).filter(Boolean);
+      } catch {}
+      return { ...item, characters };
     });
+
+    return paginatedResponse(enrichedItems, total, page, limit);
   }
 
   static async getSpinoffById(id: string) {
     const spinoff = await prisma.spinoff.findUnique({
       where: { id },
       include: {
-        author: { select: { username: true, role: true } },
-        originalStory: { select: { title: true, authorId: true } },
-        originalBranch: { select: { title: true } },
+        author: { select: { id: true, username: true, role: true } },
+        originalStory: {
+          select: {
+            title: true,
+            authorId: true,
+            description: true,
+            coverImage: true,
+            status: true,
+            author: { select: { username: true } },
+            tags: { select: { id: true, name: true } },
+          },
+        },
+        originalBranch: { select: { title: true, description: true } },
       },
     });
 
@@ -88,14 +135,24 @@ export class SpinoffService {
     });
   }
 
-  static async getMySpinoffs(authorId: string) {
-    return prisma.spinoff.findMany({
-      where: { authorId },
-      include: {
-        originalStory: { select: { title: true } }
-      },
-      orderBy: { updatedAt: 'desc' }
-    });
+  static async getMySpinoffs(authorId: string, query: { page?: string; limit?: string } = {}) {
+    const { page, limit } = parsePagination(query);
+
+    const where = { authorId };
+    const [items, total] = await Promise.all([
+      prisma.spinoff.findMany({
+        where,
+        include: {
+          originalStory: { select: { title: true } }
+        },
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.spinoff.count({ where }),
+    ]);
+
+    return paginatedResponse(items, total, page, limit);
   }
 
   static async deleteSpinoff(id: string, authorId: string, userRole: string) {

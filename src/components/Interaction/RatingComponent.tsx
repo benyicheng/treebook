@@ -3,6 +3,7 @@ import { Star, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { interactionService, RATING_REASON_TAGS, TargetType } from '../../api/interactionService';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useToast } from '../Toast';
 import Modal from '../Modal';
 
 interface RatingComponentProps {
@@ -41,6 +42,7 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
   showDistribution = false,
 }) => {
   const { isAuthenticated } = useAuthStore();
+  const { addToast } = useToast();
   const [currentRating, setCurrentRating] = useState<number | null>(initialRating);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialReasonTags);
@@ -129,15 +131,15 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
       const errorMsg = error.response?.data?.message;
       
       if (status === 401) {
-        alert('请先登录后再评分');
+        addToast('warning', '请先登录后再评分');
       } else if (status === 429) {
-        alert('评分太频繁，请稍后再试');
+        addToast('warning', '评分太频繁，请稍后再试');
       } else if (errorCode === 'VALIDATION_ERROR') {
-        alert('评分格式错误：' + (errorMsg || '评分必须是0.5-5.0之间的半整数'));
+        addToast('warning', '评分格式错误：' + (errorMsg || '评分必须是0.5-5.0之间的半整数'));
       } else if (errorCode === 'NOT_FOUND') {
-        alert('目标内容不存在');
+        addToast('info', '目标内容不存在');
       } else {
-        alert('评分失败：' + (errorMsg || '请稍后重试'));
+        addToast('error', '评分失败：' + (errorMsg || '请稍后重试'));
       }
     } finally {
       setIsSubmitting(false);
@@ -182,7 +184,7 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
                 {/* 背景星 (灰色) */}
                 <Star
                   size={classes.star}
-                  className="text-gray-200 dark:text-gray-700"
+                  className="text-ink-200 dark:text-ink-600"
                 />
 
                 {/* 填充星 (黄色) */}
@@ -204,7 +206,7 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
         {showDetail && (
           <div className="flex items-center gap-2 text-sm">
             <span className="font-bold text-amber-500">{ratingAvg.toFixed(1)}</span>
-            <span className="text-gray-400">({ratingCount}人评分)</span>
+            <span className="text-ink-400">({ratingCount}人评分)</span>
           </div>
         )}
       </div>
@@ -214,8 +216,8 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
         <div className="space-y-1">
           {distributionData.slice(0, 5).map(({ stars, count, percentage }) => (
             <div key={stars} className="flex items-center gap-2 text-xs">
-              <span className="w-8 text-gray-400">{stars}星</span>
-              <div className="flex-1 h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+              <span className="w-8 text-ink-400">{stars}星</span>
+              <div className="flex-1 h-2 bg-ink-100 dark:bg-ink-700 rounded-full overflow-hidden">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: `${percentage}%` }}
@@ -223,7 +225,7 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
                   className="h-full bg-amber-400 rounded-full"
                 />
               </div>
-              <span className="w-10 text-right text-gray-400">{count}</span>
+              <span className="w-10 text-right text-ink-400">{count}</span>
             </div>
           ))}
         </div>
@@ -245,7 +247,7 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
                 className={`${
                   star <= (currentRating || 0)
                     ? 'text-amber-400 fill-amber-400'
-                    : 'text-gray-200'
+                    : 'text-ink-200'
                 }`}
               />
             ))}
@@ -256,7 +258,7 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
 
           {/* 标签选择 */}
           <div>
-            <p className="text-sm text-gray-500 mb-3">选择评价标签 (最多5个)</p>
+            <p className="text-sm text-ink-500 mb-3">选择评价标签 (最多5个)</p>
             <div className="flex flex-wrap gap-2">
               {RATING_REASON_TAGS.map((tag) => (
                 <button
@@ -265,7 +267,7 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
                   className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
                     selectedTags.includes(tag)
                       ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
-                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-400'
+                      : 'bg-ink-100 text-ink-500 hover:bg-ink-200 dark:bg-ink-700 dark:text-ink-400'
                   }`}
                 >
                   {selectedTags.includes(tag) && (
@@ -281,7 +283,7 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
           <div className="flex gap-3">
             <button
               onClick={() => setIsModalOpen(false)}
-              className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-all"
+              className="flex-1 py-3 bg-ink-100 text-ink-600 rounded-xl font-bold hover:bg-ink-200 transition-all"
             >
               取消
             </button>

@@ -8,6 +8,7 @@ import {
   Star, Search, X, GripVertical, BookOpen, FileText, Edit3
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import { useToast } from '../../components/Toast';
 
 type TabKey = 'basic' | 'banner' | 'announcement' | 'editor-picks' | 'footer' | 'seo' | 'pages';
 
@@ -43,6 +44,7 @@ export interface EditorPick {
 const CMSPage: React.FC = () => {
   const { config, fetchConfig, updateConfig } = useSiteConfigStore();
   const { isAuthenticated } = useAuthStore();
+  const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<TabKey>('basic');
   const [form, setForm] = useState<Partial<SiteConfig>>({});
   const [bannerSlides, setBannerSlides] = useState<BannerSlide[]>([]);
@@ -83,7 +85,7 @@ const CMSPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!isAuthenticated) {
-      alert('请先登录后再进行此操作！');
+      addToast('warning', '请先登录后再进行此操作！');
       return;
     }
     setSaving(true);
@@ -141,7 +143,7 @@ const CMSPage: React.FC = () => {
     try {
       const all = await storyService.getAll();
       const q = query.toLowerCase();
-      const filtered = all.filter(s =>
+      const filtered = all.filter((s: any) =>
         s.title.toLowerCase().includes(q) ||
         (s.author?.username || '').toLowerCase().includes(q)
       ).slice(0, 8);
@@ -197,16 +199,16 @@ const CMSPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-2">
-            <Settings size={24} className="text-blue-600" />
+          <h1 className="text-2xl font-black text-ink-800 dark:text-white flex items-center gap-2">
+            <Settings size={24} className="text-accent-500" />
             网站 CMS 管理
           </h1>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">管理网站基本信息、轮播、公告等内容</p>
+          <p className="text-sm text-ink-500 dark:text-ink-400 mt-1">管理网站基本信息、轮播、公告等内容</p>
         </div>
         <button
           onClick={handleSave}
           disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-all shadow-lg shadow-blue-500/20"
+          className="flex items-center gap-2 px-6 py-2.5 bg-accent-500 text-white rounded-xl font-bold hover:bg-accent-600 disabled:opacity-50 transition-all shadow-lg shadow-accent-400/20"
         >
           {saving ? (
             <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -241,8 +243,8 @@ const CMSPage: React.FC = () => {
                 onClick={() => setActiveTab(tab.key)}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all text-left ${
                   activeTab === tab.key
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20'
-                    : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    ? 'bg-accent-500 text-white shadow-lg shadow-accent-400/20'
+                    : 'text-ink-500 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-700'
                 }`}
               >
                 {tab.icon}
@@ -253,7 +255,7 @@ const CMSPage: React.FC = () => {
         </div>
 
         {/* Content Panel */}
-        <div className="flex-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl p-6 space-y-6">
+        <div className="flex-1 bg-ink-50 dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-2xl p-6 space-y-6">
 
           {/* ===== 基本信息 ===== */}
           {activeTab === 'basic' && (
@@ -261,8 +263,8 @@ const CMSPage: React.FC = () => {
               <SectionTitle icon={<Settings size={18} />} title="基本信息" desc="设置网站名称、Logo 等基础信息" />
 
               {/* Logo 预览 */}
-              <div className="flex items-center gap-6 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                <div className="w-16 h-16 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-2xl overflow-hidden shrink-0">
+              <div className="flex items-center gap-6 p-4 bg-ink-50 dark:bg-ink-700 rounded-xl">
+                <div className="w-16 h-16 rounded-xl bg-accent-500 flex items-center justify-center text-white font-black text-2xl overflow-hidden shrink-0">
                   {form.logoUrl ? (
                     <img src={form.logoUrl} alt="Logo" className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   ) : (
@@ -270,8 +272,8 @@ const CMSPage: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <p className="text-lg font-black text-gray-900 dark:text-white">{form.siteName || '网站名称'}</p>
-                  <p className="text-sm text-gray-500">{form.siteSlogan || '网站口号'}</p>
+                  <p className="text-lg font-black text-ink-800 dark:text-white">{form.siteName || '网站名称'}</p>
+                  <p className="text-sm text-ink-500">{form.siteSlogan || '网站口号'}</p>
                 </div>
               </div>
 
@@ -306,7 +308,7 @@ const CMSPage: React.FC = () => {
                     className={`${inputClass} flex-1`}
                   />
                   {form.logoUrl && (
-                    <img src={form.logoUrl} alt="logo preview" className="w-10 h-10 rounded-lg object-contain border border-gray-200" onError={() => handleChange('logoUrl', '')} />
+                    <img src={form.logoUrl} alt="logo preview" className="w-10 h-10 rounded-lg object-contain border border-ink-200" onError={() => handleChange('logoUrl', '')} />
                   )}
                 </div>
               </FormField>
@@ -340,7 +342,7 @@ const CMSPage: React.FC = () => {
 
               <div className="space-y-4">
                 {bannerSlides.map((slide, i) => (
-                  <div key={slide.id} className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                  <div key={slide.id} className="border border-ink-200 dark:border-ink-600 rounded-xl overflow-hidden">
                     {/* 预览头部 */}
                     <div
                       className="relative h-24 bg-cover bg-center flex items-center px-6"
@@ -365,7 +367,7 @@ const CMSPage: React.FC = () => {
                       </div>
                     </div>
                     {/* 编辑表单 */}
-                    <div className="p-4 grid grid-cols-2 gap-3 bg-gray-50 dark:bg-gray-800/50">
+                    <div className="p-4 grid grid-cols-2 gap-3 bg-ink-50 dark:bg-ink-700/50">
                       <FormField label="标题" compact>
                         <input type="text" value={slide.title} onChange={e => updateSlide(i, 'title', e.target.value)} className={inputSmClass} />
                       </FormField>
@@ -390,7 +392,7 @@ const CMSPage: React.FC = () => {
 
               <button
                 onClick={addSlide}
-                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl text-gray-500 hover:border-blue-500 hover:text-blue-600 transition-all font-medium"
+                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-ink-300 dark:border-ink-600 rounded-xl text-ink-500 hover:border-accent-400 hover:text-accent-500 transition-all font-medium"
               >
                 <Plus size={18} />
                 添加轮播图
@@ -403,17 +405,17 @@ const CMSPage: React.FC = () => {
             <>
               <SectionTitle icon={<Megaphone size={18} />} title="公告栏" desc="首页顶部显示的公告信息" />
 
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+              <div className="flex items-center justify-between p-4 bg-ink-50 dark:bg-ink-700 rounded-xl">
                 <div>
-                  <p className="font-bold text-gray-900 dark:text-white text-sm">启用公告栏</p>
-                  <p className="text-xs text-gray-500 mt-0.5">开启后，公告内容会显示在首页</p>
+                  <p className="font-bold text-ink-800 dark:text-white text-sm">启用公告栏</p>
+                  <p className="text-xs text-ink-500 mt-0.5">开启后，公告内容会显示在首页</p>
                 </div>
                 <button
                   onClick={() => handleChange('announcementEnabled', form.announcementEnabled === 'true' ? 'false' : 'true')}
                   className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                     form.announcementEnabled === 'true'
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+                      ? 'bg-accent-500 text-white'
+                      : 'bg-ink-200 dark:bg-ink-600 text-ink-500 dark:text-ink-400'
                   }`}
                 >
                   {form.announcementEnabled === 'true' ? <Eye size={14} /> : <EyeOff size={14} />}
@@ -433,11 +435,11 @@ const CMSPage: React.FC = () => {
 
               {/* 预览 */}
               {form.announcementEnabled === 'true' && form.announcement && (
-                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl">
-                  <p className="text-xs font-bold text-blue-600 dark:text-blue-400 mb-2">预览效果</p>
+                <div className="p-4 bg-accent-50 dark:bg-accent-500/10 border border-accent-200 dark:border-accent-600 rounded-xl">
+                  <p className="text-xs font-bold text-accent-500 dark:text-accent-400 mb-2">预览效果</p>
                   <div className="flex items-center gap-3">
                     <span className="px-2 py-0.5 bg-red-500 text-white text-[10px] font-bold rounded">新</span>
-                    <span className="text-sm text-gray-700 dark:text-gray-300">{form.announcement}</span>
+                    <span className="text-sm text-ink-600 dark:text-ink-300">{form.announcement}</span>
                   </div>
                 </div>
               )}
@@ -455,17 +457,17 @@ const CMSPage: React.FC = () => {
 
               {/* 搜索添加 */}
               <div className="relative">
-                <div className="flex items-center gap-2 px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus-within:border-blue-500 focus-within:ring-2 focus-within:ring-blue-500/20 transition-all">
-                  <Search size={16} className="text-gray-400 shrink-0" />
+                <div className="flex items-center gap-2 px-4 py-3 bg-ink-50 dark:bg-ink-700 border border-ink-200 dark:border-ink-600 rounded-xl focus-within:border-accent-400 focus-within:ring-2 focus-within:ring-accent-400/20 transition-all">
+                  <Search size={16} className="text-ink-400 shrink-0" />
                   <input
                     type="text"
                     value={pickSearch}
                     onChange={e => setPickSearch(e.target.value)}
                     placeholder="搜索故事名称或作者，选择后加入推荐列表..."
-                    className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400"
+                    className="flex-1 bg-transparent text-sm text-ink-800 dark:text-white outline-none placeholder:text-ink-400"
                   />
                   {pickSearch && (
-                    <button onClick={() => { setPickSearch(''); setPickSearchResults([]); }} className="text-gray-400 hover:text-gray-600 transition-colors">
+                    <button onClick={() => { setPickSearch(''); setPickSearchResults([]); }} className="text-ink-400 hover:text-ink-500 transition-colors">
                       <X size={14} />
                     </button>
                   )}
@@ -473,10 +475,10 @@ const CMSPage: React.FC = () => {
 
                 {/* 搜索结果下拉 */}
                 {(pickSearchResults.length > 0 || pickSearchLoading) && (
-                  <div className="absolute left-0 right-0 top-full mt-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl shadow-xl z-50 overflow-hidden">
+                  <div className="absolute left-0 right-0 top-full mt-2 bg-ink-50 dark:bg-ink-800 border border-ink-200 dark:border-ink-600 rounded-xl shadow-xl z-50 overflow-hidden">
                     {pickSearchLoading ? (
-                      <div className="flex items-center justify-center py-6 text-sm text-gray-400">
-                        <div className="w-4 h-4 border-2 border-gray-200 border-t-blue-500 rounded-full animate-spin mr-2" />
+                      <div className="flex items-center justify-center py-6 text-sm text-ink-400">
+                        <div className="w-4 h-4 border-2 border-ink-200 border-t-accent-400 rounded-full animate-spin mr-2" />
                         搜索中...
                       </div>
                     ) : (
@@ -488,9 +490,9 @@ const CMSPage: React.FC = () => {
                               key={story.id}
                               onClick={() => !alreadyAdded && addEditorPick(story)}
                               disabled={alreadyAdded}
-                              className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${alreadyAdded ? 'opacity-40 cursor-not-allowed' : ''}`}
+                              className={`w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors ${alreadyAdded ? 'opacity-40 cursor-not-allowed' : ''}`}
                             >
-                              <div className="w-10 h-14 rounded-lg overflow-hidden shrink-0 bg-gray-100 dark:bg-gray-800">
+                              <div className="w-10 h-14 rounded-lg overflow-hidden shrink-0 bg-ink-100 dark:bg-ink-700">
                                 <img
                                   src={story.coverImage || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=80&h=112&fit=crop'}
                                   alt={story.title}
@@ -498,14 +500,14 @@ const CMSPage: React.FC = () => {
                                 />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1">{story.title}</p>
-                                <p className="text-xs text-gray-400 mt-0.5">{story.author?.username}</p>
-                                <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-1 mt-0.5">{story.description}</p>
+                                <p className="text-sm font-bold text-ink-800 dark:text-white line-clamp-1">{story.title}</p>
+                                <p className="text-xs text-ink-400 mt-0.5">{story.author?.username}</p>
+                                <p className="text-xs text-ink-500 dark:text-ink-400 line-clamp-1 mt-0.5">{story.description}</p>
                               </div>
                               {alreadyAdded ? (
                                 <span className="text-xs text-green-600 font-medium shrink-0">已添加</span>
                               ) : (
-                                <span className="text-xs text-blue-600 font-medium shrink-0 flex items-center gap-1">
+                                <span className="text-xs text-accent-500 font-medium shrink-0 flex items-center gap-1">
                                   <Plus size={12} /> 添加
                                 </span>
                               )}
@@ -524,8 +526,8 @@ const CMSPage: React.FC = () => {
                   <div className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mb-4">
                     <Star size={28} className="text-amber-500" />
                   </div>
-                  <p className="text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">还没有编辑推荐</p>
-                  <p className="text-xs text-gray-400">通过上方搜索框添加想推荐给读者的故事</p>
+                  <p className="text-sm font-bold text-ink-600 dark:text-ink-300 mb-1">还没有编辑推荐</p>
+                  <p className="text-xs text-ink-400">通过上方搜索框添加想推荐给读者的故事</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -534,23 +536,23 @@ const CMSPage: React.FC = () => {
                       key={pick.id}
                       className={`border rounded-xl overflow-hidden transition-all ${
                         editingPickId === pick.id
-                          ? 'border-blue-400 dark:border-blue-600 shadow-md shadow-blue-500/10'
-                          : 'border-gray-200 dark:border-gray-700'
+                          ? 'border-accent-400 dark:border-accent-500 shadow-md shadow-accent-400/10'
+                          : 'border-ink-200 dark:border-ink-600'
                       }`}
                     >
                       {/* 卡片头部 */}
-                      <div className="flex items-center gap-4 p-4 bg-gray-50 dark:bg-gray-800/50">
+                      <div className="flex items-center gap-4 p-4 bg-ink-50 dark:bg-ink-700/50">
                         {/* 序号 */}
                         <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
                           i === 0 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
-                          i === 1 ? 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300' :
+                          i === 1 ? 'bg-ink-100 text-ink-500 dark:bg-ink-600 dark:text-ink-300' :
                           'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400'
                         }`}>
                           {i + 1}
                         </div>
 
                         {/* 封面 */}
-                        <div className="w-10 h-14 rounded-lg overflow-hidden shrink-0 bg-gray-200 dark:bg-gray-700 shadow-sm">
+                        <div className="w-10 h-14 rounded-lg overflow-hidden shrink-0 bg-ink-200 dark:bg-ink-600 shadow-sm">
                           <img
                             src={pick.coverImage || 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=80&h=112&fit=crop'}
                             alt={pick.title}
@@ -560,10 +562,10 @@ const CMSPage: React.FC = () => {
 
                         {/* 信息 */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-gray-900 dark:text-white line-clamp-1">{pick.title}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">{pick.author}</p>
+                          <p className="text-sm font-bold text-ink-800 dark:text-white line-clamp-1">{pick.title}</p>
+                          <p className="text-xs text-ink-400 mt-0.5">{pick.author}</p>
                           {pick.comment && (
-                            <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 line-clamp-1 italic">「{pick.comment}」</p>
+                            <p className="text-xs text-accent-500 dark:text-accent-400 mt-1 line-clamp-1 italic">「{pick.comment}」</p>
                           )}
                         </div>
 
@@ -573,17 +575,17 @@ const CMSPage: React.FC = () => {
                             onClick={() => setEditingPickId(editingPickId === pick.id ? null : pick.id)}
                             className={`p-1.5 rounded-lg text-xs font-medium transition-all ${
                               editingPickId === pick.id
-                                ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                                : 'bg-gray-100 text-gray-500 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-400 dark:hover:bg-gray-600'
+                                ? 'bg-accent-100 text-accent-500 dark:bg-accent-500/15 dark:text-accent-400'
+                                : 'bg-ink-100 text-ink-500 hover:bg-ink-200 dark:bg-ink-600 dark:text-ink-400 dark:hover:bg-ink-500'
                             }`}
                             title="编辑推荐语"
                           >
                             <BookOpen size={13} />
                           </button>
-                          <button onClick={() => movePick(i, 'up')} disabled={i === 0} className="p-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 rounded-lg disabled:opacity-30 transition-all">
+                          <button onClick={() => movePick(i, 'up')} disabled={i === 0} className="p-1.5 bg-ink-100 hover:bg-ink-200 dark:bg-ink-600 dark:hover:bg-ink-500 text-ink-500 dark:text-ink-400 rounded-lg disabled:opacity-30 transition-all">
                             <ChevronUp size={13} />
                           </button>
-                          <button onClick={() => movePick(i, 'down')} disabled={i === editorPicks.length - 1} className="p-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-500 dark:text-gray-400 rounded-lg disabled:opacity-30 transition-all">
+                          <button onClick={() => movePick(i, 'down')} disabled={i === editorPicks.length - 1} className="p-1.5 bg-ink-100 hover:bg-ink-200 dark:bg-ink-600 dark:hover:bg-ink-500 text-ink-500 dark:text-ink-400 rounded-lg disabled:opacity-30 transition-all">
                             <ChevronDown size={13} />
                           </button>
                           <button onClick={() => removePick(pick.id)} className="p-1.5 bg-red-50 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 text-red-500 rounded-lg transition-all">
@@ -594,7 +596,7 @@ const CMSPage: React.FC = () => {
 
                       {/* 展开编辑区 */}
                       {editingPickId === pick.id && (
-                        <div className="p-4 border-t border-gray-200 dark:border-gray-700 space-y-3 bg-white dark:bg-gray-900">
+                        <div className="p-4 border-t border-ink-200 dark:border-ink-600 space-y-3 bg-ink-50 dark:bg-ink-800">
                           <div className="grid grid-cols-2 gap-3">
                             <FormField label="徽章文字" compact hint="显示在封面左上角，如「主编力荐」「精品推荐」">
                               <input
@@ -626,9 +628,9 @@ const CMSPage: React.FC = () => {
                           </FormField>
                           {/* 预览 */}
                           {pick.comment && (
-                            <div className="p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900 rounded-lg">
-                              <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider mb-1">推荐语预览</p>
-                              <p className="text-xs text-gray-600 dark:text-gray-400 italic leading-relaxed">「{pick.comment}」</p>
+                            <div className="p-3 bg-accent-50 dark:bg-accent-500/10 border border-accent-100 dark:border-accent-600 rounded-lg">
+                              <p className="text-[10px] font-bold text-accent-400 uppercase tracking-wider mb-1">推荐语预览</p>
+                              <p className="text-xs text-ink-500 dark:text-ink-400 italic leading-relaxed">「{pick.comment}」</p>
                             </div>
                           )}
                         </div>
@@ -741,7 +743,7 @@ const CMSPage: React.FC = () => {
                     type="color"
                     value={form.primaryColor || '#2563eb'}
                     onChange={e => handleChange('primaryColor', e.target.value)}
-                    className="w-12 h-10 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer"
+                    className="w-12 h-10 rounded-lg border border-ink-200 dark:border-ink-600 cursor-pointer"
                   />
                   <input
                     type="text"
@@ -790,16 +792,16 @@ const PageEditor: React.FC<{
   const [preview, setPreview] = useState(false);
 
   return (
-    <div className="space-y-3 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-800">
+    <div className="space-y-3 p-5 bg-ink-50 dark:bg-ink-700/50 rounded-xl border border-ink-100 dark:border-ink-700">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-black text-gray-900 dark:text-white">{title}</h4>
+        <h4 className="text-sm font-black text-ink-800 dark:text-white">{title}</h4>
         <button
           type="button"
           onClick={() => setPreview(!preview)}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
             preview
-              ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600'
-              : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600'
+              ? 'bg-accent-100 dark:bg-accent-500/15 text-accent-500'
+              : 'bg-ink-200 dark:bg-ink-600 text-ink-500 dark:text-ink-300 hover:bg-ink-300 dark:hover:bg-ink-500'
           }`}
         >
           {preview ? <Edit3 size={12} /> : <Eye size={12} />}
@@ -807,11 +809,11 @@ const PageEditor: React.FC<{
         </button>
       </div>
       {preview ? (
-        <div className="prose prose-sm dark:prose-invert max-w-none min-h-[120px] p-4 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700">
+        <div className="prose prose-sm dark:prose-invert max-w-none min-h-[120px] p-4 bg-ink-50 dark:bg-ink-800 rounded-xl border border-ink-200 dark:border-ink-600">
           {value ? (
             <ReactMarkdown>{value}</ReactMarkdown>
           ) : (
-            <p className="text-gray-400 italic">暂未设置内容，将显示默认页面。</p>
+            <p className="text-ink-400 italic">暂未设置内容，将显示默认页面。</p>
           )}
         </div>
       ) : (
@@ -820,10 +822,10 @@ const PageEditor: React.FC<{
           onChange={e => onChange(fieldKey, e.target.value)}
           placeholder={`输入 ${title} 页面的 Markdown 内容...（留空则显示默认页面）`}
           rows={8}
-          className="w-full px-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all resize-y font-mono"
+          className="w-full px-4 py-3 bg-ink-50 dark:bg-ink-800 border border-ink-200 dark:border-ink-600 rounded-xl text-sm text-ink-800 dark:text-white focus:ring-2 focus:ring-accent-400 outline-none transition-all resize-y font-mono"
         />
       )}
-      <p className="text-xs text-gray-400">
+      <p className="text-xs text-ink-400">
         支持 Markdown 格式。留空则使用页面默认内容。
       </p>
     </div>
@@ -831,15 +833,15 @@ const PageEditor: React.FC<{
 };
 
 // 辅助组件
-const inputClass = 'w-full px-3 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all';
-const inputSmClass = 'w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-all';
+const inputClass = 'w-full px-3 py-2.5 bg-ink-50 dark:bg-ink-700 border border-ink-200 dark:border-ink-600 rounded-xl text-sm text-ink-800 dark:text-white focus:ring-2 focus:ring-accent-400 outline-none transition-all';
+const inputSmClass = 'w-full px-3 py-2 bg-ink-50 dark:bg-ink-800 border border-ink-200 dark:border-ink-600 rounded-lg text-sm text-ink-800 dark:text-white focus:ring-2 focus:ring-accent-400 outline-none transition-all';
 
 const SectionTitle: React.FC<{ icon: React.ReactNode; title: string; desc: string }> = ({ icon, title, desc }) => (
-  <div className="flex items-start gap-3 pb-4 border-b border-gray-100 dark:border-gray-800">
-    <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg text-blue-600">{icon}</div>
+  <div className="flex items-start gap-3 pb-4 border-b border-ink-100 dark:border-ink-700">
+    <div className="p-2 bg-accent-50 dark:bg-accent-500/10 rounded-lg text-accent-500">{icon}</div>
     <div>
-      <h3 className="font-black text-gray-900 dark:text-white">{title}</h3>
-      <p className="text-xs text-gray-500 mt-0.5">{desc}</p>
+      <h3 className="font-black text-ink-800 dark:text-white">{title}</h3>
+      <p className="text-xs text-ink-500 mt-0.5">{desc}</p>
     </div>
   </div>
 );
@@ -852,12 +854,12 @@ const FormField: React.FC<{
   children: React.ReactNode;
 }> = ({ label, hint, required, compact, children }) => (
   <div className={compact ? 'space-y-1' : 'space-y-1.5'}>
-    <label className={`block font-bold text-gray-700 dark:text-gray-300 ${compact ? 'text-xs' : 'text-sm'}`}>
+    <label className={`block font-bold text-ink-600 dark:text-ink-300 ${compact ? 'text-xs' : 'text-sm'}`}>
       {label}
       {required && <span className="text-red-500 ml-1">*</span>}
     </label>
     {children}
-    {hint && <p className="text-xs text-gray-400">{hint}</p>}
+    {hint && <p className="text-xs text-ink-400">{hint}</p>}
   </div>
 );
 

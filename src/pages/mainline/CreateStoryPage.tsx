@@ -1,13 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useStoryStore } from '../../stores/useStoryStore';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useCreateStory } from '../../hooks/useStories';
+import { useToast } from '../../components/Toast';
 import { Book, Image as ImageIcon, Type, AlignLeft, Send, ArrowLeft } from 'lucide-react';
 
 const CreateStoryPage: React.FC = () => {
   const navigate = useNavigate();
-  const { createStory, isLoading } = useStoryStore();
+  const createStoryMutation = useCreateStory();
+  const isLoading = createStoryMutation.isPending;
   const { isAuthenticated } = useAuthStore();
+  const { addToast } = useToast();
   
   const [formData, setFormData] = useState({
     title: '',
@@ -45,10 +48,10 @@ const CreateStoryPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const story = await createStory(formData);
+      const story = await createStoryMutation.mutateAsync(formData as any);
       navigate(`/story/${story.id}`);
     } catch (err) {
-      alert('创建失败，请检查网络连接');
+      addToast('error', '创建失败，请检查网络连接');
     }
   };
 
@@ -56,17 +59,17 @@ const CreateStoryPage: React.FC = () => {
     <div className="max-w-3xl mx-auto py-12 px-4">
       <button 
         onClick={() => navigate(-1)}
-        className="mb-8 flex items-center gap-2 text-gray-500 font-bold hover:text-blue-600 transition-colors"
+        className="mb-8 flex items-center gap-2 text-ink-500 font-bold hover:text-accent-500 transition-colors"
       >
         <ArrowLeft size={20} />
         返回
       </button>
 
-      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-ink-700 rounded-3xl shadow-2xl border border-ink-100 dark:border-ink-600 overflow-hidden">
         <div className="p-8 md:p-12 space-y-10">
           <div className="space-y-4">
-            <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">开启你的新宇宙</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-lg font-light leading-relaxed">
+            <h1 className="text-4xl font-black text-ink-800 dark:text-white tracking-tight">开启你的新宇宙</h1>
+            <p className="text-ink-500 dark:text-ink-400 text-lg font-light leading-relaxed">
               每一个伟大的故事都始于一个大胆的设想。在这里，你可以创建主线故事，并邀请全球创作者共同探索平行时空的无限可能。
             </p>
           </div>
@@ -74,7 +77,7 @@ const CreateStoryPage: React.FC = () => {
           <form onSubmit={handleSubmit} className="space-y-8">
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-black text-gray-400 uppercase tracking-widest">
+                <label className="flex items-center gap-2 text-sm font-black text-ink-400 uppercase tracking-widest">
                   <Type size={16} />
                   故事标题
                 </label>
@@ -82,14 +85,14 @@ const CreateStoryPage: React.FC = () => {
                   type="text"
                   required
                   placeholder="给你的宇宙起个响亮的名字..."
-                  className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-xl font-bold"
+                  className="w-full px-6 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 rounded-2xl focus:ring-4 focus:ring-accent-400/10 focus:border-accent-400 outline-none transition-all text-xl font-bold"
                   value={formData.title}
                   onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-black text-gray-400 uppercase tracking-widest">
+                <label className="flex items-center gap-2 text-sm font-black text-ink-400 uppercase tracking-widest">
                   <AlignLeft size={16} />
                   故事简介
                 </label>
@@ -97,20 +100,20 @@ const CreateStoryPage: React.FC = () => {
                   required
                   rows={5}
                   placeholder="简述你的世界观、核心冲突和主要角色..."
-                  className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all text-lg font-light resize-none leading-relaxed"
+                  className="w-full px-6 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 rounded-2xl focus:ring-4 focus:ring-accent-400/10 focus:border-accent-400 outline-none transition-all text-lg font-light resize-none leading-relaxed"
                   value={formData.description}
                   onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
               </div>
 
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-black text-gray-400 uppercase tracking-widest">
+                <label className="flex items-center gap-2 text-sm font-black text-ink-400 uppercase tracking-widest">
                   <Type size={16} />
                   分类标签
                 </label>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {formData.tags.map(tag => (
-                    <span key={tag} className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-full text-sm font-bold flex items-center gap-1">
+                    <span key={tag} className="px-3 py-1 bg-accent-100 dark:bg-accent-500/15 text-accent-500 rounded-full text-sm font-bold flex items-center gap-1">
                       {tag}
                       <button type="button" onClick={() => removeTag(tag)} className="hover:text-blue-800">×</button>
                     </span>
@@ -119,7 +122,7 @@ const CreateStoryPage: React.FC = () => {
                 <input 
                   type="text"
                   placeholder="输入标签后按回车或逗号添加..."
-                  className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-mono text-sm"
+                  className="w-full px-6 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 rounded-2xl focus:ring-4 focus:ring-accent-400/10 focus:border-accent-400 outline-none transition-all font-mono text-sm"
                   value={tagInput}
                   onChange={e => setTagInput(e.target.value)}
                   onKeyDown={handleAddTag}
@@ -127,26 +130,26 @@ const CreateStoryPage: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <label className="flex items-center gap-2 text-sm font-black text-gray-400 uppercase tracking-widest">
+                <label className="flex items-center gap-2 text-sm font-black text-ink-400 uppercase tracking-widest">
                   <ImageIcon size={16} />
                   封面图片 URL (可选)
                 </label>
                 <input 
                   type="url"
                   placeholder="https://example.com/cover.jpg"
-                  className="w-full px-6 py-4 bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 rounded-2xl focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 outline-none transition-all font-mono text-sm"
+                  className="w-full px-6 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 rounded-2xl focus:ring-4 focus:ring-accent-400/10 focus:border-accent-400 outline-none transition-all font-mono text-sm"
                   value={formData.coverImage}
                   onChange={e => setFormData(prev => ({ ...prev, coverImage: e.target.value }))}
                 />
-                <p className="text-xs text-gray-400 italic">提示：留空将自动生成一张充满科幻感的 AI 封面。</p>
+                <p className="text-xs text-ink-400 italic">提示：留空将自动生成一张充满科幻感的 AI 封面。</p>
               </div>
             </div>
 
-            <div className="pt-6 border-t border-gray-100 dark:border-gray-700">
+            <div className="pt-6 border-t border-ink-100 dark:border-ink-600">
               <button 
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black text-xl hover:bg-blue-700 transition-all shadow-xl hover:shadow-blue-500/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                className="w-full py-5 bg-accent-500 text-white rounded-2xl font-black text-xl hover:bg-accent-600 transition-all shadow-xl hover:shadow-accent-400/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
               >
                 {isLoading ? (
                   <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>

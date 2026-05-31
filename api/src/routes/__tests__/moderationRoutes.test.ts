@@ -1,7 +1,12 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
 import express from 'express';
 import http from 'http';
 import jwt from 'jsonwebtoken';
+
+// Ensure JWT_SECRET is set before modules are imported
+beforeAll(() => {
+  process.env.JWT_SECRET = 'test-secret-key-for-testing-only';
+});
 
 vi.mock('../../domains/moderation/ModerationAdminService', () => ({
   ModerationAdminService: {
@@ -12,7 +17,7 @@ vi.mock('../../domains/moderation/ModerationAdminService', () => ({
 }));
 
 const getToken = () => {
-  return jwt.sign({ id: 'admin-1', email: 'a@b.com', role: 'admin', permissions: [] }, process.env.JWT_SECRET || 'your-secret-key');
+  return jwt.sign({ id: 'admin-1', email: 'a@b.com', role: 'admin', permissions: [] }, process.env.JWT_SECRET!);
 };
 
 const listen = async (app: any) => {

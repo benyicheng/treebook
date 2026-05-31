@@ -10,6 +10,7 @@ import {
   updateBooklistItemNotes,
   removeItemFromBooklist,
   upsertProgress,
+  toggleProgress,
   getProgress,
 } from '../controllers/booklistController';
 import { authenticate } from '../middleware/auth';
@@ -31,5 +32,6 @@ router.delete('/:id/items/:itemId', authenticate, removeItemFromBooklist);
 
 router.get('/:id/progress', authenticate, getProgress);
 router.patch('/:id/progress', authenticate, upsertProgress);
+router.post('/:id/progress/toggle', authenticate, toggleProgress);
 
 export default router;

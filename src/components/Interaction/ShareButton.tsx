@@ -8,9 +8,9 @@ import Modal from '../Modal';
 const PLATFORMS: { id: SharePlatform; name: string; icon: string; color: string }[] = [
   { id: 'wechat', name: '微信', icon: '💬', color: 'bg-green-500' },
   { id: 'weibo', name: '微博', icon: '📢', color: 'bg-red-500' },
-  { id: 'qq', name: 'QQ', icon: '🐧', color: 'bg-blue-500' },
+  { id: 'qq', name: 'QQ', icon: '🐧', color: 'bg-accent-400' },
   { id: 'twitter', name: 'Twitter', icon: '🐦', color: 'bg-sky-500' },
-  { id: 'copy', name: '复制链接', icon: '🔗', color: 'bg-gray-500' },
+  { id: 'copy', name: '复制链接', icon: '🔗', color: 'bg-ink-500' },
 ];
 
 // 生成二维码SVG
@@ -134,7 +134,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         className={`
           flex items-center gap-1.5 rounded-full transition-all duration-200
           ${classes.button}
-          text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20
+          text-ink-400 hover:text-accent-400 hover:bg-accent-50 dark:hover:bg-accent-500/10
         `}
       >
         <Share2 size={classes.icon} />
@@ -153,7 +153,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       >
         <div className="space-y-6">
           {/* 预览卡片 */}
-          <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl">
+          <div className="p-4 bg-ink-50 dark:bg-ink-800 rounded-2xl">
             <div className="flex gap-4">
               {imageUrl && (
                 <img
@@ -163,10 +163,10 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
                 />
               )}
               <div className="flex-1 min-w-0">
-                <h4 className="font-bold text-gray-900 dark:text-white truncate">
+                <h4 className="font-bold text-ink-800 dark:text-white truncate">
                   {title}
                 </h4>
-                <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+                <p className="text-sm text-ink-500 line-clamp-2 mt-1">
                   {description}
                 </p>
               </div>
@@ -175,7 +175,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
 
           {/* 自定义文案 */}
           <div>
-            <label className="text-sm font-bold text-gray-500 mb-2 block">
+            <label className="text-sm font-bold text-ink-500 mb-2 block">
               分享文案 (可选)
             </label>
             <textarea
@@ -183,13 +183,13 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
               onChange={(e) => setCustomText(e.target.value)}
               placeholder={`推荐给你：${title}`}
               rows={2}
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 focus:ring-2 focus:ring-blue-500 outline-none resize-none text-sm"
+              className="w-full px-4 py-3 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-700 focus:ring-2 focus:ring-accent-400 outline-none resize-none text-sm"
             />
           </div>
 
           {/* 平台选择 */}
           <div>
-            <label className="text-sm font-bold text-gray-500 mb-3 block">
+            <label className="text-sm font-bold text-ink-500 mb-3 block">
               选择平台
             </label>
             <div className="grid grid-cols-5 gap-3">
@@ -199,12 +199,12 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
                   onClick={() => handleShare(platform.id)}
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors"
                 >
                   <div className={`w-12 h-12 ${platform.color} rounded-2xl flex items-center justify-center text-2xl shadow-lg`}>
                     {platform.icon}
                   </div>
-                  <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  <span className="text-xs font-medium text-ink-500 dark:text-ink-400">
                     {platform.name}
                   </span>
                 </motion.button>
@@ -213,20 +213,20 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
           </div>
 
           {/* 链接复制区域 */}
-          <div className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-xl">
-            <Link2 size={16} className="text-gray-400 shrink-0" />
+          <div className="flex items-center gap-2 p-3 bg-ink-100 dark:bg-ink-700 rounded-xl">
+            <Link2 size={16} className="text-ink-400 shrink-0" />
             <input
               type="text"
               value={shareUrl}
               readOnly
-              className="flex-1 bg-transparent text-sm text-gray-600 dark:text-gray-400 outline-none"
+              className="flex-1 bg-transparent text-sm text-ink-500 dark:text-ink-400 outline-none"
             />
             <button
               onClick={() => handleShare('copy')}
               className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
                 copied
                   ? 'bg-green-500 text-white'
-                  : 'bg-blue-500 text-white hover:bg-blue-600'
+                  : 'bg-accent-400 text-white hover:bg-accent-500'
               }`}
             >
               {copied ? (
@@ -261,19 +261,19 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
             />
           </div>
           <div className="text-center space-y-2">
-            <p className="text-gray-600 dark:text-gray-400">
+            <p className="text-ink-500 dark:text-ink-400">
               打开微信扫一扫，分享给你的好友
             </p>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-ink-400">
               或在微信中长按识别二维码
             </p>
           </div>
-          <div className="flex items-center gap-2 p-3 bg-gray-100 dark:bg-gray-800 rounded-xl w-full">
+          <div className="flex items-center gap-2 p-3 bg-ink-100 dark:bg-ink-700 rounded-xl w-full">
             <input
               type="text"
               value={shareUrl}
               readOnly
-              className="flex-1 bg-transparent text-sm text-gray-600 dark:text-gray-400 outline-none"
+              className="flex-1 bg-transparent text-sm text-ink-500 dark:text-ink-400 outline-none"
             />
             <button
               onClick={() => {

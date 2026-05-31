@@ -30,11 +30,11 @@ const ReportPage: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-12">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm">
-        <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">
+      <div className="bg-white dark:bg-ink-700 rounded-2xl p-8 shadow-sm">
+        <h1 className="text-3xl font-black text-ink-800 dark:text-white mb-2">
           举报中心
         </h1>
-        <p className="text-gray-600 dark:text-gray-300 mb-8">
+        <p className="text-ink-500 dark:text-ink-300 mb-8">
           发现违规内容？请立即举报，我们将严肃处理。
         </p>
 
@@ -51,13 +51,13 @@ const ReportPage: React.FC = () => {
         ) : (
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-sm font-bold text-gray-900 dark:text-white mb-2">
+              <label className="block text-sm font-bold text-ink-800 dark:text-white mb-2">
                 举报类型 <span className="text-red-500">*</span>
               </label>
               <select
                 value={formData.type}
                 onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 bg-ink-50 dark:bg-ink-600 border border-ink-200 dark:border-ink-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-400"
                 required
               >
                 <option value="">请选择举报类型</option>
@@ -70,7 +70,7 @@ const ReportPage: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-gray-900 dark:text-white mb-2">
+              <label className="block text-sm font-bold text-ink-800 dark:text-white mb-2">
                 举报对象类型
               </label>
               <div className="flex gap-3">
@@ -84,8 +84,8 @@ const ReportPage: React.FC = () => {
                     key={type.value}
                     className={`px-4 py-2 rounded-lg cursor-pointer transition-colors ${
                       formData.targetType === type.value
-                        ? 'bg-blue-500 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        ? 'bg-accent-400 text-white'
+                        : 'bg-ink-100 dark:bg-ink-600 text-ink-600 dark:text-ink-300 hover:bg-ink-200 dark:hover:bg-ink-500'
                     }`}
                   >
                     <input
@@ -103,7 +103,7 @@ const ReportPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="targetUrl" className="block text-sm font-bold text-gray-900 dark:text-white mb-2">
+              <label htmlFor="targetUrl" className="block text-sm font-bold text-ink-800 dark:text-white mb-2">
                 链接地址 <span className="text-red-500">*</span>
               </label>
               <input
@@ -112,13 +112,13 @@ const ReportPage: React.FC = () => {
                 value={formData.targetUrl}
                 onChange={(e) => setFormData({ ...formData, targetUrl: e.target.value })}
                 placeholder="请粘贴举报内容的完整链接"
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 bg-ink-50 dark:bg-ink-600 border border-ink-200 dark:border-ink-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-400"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="reason" className="block text-sm font-bold text-gray-900 dark:text-white mb-2">
+              <label htmlFor="reason" className="block text-sm font-bold text-ink-800 dark:text-white mb-2">
                 举报理由
               </label>
               <textarea
@@ -127,12 +127,12 @@ const ReportPage: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, reason: e.target.value })}
                 placeholder="请简述举报理由..."
                 rows={3}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full px-4 py-3 bg-ink-50 dark:bg-ink-600 border border-ink-200 dark:border-ink-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-400 resize-none"
               />
             </div>
 
             <div>
-              <label htmlFor="description" className="block text-sm font-bold text-gray-900 dark:text-white mb-2">
+              <label htmlFor="description" className="block text-sm font-bold text-ink-800 dark:text-white mb-2">
                 详细说明 <span className="text-red-500">*</span>
               </label>
               <textarea
@@ -141,13 +141,13 @@ const ReportPage: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="请详细描述违规行为的具体情况，包括时间、地点、相关截图等..."
                 rows={5}
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                className="w-full px-4 py-3 bg-ink-50 dark:bg-ink-600 border border-ink-200 dark:border-ink-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-400 resize-none"
                 required
               />
             </div>
 
             <div>
-              <label htmlFor="contact" className="block text-sm font-bold text-gray-900 dark:text-white mb-2">
+              <label htmlFor="contact" className="block text-sm font-bold text-ink-800 dark:text-white mb-2">
                 联系方式 <span className="text-red-500">*</span>
               </label>
               <input
@@ -156,7 +156,7 @@ const ReportPage: React.FC = () => {
                 value={formData.contact}
                 onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
                 placeholder="请留下您的邮箱或手机号，以便我们跟进"
-                className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 bg-ink-50 dark:bg-ink-600 border border-ink-200 dark:border-ink-500 rounded-xl focus:outline-none focus:ring-2 focus:ring-accent-400"
                 required
               />
             </div>

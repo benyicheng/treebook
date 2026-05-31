@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import ReactFlow, { 
   Node, 
   Edge, 
@@ -20,10 +20,13 @@ interface StoryBranchTreeProps {
   onNodeClick?: (nodeId: string, type: 'chapter' | 'branch' | 'spinoff') => void;
 }
 
-const CHAPTER_X_STEP = 280;
-const CHAPTER_Y = 80;
-const BRANCH_Y_START = 280;
-const BRANCH_Y_STEP = 130;
+// Dynamic spacing: larger viewports get more spacing
+const useDynamicSpacing = () => {
+  const width = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  if (width < 768) return { xStep: 200, yStep: 110, chapterY: 60 };
+  if (width < 1024) return { xStep: 240, yStep: 120, chapterY: 70 };
+  return { xStep: 280, yStep: 130, chapterY: 80 };
+};
 
 const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({ 
   chapters, 
@@ -33,6 +36,31 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({
   savepoints = [], 
   onNodeClick 
 }) => {
+  const { xStep, yStep, chapterY } = useDynamicSpacing();
+  const BRANCH_Y_START = 280;
+  const BRANCH_Y_STEP = yStep;
+  const CHAPTER_X_STEP = xStep;
+  const CHAPTER_Y = chapterY;
+
+  // 性能阈值
+  const CLUSTER_THRESHOLD = 5;   // 同父章 >5 个分支时折叠
+  const MINIMAP_THRESHOLD = 30;  // 总节点 >30 时隐藏 MiniMap
+
+  // 展开/折叠状态：记录哪些父章的分支群被展开了
+  const [expandedClusters, setExpandedClusters] = useState<Set<string>>(new Set());
+
+  const toggleCluster = useCallback((parentChapterId: string) => {
+    setExpandedClusters(prev => {
+      const next = new Set(prev);
+      if (next.has(parentChapterId)) {
+        next.delete(parentChapterId);
+      } else {
+        next.add(parentChapterId);
+      }
+      return next;
+    });
+  }, []);
+
   const { nodes, edges } = useMemo(() => {
     const nodes: Node[] = [];
     const edges: Edge[] = [];
@@ -63,6 +91,8 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({
           orderIndex: chapter.orderIndex,
           isRead: readChapterIds.has(chapter.id),
           hasSavepoint: savepointChapterIds.has(chapter.id),
+          onActivate: onNodeClick,
+          type: 'chapter',
         },
         position: { x: chapterXMap[chapter.id], y: CHAPTER_Y },
       });
@@ -79,7 +109,7 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({
       }
     });
 
-    // 按 parentChapterId 分组分支，避免同一分叉点的分支节点重叠
+    // 按 parentChapterId 分组分支
     const branchesByParent: Record<string, Branch[]> = {};
     branches.forEach(branch => {
       const pid = branch.parentChapterId;
@@ -87,56 +117,92 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({
       branchesByParent[pid].push(branch);
     });
 
-    // 渲染分支节点（同一父节点的分支竖向错开）
-    branches.forEach((branch) => {
-      const parentX = chapterXMap[branch.parentChapterId];
-      // 如果找不到父章节坐标（可能父章节是分支章节，不太可能但防御），放在最左侧
+    // 渲染分支节点（带聚类折叠）
+    Object.entries(branchesByParent).forEach(([parentChapterId, groupBranches]) => {
+      const parentX = chapterXMap[parentChapterId];
       const xPos = parentX !== undefined ? parentX : 0;
+      const isExpanded = expandedClusters.has(parentChapterId);
+      const useCluster = !isExpanded && groupBranches.length > CLUSTER_THRESHOLD;
 
-      // 计算当前分支在同父节点下的索引
-      const siblingsGroup = branchesByParent[branch.parentChapterId] || [];
-      const siblingIndex = siblingsGroup.findIndex(b => b.id === branch.id);
+      if (useCluster) {
+        // 折叠态：显示单个「平行宇宙群」节点
+        nodes.push({
+          id: `cluster-${parentChapterId}`,
+          type: 'branchCluster',
+          data: { count: groupBranches.length, onToggle: () => toggleCluster(parentChapterId) },
+          position: { x: xPos, y: BRANCH_Y_START },
+          draggable: false,
+        });
+        edges.push({
+          id: `edge-cluster-${parentChapterId}`,
+          source: `chapter-${parentChapterId}`,
+          sourceHandle: 'branch',
+          target: `cluster-${parentChapterId}`,
+          animated: true,
+          style: { stroke: '#8b5cf6', strokeWidth: 3 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: '#8b5cf6' },
+        });
+      } else {
+        // 展开态或小群组：渲染独立分支节点
+        groupBranches.forEach((branch, index) => {
+          const isRead = readBranchIds.has(branch.id);
 
-      const isRead = readBranchIds.has(branch.id);
+          nodes.push({
+            id: `branch-${branch.id}`,
+            type: 'branch',
+            data: { 
+              label: branch.title,
+              isOfficial: branch.isOfficial,
+              isCertified: (branch as any).isCertified,
+              isHot: (branch.viewCount || 0) > 100,
+              isRead,
+              chapterCount: (branch as any)._count?.chapters ?? 0,
+              authorName: branch.author?.username,
+            },
+            position: { x: xPos, y: BRANCH_Y_START + index * BRANCH_Y_STEP },
+          });
 
-      nodes.push({
-        id: `branch-${branch.id}`,
-        type: 'branch',
-        data: { 
-          label: branch.title,
-          isOfficial: branch.isOfficial,
-          isCertified: (branch as any).isCertified,
-          isHot: (branch.viewCount || 0) > 100,
-          isRead,
-          chapterCount: (branch as any)._count?.chapters ?? 0,
-          authorName: branch.author?.username,
-        },
-        position: { x: xPos, y: BRANCH_Y_START + siblingIndex * BRANCH_Y_STEP },
-      });
+          edges.push({
+            id: `edge-branch-${branch.id}`,
+            source: `chapter-${branch.parentChapterId}`,
+            sourceHandle: 'branch',
+            target: `branch-${branch.id}`,
+            animated: true,
+            style: { 
+              stroke: (branch as any).isCertified ? '#f59e0b' : (branch.isOfficial ? '#f59e0b' : '#8b5cf6'), 
+              strokeWidth: (branch as any).isCertified ? 4 : 2.5, 
+              strokeDasharray: isRead ? '0' : '8,4',
+              opacity: isRead ? 1 : 0.6
+            },
+            markerEnd: { 
+              type: MarkerType.ArrowClosed, 
+              color: (branch as any).isCertified ? '#f59e0b' : (branch.isOfficial ? '#f59e0b' : '#8b5cf6') 
+            },
+          });
+        });
 
-      edges.push({
-        id: `edge-branch-${branch.id}`,
-        source: `chapter-${branch.parentChapterId}`,
-        sourceHandle: 'branch',
-        target: `branch-${branch.id}`,
-        animated: true,
-        style: { 
-          stroke: (branch as any).isCertified ? '#f59e0b' : (branch.isOfficial ? '#f59e0b' : '#8b5cf6'), 
-          strokeWidth: (branch as any).isCertified ? 4 : 2.5, 
-          strokeDasharray: isRead ? '0' : '8,4', // 已读分支实线，未读虚线
-          opacity: isRead ? 1 : 0.6
-        },
-        markerEnd: { 
-          type: MarkerType.ArrowClosed, 
-          color: (branch as any).isCertified ? '#f59e0b' : (branch.isOfficial ? '#f59e0b' : '#8b5cf6') 
-        },
-      });
+        // 展开态：在群组上方添加「收起」按钮
+        if (isExpanded && groupBranches.length > CLUSTER_THRESHOLD) {
+          nodes.push({
+            id: `collapse-${parentChapterId}`,
+            type: 'collapseButton',
+            data: { count: groupBranches.length, onToggle: () => toggleCluster(parentChapterId) },
+            position: { x: xPos, y: BRANCH_Y_START - 45 },
+            draggable: false,
+            selectable: false,
+          });
+        }
+      }
     });
 
     // === 番外节点 (Spinoffs) ===
     if (spinoffs.length > 0) {
-      // 计算分支区域的最大纵坐标，决定番外的起始行
-      const branchSlotCounts = Object.values(branchesByParent).map(g => g.length);
+      // 计算分支区域的最大纵坐标（折叠群算 1 个槽位）
+      const branchSlotCounts = Object.entries(branchesByParent).map(([pid, g]) => {
+        const isExpanded = expandedClusters.has(pid);
+        const useCluster = !isExpanded && g.length > CLUSTER_THRESHOLD;
+        return useCluster ? 1 : g.length;
+      });
       const maxBranchSlots = Math.max(1, ...branchSlotCounts, 0);
       const spinoffY = BRANCH_Y_START + maxBranchSlots * BRANCH_Y_STEP + 80;
 
@@ -212,15 +278,32 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({
     }
 
     return { nodes, edges };
-  }, [chapters, branches, spinoffs]);
+  }, [chapters, branches, spinoffs, expandedClusters, CHAPTER_X_STEP, CHAPTER_Y, BRANCH_Y_START, BRANCH_Y_STEP, readingHistory, savepoints]);
+
+  const totalNodes = chapters.length + branches.length + (spinoffs?.length || 0);
 
   return (
-    <div className="w-full h-[650px] border border-gray-200 dark:border-gray-800 rounded-[2rem] overflow-hidden bg-[#fafbff] dark:bg-gray-950 shadow-inner">
+    <div className="w-full h-[650px] border border-ink-200 dark:border-ink-700 rounded-[2rem] overflow-hidden bg-[#fafbff] dark:bg-ink-800 shadow-inner">
       <ReactFlow
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
+        onlyRenderVisibleElements
+        elevateNodesOnSelect={false}
+        proOptions={{ hideAttribution: true }}
+        key={`${CHAPTER_X_STEP}-${BRANCH_Y_STEP}`}
         onNodeClick={(_, node) => {
+          // 聚类节点点击 → 展开
+          if (node.id.startsWith('cluster-')) {
+            toggleCluster(node.id.slice(8));
+            return;
+          }
+          // 收起按钮点击 → 折叠
+          if (node.id.startsWith('collapse-')) {
+            toggleCluster(node.id.slice(9));
+            return;
+          }
+
           let type: 'chapter' | 'branch' | 'spinoff';
           let id: string;
 
@@ -243,15 +326,17 @@ const StoryBranchTree: React.FC<StoryBranchTreeProps> = ({
         maxZoom={1.8}
       >
         <Background color="#dde1f0" gap={24} />
-        <Controls className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-lg" />
-        <MiniMap 
-          nodeColor={(node) => {
-            if (node.type === 'chapter') return '#3b82f6';
-            if (node.type === 'spinoff') return (node.data as any).isOfficial ? '#f59e0b' : '#818cf8';
-            return (node.data as any).isOfficial ? '#f59e0b' : '#8b5cf6';
-          }}
-          className="bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 rounded-xl overflow-hidden shadow-lg"
-        />
+        <Controls className="bg-white dark:bg-ink-800 border-ink-200 dark:border-ink-700 rounded-xl overflow-hidden shadow-lg" />
+        {totalNodes <= MINIMAP_THRESHOLD && (
+          <MiniMap 
+            nodeColor={(node) => {
+              if (node.type === 'chapter') return '#3b82f6';
+              if (node.type === 'spinoff') return (node.data as any).isOfficial ? '#f59e0b' : '#818cf8';
+              return (node.data as any).isOfficial ? '#f59e0b' : '#8b5cf6';
+            }}
+            className="bg-white dark:bg-ink-800 border-ink-200 dark:border-ink-700 rounded-xl overflow-hidden shadow-lg"
+          />
+        )}
       </ReactFlow>
     </div>
   );

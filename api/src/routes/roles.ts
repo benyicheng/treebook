@@ -25,15 +25,15 @@ const router = Router();
 router.get('/permissions', authenticate, listPermissions);
 
 // 角色管理
-router.get('/', authenticate, requirePermission('role:view'), listRoles);
+router.get('/', authenticate, requirePermission('role:read'), listRoles);
 router.post('/', authenticate, requirePermission('role:create'), validateRequest(createRoleRequest), createRole);
 router.get('/export', authenticate, requirePermission('role:export'), exportRolesCsv);
 
-router.get('/:id', authenticate, requirePermission('role:view'), getRoleById);
-router.patch('/:id', authenticate, requirePermission('role:edit'), validateRequest(updateRoleRequest), updateRole);
+router.get('/:id', authenticate, requirePermission('role:read'), getRoleById);
+router.patch('/:id', authenticate, requirePermission('role:update'), validateRequest(updateRoleRequest), updateRole);
 router.delete('/:id', authenticate, requirePermission('role:delete'), deleteRole);
 
-router.post('/:id/permissions', authenticate, requirePermission('role:edit'), validateRequest(updateRolePermissionsRequest), updateRolePermissions);
+router.post('/:id/permissions', authenticate, requirePermission('role:update'), validateRequest(updateRolePermissionsRequest), updateRolePermissions);
 router.post('/bulk-delete', authenticate, requirePermission('role:delete'), validateRequest(bulkDeleteRolesRequest), bulkDeleteRoles);
 
 export default router;
