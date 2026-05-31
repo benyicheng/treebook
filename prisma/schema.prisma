@@ -28,6 +28,50 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Follow {
+  id          String   @id @default(uuid())
+  follower    User     @relation("Follower", fields: [followerId], references: [id], onDelete: Cascade)
+  followerId  String
+  following   User     @relation("Following", fields: [followingId], references: [id], onDelete: Cascade)
+  followingId String
+  createdAt   DateTime @default(now())
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@map("follows")
+}
+
+model Activity {
+  id         String   @id @default(uuid())
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+  actorId    String
+  type       String   // story_publish, branch_create, spinoff_publish, chapter_update, merge_request, merge_approved
+  targetType String   // story, branch, spinoff, chapter
+  targetId   String
+  metadata   String?  // JSON: { title, storyTitle, branchTitle, etc. }
+  createdAt  DateTime @default(now())
+
+  @@index([actorId, createdAt])
+  @@index([type, createdAt])
+  @@map("activities")
+}
+
+model Notification {
+  id          String   @id @default(uuid())
+  userId      String
+  actorId     String?
+  type        String   // comment_reply | branch_created | merge_requested | merge_approved
+  targetType  String   // comment | branch | merge_request
+  targetId    String
+  message     String
+  isRead      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
+}
+
 model User {
   id            String          @id @default(uuid())
   email         String          @unique
@@ -36,6 +80,8 @@ model User {
   avatarUrl     String?
   profile       String?         // JSON string in SQLite
   role          String          @default("reader")
+  followerCount Int             @default(0)
+  followingCount Int            @default(0)
   roles         UserRole[]
   stories       Story[]
   branches      Branch[]
@@ -52,6 +98,11 @@ model User {
   booklistProgress BooklistProgress[]
   wallet         Wallet?
   transactions   Transaction[]
+  followers      Follow[]       @relation("Following")
+  following      Follow[]       @relation("Follower")
+  activities     Activity[]
+  readingPaths   ReadingPath[]
+  readingTrails  ReadingTrail[]
 
   @@map("users")
 }
@@ -144,6 +195,7 @@ model Story {
   metadata    String?   // JSON string
   viewCount   Int       @default(0)
   branchCount Int       @default(0)
+  isOfficial  Boolean   @default(false)
   chapters    Chapter[]
   branches    Branch[]
   spinoffs    Spinoff[]
@@ -154,6 +206,7 @@ model Story {
   tags        Tag[]
   savepoints  ReadingSavepoint[]
   mergeRequests MergeRequest[]
+  readingPaths ReadingPath[]
 
   @@map("stories")
 }
@@ -177,8 +230,25 @@ model Character {
   role        String   @default("supporting") // protagonist, antagonist, supporting
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  appearances CharacterAppearance[]
 
   @@map("characters")
+}
+
+/// 角色出场 — 多态关联到章节/分支/番外，用于阅读路径的角色导览
+model CharacterAppearance {
+  id             String   @id @default(uuid())
+  character      Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  characterId    String
+  targetType     String   // 'chapter' | 'branch' | 'spinoff'
+  targetId       String
+  appearanceType String   @default("appears") // 'appears' | 'main_focus' | 'mention' | 'cameo'
+  note           String?
+  createdAt      DateTime @default(now())
+
+  @@unique([characterId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@map("character_appearances")
 }
 
 model Chapter {
@@ -303,18 +373,20 @@ model BooklistProgress {
 }
 
 model BooklistItem {
-  id         String   @id @default(uuid())
-  booklist   Booklist @relation(fields: [booklistId], references: [id], onDelete: Cascade)
+  id         String    @id @default(uuid())
+  booklist   Booklist  @relation(fields: [booklistId], references: [id], onDelete: Cascade)
   booklistId String
-  chapter    Chapter  @relation(fields: [chapterId], references: [id], onDelete: Cascade)
-  chapterId  String
+  targetType String?   // 'story' | 'branch' | 'spinoff' | 'chapter'
+  targetId   String?
+  chapter    Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  chapterId  String?
   orderIndex Int
   notes      String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now()) @updatedAt
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
 
   @@index([booklistId])
-  @@index([chapterId])
+  @@index([targetType, targetId])
   @@map("booklist_items")
 }
 
@@ -618,4 +690,66 @@ model MediaRiskLog {
 
   @@index([assetId, createdAt])
   @@map("media_risk_logs")
+}
+
+/// 阅读路径 — 用户创建的阅读顺序导航
+model ReadingPath {
+  id              String      @id @default(uuid())
+  storyId         String
+  story           Story       @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  creatorId       String
+  creator         User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  title           String
+  description     String?
+  origin          String      @default("community")  // 'author' | 'community' | 'system'
+  status          String      @default("published")  // 'draft' | 'published'
+  viewCount       Int         @default(0)
+  startCount      Int         @default(0)
+  completionCount Int         @default(0)
+  avgDurationMin  Int?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  nodes           ReadingPathNode[]
+  trails          ReadingTrail[]
+
+  @@index([storyId, viewCount])
+  @@index([creatorId])
+  @@map("reading_paths")
+}
+
+/// 路径节点 — 有序序列，contentId 为多态外键
+model ReadingPathNode {
+  id            String        @id @default(uuid())
+  path          ReadingPath   @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  pathId        String
+  sortOrder     Int
+  nodeCategory  String        // 'chapter' | 'branch' | 'spinoff'
+  contentId     String
+  contentTitle  String?
+  note          String?
+  estimatedMin  Int?
+
+  @@index([pathId, sortOrder])
+  @@map("reading_path_nodes")
+}
+
+/// 阅读轨迹 — 用户在某路径上的进度
+model ReadingTrail {
+  id              String       @id @default(uuid())
+  userId          String
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pathId          String?
+  path            ReadingPath? @relation(fields: [pathId], references: [id], onDelete: SetNull)
+  storyId         String
+  currentNodeId   String?
+  currentNodeIndex Int         @default(-1)
+  trailNodes      String       @default("[]")  // JSON array
+  startedAt       DateTime     @default(now())
+  completedAt     DateTime?
+  durationMin     Int?
+
+  @@index([userId, storyId])
+  @@index([pathId])
+  @@index([currentNodeId])
+  @@map("reading_trails")
 }

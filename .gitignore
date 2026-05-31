@@ -61,6 +61,16 @@ thoughts/
 *.temp
 check-output.txt
 tsc-output.txt
+tsc-strict-errors.txt
+tsc-strict-output.txt
+
+# Tooling artifacts
+.impeccable.md
+.playwright-cli/
+
+# Backend log files
+api/.backend*.log
+api/utils/
 
 # OS
 Thumbs.db
