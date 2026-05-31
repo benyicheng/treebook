@@ -1,6 +1,6 @@
 # 平行宇宙写作平台 (Parallel Universe Writing Platform)
 
-这是一个创新型多人协作写作环境，支持主线、分支、番外、书单四种故事路径。通过图形化的"平行宇宙树"展示故事的多样性。
+这是一个创新型多人协作写作环境，支持主线、分支、番外、书单四种故事路径。通过图形化的"平行世界"展示故事的多样性。
 
 [![GitHub Repo](https://img.shields.io/badge/github-repo-blue.svg)](https://github.com/your-username/parallel-universe)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
