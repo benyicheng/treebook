@@ -104,10 +104,10 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
       <div className="relative flex flex-col items-center">
         <div className={`w-20 h-20 rounded-3xl border-4 shadow-xl flex items-center justify-center text-3xl font-black z-10 transition-all duration-300 ${
           isCompleted
-            ? 'bg-emerald-500 border-emerald-500 text-white'
+            ? 'bg-accent-400 border-accent-400 text-white'
             : isCurrent
-              ? 'bg-emerald-500 border-emerald-500 text-white scale-110 shadow-emerald-500/30'
-              : 'bg-white dark:bg-gray-800 border-emerald-500 text-emerald-600'
+              ? 'bg-accent-400 border-accent-400 text-white scale-110 shadow-accent-400/30'
+              : 'bg-white dark:bg-ink-700 border-accent-400 text-accent-500'
         }`}>
           {isCompleted ? (
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
@@ -119,7 +119,7 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
         </div>
         {index < totalItems - 1 && (
           <div className={`absolute top-20 bottom-[-48px] w-1 rounded-full ${
-            isCompleted ? 'bg-emerald-400' : 'bg-emerald-500'
+            isCompleted ? 'bg-emerald-400' : 'bg-accent-400'
           }`}></div>
         )}
       </div>
@@ -129,10 +129,10 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
         isCurrent ? 'opacity-100' : isCompleted ? 'opacity-75' : 'opacity-100'
       }`}>
         <div
-          className={`bg-white dark:bg-gray-800 rounded-3xl p-8 shadow-sm border transition-all group ${
+          className={`bg-white dark:bg-ink-700 rounded-3xl p-8 shadow-sm border transition-all group ${
             isCurrent
-              ? 'border-emerald-300 dark:border-emerald-700 shadow-lg shadow-emerald-500/10 ring-2 ring-emerald-500/20'
-              : 'border-gray-100 dark:border-gray-700 hover:shadow-xl'
+              ? 'border-emerald-300 dark:border-accent-600 shadow-lg shadow-accent-400/10 ring-2 ring-accent-400/20'
+              : 'border-ink-100 dark:border-ink-600 hover:shadow-xl'
           }`}
           onMouseEnter={() => setShowPreview(true)}
           onMouseLeave={() => setShowPreview(false)}
@@ -141,21 +141,21 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                  item.chapter.branchId ? 'bg-purple-100 text-purple-600' : 'bg-blue-100 text-blue-600'
+                  item.chapter.branchId ? 'bg-accent-100 text-accent-500' : 'bg-accent-100 text-accent-500'
                 }`}>
                   {item.chapter.branchId ? '平行分支' : '主线章节'}
                 </span>
-                <span className="text-xs font-bold text-gray-400">
+                <span className="text-xs font-bold text-ink-400">
                   {item.chapter.story.title}
                 </span>
                 {isCurrent && (
-                  <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-[10px] font-black rounded-full">
+                  <span className="px-2 py-0.5 bg-accent-100 dark:bg-accent-500/15 text-accent-600 dark:text-accent-400 text-[10px] font-black rounded-full">
                     当前
                   </span>
                 )}
               </div>
-              <h3 className={`text-2xl font-black group-hover:text-emerald-600 transition-colors ${
-                isCompleted ? 'text-gray-500 dark:text-gray-400 line-through decoration-1 decoration-gray-300' : 'text-gray-900 dark:text-white'
+              <h3 className={`text-2xl font-black group-hover:text-accent-500 transition-colors ${
+                isCompleted ? 'text-ink-500 dark:text-ink-400 line-through decoration-1 decoration-ink-300' : 'text-ink-800 dark:text-white'
               }`}>
                 {item.chapter.title}
               </h3>
@@ -165,8 +165,8 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
                 onClick={() => onRead(item, index)}
                 className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${
                   isCurrent
-                    ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md shadow-emerald-500/20'
-                    : 'bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white hover:bg-emerald-50 dark:hover:bg-emerald-900/20 hover:text-emerald-600'
+                    ? 'bg-accent-500 text-white hover:bg-accent-600 shadow-md shadow-accent-400/20'
+                    : 'bg-ink-50 dark:bg-ink-800 text-ink-800 dark:text-white hover:bg-accent-50 dark:hover:bg-accent-500/10 hover:text-accent-500'
                 }`}
               >
                 {isCurrent ? '继续阅读' : (isCompleted ? '重新阅读' : '阅读此章节')}
@@ -177,12 +177,12 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
 
           {/* Hover Preview */}
           {showPreview && previewContent && (
-            <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-gray-100 dark:border-gray-700">
-              <div className="flex items-center gap-2 mb-2 text-gray-400 text-xs font-bold uppercase tracking-widest">
+            <div className="mt-4 p-4 bg-ink-50 dark:bg-ink-800/50 rounded-2xl border border-ink-100 dark:border-ink-600">
+              <div className="flex items-center gap-2 mb-2 text-ink-400 text-xs font-bold uppercase tracking-widest">
                 <Eye size={12} />
                 内容预览
               </div>
-              <p className="text-gray-600 dark:text-gray-400 text-sm leading-relaxed line-clamp-3">
+              <p className="text-ink-500 dark:text-ink-400 text-sm leading-relaxed line-clamp-3">
                 {previewContent}
               </p>
             </div>
@@ -190,41 +190,41 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
 
           {/* Guide Notes */}
           {(item.notes || isCreator) && (
-            <div className={`mt-6 p-6 rounded-2xl border-l-4 border-emerald-500 space-y-2 ${
-              isCurrent ? 'bg-emerald-50/50 dark:bg-emerald-900/10' : 'bg-gray-50 dark:bg-gray-900/50'
+            <div className={`mt-6 p-6 rounded-2xl border-l-4 border-accent-400 space-y-2 ${
+              isCurrent ? 'bg-accent-50/50 dark:bg-accent-500/5' : 'bg-ink-50 dark:bg-ink-800/50'
             }`}>
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 text-emerald-600 font-black text-xs uppercase tracking-widest">
+                <div className="flex items-center gap-2 text-accent-500 font-black text-xs uppercase tracking-widest">
                   <Quote size={14} fill="currentColor" />
                   导游点评
                 </div>
                 {isCreator && (
                   <button
                     onClick={() => onEditNotes(item)}
-                    className="text-gray-400 hover:text-emerald-600 transition-colors"
+                    className="text-ink-400 hover:text-accent-500 transition-colors"
                   >
                     <Edit3 size={14} />
                   </button>
                 )}
               </div>
               {item.notes ? (
-                <p className="text-gray-600 dark:text-gray-400 text-lg font-light leading-relaxed italic">
+                <p className="text-ink-500 dark:text-ink-400 text-lg font-light leading-relaxed italic">
                   {item.notes}
                 </p>
               ) : (
-                <p className="text-gray-400 text-sm italic">暂无点评，点击编辑添加...</p>
+                <p className="text-ink-400 text-sm italic">暂无点评，点击编辑添加...</p>
               )}
             </div>
           )}
 
           {/* Footer Meta + Drag handle + Reorder buttons */}
           <div className="mt-6 flex items-center justify-between">
-            <div className="flex items-center gap-4 text-xs font-bold text-gray-400">
+            <div className="flex items-center gap-4 text-xs font-bold text-ink-400">
               <div className="flex items-center gap-1.5">
                 <User size={14} />
                 {item.chapter?.story?.author?.username || '未知作者'}
               </div>
-              <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+              <span className="w-1 h-1 bg-ink-300 rounded-full"></span>
               <div className="flex items-center gap-1.5">
                 <BookOpen size={14} />
                 约 {wordCount} 字
@@ -237,19 +237,19 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
                 <button
                   {...attributes}
                   {...listeners}
-                  className="p-1.5 text-gray-300 hover:text-emerald-600 transition-colors cursor-grab active:cursor-grabbing touch-none"
+                  className="p-1.5 text-ink-300 hover:text-accent-500 transition-colors cursor-grab active:cursor-grabbing touch-none"
                   title="拖拽排序"
                   aria-label="拖拽排序"
                 >
                   <GripVertical size={16} />
                 </button>
 
-                <span className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1" />
+                <span className="w-px h-4 bg-ink-200 dark:bg-ink-600 mx-1" />
 
                 <button
                   onClick={() => onMoveUp(item.id)}
                   disabled={index === 0}
-                  className="p-1.5 text-gray-300 hover:text-emerald-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-1.5 text-ink-300 hover:text-accent-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   title="上移"
                 >
                   <ArrowUp size={14} />
@@ -257,15 +257,15 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
                 <button
                   onClick={() => onMoveDown(item.id)}
                   disabled={index === totalItems - 1}
-                  className="p-1.5 text-gray-300 hover:text-emerald-600 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                  className="p-1.5 text-ink-300 hover:text-accent-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                   title="下移"
                 >
                   <ArrowDown size={14} />
                 </button>
-                <span className="w-px h-4 bg-gray-200 dark:bg-gray-700 mx-1" />
+                <span className="w-px h-4 bg-ink-200 dark:bg-ink-600 mx-1" />
                 <button
                   onClick={() => onRemove(item.id)}
-                  className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                  className="p-1.5 text-ink-300 hover:text-red-500 transition-colors"
                   title="删除此章节"
                 >
                   <Trash2 size={14} />

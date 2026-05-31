@@ -51,13 +51,13 @@ const HelpPage: React.FC = () => {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-12">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm">
-        <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-8">
+      <div className="bg-white dark:bg-ink-700 rounded-2xl p-8 shadow-sm">
+        <h1 className="text-3xl font-black text-ink-800 dark:text-white mb-8">
           常见问题
         </h1>
 
         {config.pageHelp && (
-          <div className="prose prose-lg dark:prose-invert max-w-none mb-8 pb-8 border-b border-gray-100 dark:border-gray-800">
+          <div className="prose prose-lg dark:prose-invert max-w-none mb-8 pb-8 border-b border-ink-100 dark:border-ink-700">
             <ReactMarkdown>{config.pageHelp}</ReactMarkdown>
           </div>
         )}
@@ -66,17 +66,17 @@ const HelpPage: React.FC = () => {
           {faqItems.map((item, index) => (
             <div
               key={index}
-              className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden"
+              className="border border-ink-200 dark:border-ink-600 rounded-xl overflow-hidden"
             >
               <button
                 onClick={() => setExpandedItem(expandedItem === index ? null : index)}
-                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                className="w-full px-6 py-4 text-left flex items-center justify-between hover:bg-ink-50 dark:hover:bg-ink-600/50 transition-colors"
               >
-                <span className="font-bold text-gray-900 dark:text-white">
+                <span className="font-bold text-ink-800 dark:text-white">
                   {item.question}
                 </span>
                 <svg
-                  className={`w-5 h-5 text-gray-500 transform transition-transform ${
+                  className={`w-5 h-5 text-ink-500 transform transition-transform ${
                     expandedItem === index ? 'rotate-180' : ''
                   }`}
                   fill="none"
@@ -92,7 +92,7 @@ const HelpPage: React.FC = () => {
                 </svg>
               </button>
               {expandedItem === index && (
-                <div className="px-6 pb-4 text-gray-600 dark:text-gray-300">
+                <div className="px-6 pb-4 text-ink-500 dark:text-ink-300">
                   {item.answer}
                 </div>
               )}
@@ -100,13 +100,13 @@ const HelpPage: React.FC = () => {
           ))}
         </div>
 
-        <div className="mt-8 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-          <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
+        <div className="mt-8 p-4 bg-ink-50 dark:bg-ink-600 rounded-xl">
+          <p className="text-sm text-ink-500 dark:text-ink-300 mb-3">
             没有找到你需要的答案？
           </p>
           <a
             href="/feedback"
-            className="inline-flex items-center px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white text-sm font-bold rounded-lg transition-colors"
+            className="inline-flex items-center px-4 py-2 bg-accent-400 hover:bg-accent-500 text-white text-sm font-bold rounded-lg transition-colors"
           >
             提交问题
           </a>

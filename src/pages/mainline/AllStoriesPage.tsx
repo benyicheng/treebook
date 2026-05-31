@@ -1,42 +1,33 @@
-import React, { useEffect, useState } from 'react';
-import { storyService, Story } from '../../api/storyService';
+import React, { useState, useEffect } from 'react';
+import { Story } from '../../api/storyService';
+import { useStories } from '../../hooks/useStories';
 import { BookOpen, Search, Filter, ChevronRight, Hash, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '../../components/ui/Skeleton';
 
 const AllStoriesPage: React.FC = () => {
-  const [stories, setStories] = useState<Story[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const { data: storiesData, isLoading } = useStories({ q: debouncedSearch || undefined });
+  const stories: Story[] = Array.isArray(storiesData) ? storiesData : (storiesData as any)?.data || [];
   
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      const data = await storyService.getAll({ q: searchTerm });
-      setStories(Array.isArray(data) ? data : (data as any)?.data || []);
-    } catch (err) {
-      console.error('Failed to fetch stories', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchData();
+    const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+    return () => clearTimeout(timer);
   }, [searchTerm]);
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-24 px-4">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
         <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-blue-100 dark:border-blue-900/50 shadow-sm shadow-blue-500/5">
-            <BookOpen size={14} className="fill-blue-600/10" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-accent-50 dark:bg-accent-500/15 text-accent-500 dark:text-accent-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-accent-100 dark:border-accent-600/50 shadow-sm shadow-accent-400/5">
+            <BookOpen size={14} className="fill-accent-500/10" />
             Universe Explorer
           </div>
-          <h1 className="text-5xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
+          <h1 className="text-5xl font-black text-ink-800 dark:text-white tracking-tight leading-none">
             主线宇宙
           </h1>
-          <p className="text-gray-500 dark:text-gray-400 text-xl font-light max-w-2xl leading-relaxed">
+          <p className="text-ink-500 dark:text-ink-400 text-xl font-light max-w-2xl leading-relaxed">
             探索所有核心叙事线。每一个故事都是一个完整宇宙的基石，承载着无数分叉的可能。
           </p>
         </div>
@@ -47,16 +38,16 @@ const AllStoriesPage: React.FC = () => {
             placeholder="搜索主线故事..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-14 pr-6 py-5 bg-white dark:bg-gray-800 rounded-[2rem] border border-gray-100 dark:border-gray-700 focus:outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all text-gray-900 dark:text-white font-bold placeholder:text-gray-300 shadow-xl shadow-gray-200/50 dark:shadow-none"
+            className="w-full pl-14 pr-6 py-5 bg-ink-50 dark:bg-ink-700 rounded-[2rem] border border-ink-100 dark:border-ink-600 focus:outline-none focus:ring-4 focus:ring-accent-400/10 focus:border-accent-400 transition-all text-ink-800 dark:text-white font-bold placeholder:text-ink-300 shadow-xl shadow-ink-200/50 dark:shadow-none"
           />
-          <Search size={22} className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-300 group-focus-within:text-blue-600 transition-colors" />
+          <Search size={22} className="absolute left-6 top-1/2 -translate-y-1/2 text-ink-300 group-focus-within:text-accent-500 transition-colors" />
         </div>
       </div>
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="flex flex-col bg-white dark:bg-gray-800 rounded-[3rem] border border-gray-100 dark:border-gray-700 overflow-hidden">
+            <div key={i} className="flex flex-col bg-ink-50 dark:bg-ink-700 rounded-[3rem] border border-ink-100 dark:border-ink-600 overflow-hidden">
               <Skeleton className="aspect-[16/10] rounded-none" />
               <div className="p-8 space-y-3">
                 <Skeleton className="h-3 w-1/4" />
@@ -77,7 +68,7 @@ const AllStoriesPage: React.FC = () => {
             <Link 
               key={story.id} 
               to={`/story/${story.id}`}
-              className="group flex flex-col bg-white dark:bg-gray-800 rounded-[3rem] border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-2xl hover:shadow-blue-500/15 transition-all duration-500 transform hover:-translate-y-2"
+              className="group flex flex-col bg-ink-50 dark:bg-ink-700 rounded-[3rem] border border-ink-100 dark:border-ink-600 overflow-hidden hover:shadow-2xl hover:shadow-accent-400/15 transition-all duration-500 transform hover:-translate-y-2"
             >
               <div className="aspect-[16/10] overflow-hidden relative">
                 <img 
@@ -104,26 +95,26 @@ const AllStoriesPage: React.FC = () => {
               </div>
               
               <div className="p-8 flex flex-col flex-grow">
-                <p className="text-gray-500 dark:text-gray-400 font-light leading-relaxed line-clamp-3 text-sm mb-8 flex-grow">
+                <p className="text-ink-500 dark:text-ink-400 font-light leading-relaxed line-clamp-3 text-sm mb-8 flex-grow">
                   {story.description}
                 </p>
 
-                <div className="pt-6 border-t border-gray-50 dark:border-gray-700 flex items-center justify-between">
+                <div className="pt-6 border-t border-ink-50 dark:border-ink-600 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 flex items-center justify-center text-gray-400 group-hover:text-blue-600 group-hover:border-blue-100 transition-all font-black text-sm">
+                    <div className="w-10 h-10 rounded-2xl bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 flex items-center justify-center text-ink-400 group-hover:text-accent-500 group-hover:border-accent-100 transition-all font-black text-sm">
                       {story.author?.username?.[0] || 'A'}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">{story.author?.username}</p>
+                      <p className="text-sm font-bold text-ink-800 dark:text-white">{story.author?.username}</p>
                       <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-[10px] text-gray-400 font-medium">{story._count?.chapters || 0} 章节</span>
-                        <span className="w-1 h-1 bg-gray-200 rounded-full"></span>
-                        <span className="text-[10px] text-gray-400 font-medium">1.2k 活跃度</span>
+                        <span className="text-[10px] text-ink-400 font-medium">{story._count?.chapters || 0} 章节</span>
+                        <span className="w-1 h-1 bg-ink-200 rounded-full"></span>
+                        <span className="text-[10px] text-ink-400 font-medium">1.2k 活跃度</span>
                       </div>
                     </div>
                   </div>
                   
-                  <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 flex items-center justify-center transition-all group-hover:bg-blue-600 group-hover:text-white shadow-xl shadow-blue-500/5 group-hover:shadow-blue-500/20">
+                  <div className="w-12 h-12 rounded-2xl bg-accent-50 dark:bg-accent-500/10 text-accent-500 flex items-center justify-center transition-all group-hover:bg-accent-500 group-hover:text-white shadow-xl shadow-accent-400/5 group-hover:shadow-accent-400/20">
                     <ArrowRight size={24} />
                   </div>
                 </div>
@@ -132,13 +123,13 @@ const AllStoriesPage: React.FC = () => {
           ))}
           
           {stories.length === 0 && (
-            <div className="col-span-full py-32 text-center bg-gray-50 dark:bg-gray-900/20 rounded-[4rem] border-4 border-dotted border-gray-100 dark:border-gray-800">
-              <Search size={80} className="mx-auto text-gray-200 mb-8" />
-              <p className="text-gray-500 font-black text-3xl">未找到匹配的宇宙</p>
-              <p className="text-gray-400 mt-3 text-lg">换个关键词试试，或者由你来创造它？</p>
+            <div className="col-span-full py-32 text-center bg-ink-50 dark:bg-ink-800/20 rounded-[4rem] border-4 border-dotted border-ink-100 dark:border-ink-700">
+              <Search size={80} className="mx-auto text-ink-200 mb-8" />
+              <p className="text-ink-500 font-black text-3xl">未找到匹配的宇宙</p>
+              <p className="text-ink-400 mt-3 text-lg">换个关键词试试，或者由你来创造它？</p>
               <Link 
                 to="/story/create"
-                className="mt-10 inline-flex items-center gap-2 px-10 py-4 bg-blue-600 text-white rounded-[2rem] font-black hover:bg-blue-700 transition-all shadow-2xl shadow-blue-500/20"
+                className="mt-10 inline-flex items-center gap-2 px-10 py-4 bg-accent-500 text-white rounded-[2rem] font-black hover:bg-accent-600 transition-all shadow-2xl shadow-accent-400/20"
               >
                 开启新主线 <ArrowRight size={20} />
               </Link>

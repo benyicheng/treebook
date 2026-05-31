@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ShieldCheck, User, Mail, Lock, CheckCircle, ArrowRight } from 'lucide-react';
+import { toast } from '../lib/toast';
 
 const API_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:3001/api' 
@@ -55,7 +56,7 @@ const SetupPage: React.FC = () => {
         email: form.email,
         password: form.password
       });
-      alert('初始化成功！请使用新创建的账号登录。');
+      toast('初始化成功！请使用新创建的账号登录。', 'success');
       navigate('/login');
     } catch (err: any) {
       setError(err.response?.data?.message || '初始化失败，请重试');
@@ -67,7 +68,7 @@ const SetupPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-600"></div>
       </div>
     );
   }
@@ -77,7 +78,7 @@ const SetupPage: React.FC = () => {
       <div className="max-w-md w-full">
         {/* Logo/Brand */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-indigo-600 rounded-3xl shadow-xl shadow-indigo-200 mb-6 rotate-3">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-accent-600 rounded-3xl shadow-xl shadow-indigo-200 mb-6 rotate-3">
             <ShieldCheck className="text-white" size={40} />
           </div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">TREEBOOK INIT</h1>
@@ -101,7 +102,7 @@ const SetupPage: React.FC = () => {
                   type="text"
                   required
                   placeholder="例如: admin"
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-2xl transition-all font-bold text-slate-900 placeholder:text-slate-300 outline-none"
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-accent-600 focus:bg-white rounded-2xl transition-all font-bold text-slate-900 placeholder:text-slate-300 outline-none"
                   value={form.username}
                   onChange={e => setForm({...form, username: e.target.value})}
                 />
@@ -116,7 +117,7 @@ const SetupPage: React.FC = () => {
                   type="email"
                   required
                   placeholder="admin@example.com"
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-2xl transition-all font-bold text-slate-900 placeholder:text-slate-300 outline-none"
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-accent-600 focus:bg-white rounded-2xl transition-all font-bold text-slate-900 placeholder:text-slate-300 outline-none"
                   value={form.email}
                   onChange={e => setForm({...form, email: e.target.value})}
                 />
@@ -131,7 +132,7 @@ const SetupPage: React.FC = () => {
                   type="password"
                   required
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-2xl transition-all font-bold text-slate-900 placeholder:text-slate-300 outline-none"
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-accent-600 focus:bg-white rounded-2xl transition-all font-bold text-slate-900 placeholder:text-slate-300 outline-none"
                   value={form.password}
                   onChange={e => setForm({...form, password: e.target.value})}
                 />
@@ -146,7 +147,7 @@ const SetupPage: React.FC = () => {
                   type="password"
                   required
                   placeholder="••••••••"
-                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-indigo-600 focus:bg-white rounded-2xl transition-all font-bold text-slate-900 placeholder:text-slate-300 outline-none"
+                  className="w-full pl-12 pr-4 py-4 bg-slate-50 border-2 border-transparent focus:border-accent-600 focus:bg-white rounded-2xl transition-all font-bold text-slate-900 placeholder:text-slate-300 outline-none"
                   value={form.confirmPassword}
                   onChange={e => setForm({...form, confirmPassword: e.target.value})}
                 />
@@ -156,7 +157,7 @@ const SetupPage: React.FC = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group"
+              className="w-full bg-accent-600 hover:bg-accent-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group"
             >
               {submitting ? '正在初始化...' : (
                 <>

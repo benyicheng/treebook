@@ -12,12 +12,18 @@ export const getWalletInfo = catchAsync(async (req: AuthRequest, res: Response) 
   res.json({ success: true, data: wallet });
 });
 
-export const settleStoryRevenue = catchAsync(async (req: Request, res: Response) => {
+export const settleStoryRevenue = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+
   const result = await RevenueService.settleStoryRevenue(req.params.storyId);
   res.json({ success: true, data: result });
 });
 
-export const settleSpinoffRevenue = catchAsync(async (req: Request, res: Response) => {
+export const settleSpinoffRevenue = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+
   const result = await RevenueService.settleSpinoffRevenue(req.params.spinoffId);
   res.json({ success: true, data: result });
 });

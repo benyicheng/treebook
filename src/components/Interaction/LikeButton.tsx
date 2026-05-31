@@ -3,6 +3,7 @@ import { Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { interactionService, TargetType } from '../../api/interactionService';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useToast } from '../Toast';
 
 interface LikeButtonProps {
   targetType: TargetType;
@@ -30,6 +31,7 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
   showCount = true,
 }) => {
   const { isAuthenticated } = useAuthStore();
+  const { addToast } = useToast();
   const [liked, setLiked] = useState(initialLiked);
   const [count, setCount] = useState(initialCount);
   const [isLoading, setIsLoading] = useState(false);
@@ -96,16 +98,16 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
       const errorMsg = error.response?.data?.message;
       
       if (status === 401) {
-        alert('请先登录后再点赞');
+        addToast('warning', '请先登录后再点赞');
       } else if (status === 429) {
-        alert('操作太频繁，请稍后再试');
+        addToast('warning', '操作太频繁，请稍后再试');
       } else if (status === 403) {
-        alert('操作被限制，请联系客服');
+        addToast('error', '操作被限制，请联系客服');
       } else if (status === 404) {
-        alert('内容不存在');
+        addToast('info', '内容不存在');
       } else {
         console.error('Like failed:', error);
-        alert('点赞失败：' + (errorMsg || '请稍后重试'));
+        addToast('error', '点赞失败：' + (errorMsg || '请稍后重试'));
       }
     } finally {
       setIsLoading(false);
@@ -125,7 +127,7 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
         ${classes.button}
         ${liked 
           ? 'text-red-500 bg-red-50 dark:bg-red-900/20' 
-          : 'text-gray-400 hover:text-red-400 hover:bg-gray-50 dark:hover:bg-gray-800'
+          : 'text-ink-400 hover:text-red-400 hover:bg-ink-50 dark:hover:bg-ink-700'
         }
         ${isLoading ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}
       `}

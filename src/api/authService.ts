@@ -7,9 +7,28 @@ export interface User {
   avatarUrl?: string;
   role: 'reader' | 'author' | 'admin' | 'editor';
   permissions: string[];
+  followerCount?: number;
+  followingCount?: number;
+}
+
+export interface PublicProfile {
+  id: string;
+  username: string;
+  avatarUrl?: string;
+  role: string;
+  followerCount: number;
+  followingCount: number;
+  storyCount: number;
+  branchCount: number;
+  spinoffCount: number;
+  createdAt: string;
 }
 
 export const authService = {
+  getPublicProfile: async (userId: string) => {
+    const { data } = await client.get<PublicProfile>(`/auth/profile/${userId}`);
+    return data;
+  },
   login: async (credentials: { email: string; password: string }) => {
     const { data } = await client.post<{ user: User; token: string }>('/auth/login', credentials);
     localStorage.setItem('token', data.token);

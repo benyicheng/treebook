@@ -27,7 +27,7 @@ router.get('/:id', getChapterById);
 router.get('/:id/comments', getComments);
 
 router.post('/', 
-  authenticate, 
+  authenticate,
   validateRequest(createChapterRequest), 
   createChapter
 );
@@ -45,7 +45,7 @@ router.put('/comments/:commentId',
 );
 
 router.put('/:id', 
-  authenticate, 
+  authenticate,
   validateRequest(updateChapterRequest), 
   updateChapter
 );

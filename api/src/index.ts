@@ -6,7 +6,9 @@ import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { Server } from 'socket.io';
 import http from 'http';
+import jwt from 'jsonwebtoken';
 import { prisma } from './prisma';
+import { JWT_SECRET } from './config/jwt';
 import authRoutes from './routes/auth';
 import storyRoutes from './routes/stories';
 import chapterRoutes from './routes/chapters';
@@ -18,15 +20,26 @@ import interactionRoutes from './routes/interactions';
 import cmsRoutes from './routes/cms';
 import savepointRoutes from './routes/savepoints';
 import revenueRoutes from './routes/revenue';
+import discoverRoutes from './routes/discover';
+import feedbackRoutes from './routes/feedback';
+import readingPathRoutes from './routes/readingPaths';
 import mergeRoutes from './routes/merges';
+import followRoutes from './routes/follows';
+import activityRoutes from './routes/activities';
 import aiRoutes from './routes/ai';
 import initRoutes from './routes/initRoutes';
 import moderationRoutes from './routes/moderation';
 import reviewWorkflowRoutes from './routes/reviewWorkflow';
 import mediaRoutes from './routes/media';
 import editorialRoutes from './routes/editorial';
+import searchRoutes from './routes/search';
+import notificationRoutes from './routes/notifications';
+import analyticsRoutes from './routes/analytics';
+import recommendationRoutes from './routes/recommendations';
+import userRoutes from './routes/users';
 import { trace } from './middleware/trace';
 import { errorHandler } from './middleware/errorHandler';
+import { logger } from './utils/logger';
 
 dotenv.config();
 
@@ -36,17 +49,31 @@ const app = express();
 // 创建 HTTP 服务器
 const server = http.createServer(app);
 
-// CORS Configuration
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://127.0.0.1:5173',
-  'http://43.135.162.210' // The server IP
-];
+// CORS 白名单：从 CORS_ORIGINS 环境变量读取（逗号分隔），开发环境自动包含 localhost
+const corsOrigins = (() => {
+  const raw = process.env.CORS_ORIGINS || '';
+  const origins = raw.split(',').map(s => s.trim()).filter(Boolean);
+  if (process.env.NODE_ENV !== 'production') {
+    origins.push('http://localhost:5173', 'http://127.0.0.1:5173');
+  }
+  return origins;
+})();
+
+// CORS 验证函数：检查请求来源是否在白名单中
+const corsOriginCallback: cors.CorsOptions['origin'] = (origin, callback) => {
+  // 允许无 origin 的请求（如 Postman、curl、同源请求）
+  if (!origin) return callback(null, true);
+  if (corsOrigins.includes(origin)) {
+    return callback(null, true);
+  }
+  logger.warn('[CORS] Blocked origin', { origin });
+  callback(new Error(`Origin ${origin} not allowed by CORS`));
+};
 
 // 初始化 Socket.IO
 const io = new Server(server, {
   cors: {
-    origin: true, // 动态反射，允许所有来源并自动回传 Origin 头部
+    origin: corsOriginCallback,
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -67,7 +94,7 @@ app.use(helmet({
 
 // CORS Configuration (Express)
 app.use(cors({
-  origin: true, // 动态反射，这是解决生产环境跨域最稳妥的方法
+  origin: corsOriginCallback,
   credentials: true,
   optionsSuccessStatus: 200
 }));
@@ -98,18 +125,39 @@ app.use((req, res, next) => {
   const start = Date.now();
   res.on('finish', () => {
     const duration = Date.now() - start;
-    console.log(`${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
+    logger.info('HTTP request', {
+      method: req.method,
+      path: req.path,
+      status: res.statusCode,
+      durationMs: duration,
+      traceId: (req as any).traceId,
+    });
   });
   next();
 });
 
+// Socket.IO JWT 认证中间件
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+  if (!token) {
+    return next(new Error('Socket authentication required'));
+  }
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string; role: string };
+    socket.data.user = decoded;
+    next();
+  } catch {
+    next(new Error('Invalid socket token'));
+  }
+});
+
 // Socket.IO connection
 io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
+  logger.debug('Socket connected', { socketId: socket.id, userId: socket.data.user?.id });
 
   socket.on('join-room', (roomId) => {
     socket.join(roomId);
-    console.log(`User ${socket.id} joined room ${roomId}`);
+    logger.debug('Socket joined room', { socketId: socket.id, roomId });
     
     // 发送当前该房间的所有锁状态
     const roomLocks: any = {};
@@ -120,22 +168,24 @@ io.on('connection', (socket) => {
   });
 
   // 请求编辑锁
-  socket.on('request-lock', (data: { chapterId: string, userId: string, username: string, roomId: string }) => {
+  socket.on('request-lock', (data: { chapterId: string, roomId: string }) => {
+    const userId = socket.data.user.id;
+    const username = socket.data.user.email;
     const existingLock = editLocks.get(data.chapterId);
     
-    if (!existingLock || existingLock.userId === data.userId) {
+    if (!existingLock || existingLock.userId === userId) {
       // 获得锁或已经是持锁者
       editLocks.set(data.chapterId, { 
-        userId: data.userId, 
-        username: data.username, 
+        userId, 
+        username, 
         socketId: socket.id 
       });
       
       // 广播给房间内所有人
       io.to(data.roomId).emit('lock-acquired', {
         chapterId: data.chapterId,
-        userId: data.userId,
-        username: data.username
+        userId,
+        username
       });
     } else {
       // 锁已被占用
@@ -161,7 +211,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('disconnect', () => {
-    console.log('User disconnected:', socket.id);
+    logger.debug('Socket disconnected', { socketId: socket.id });
     
     // 自动释放该用户持有的所有锁
     editLocks.forEach((lock, chapterId) => {
@@ -186,12 +236,22 @@ app.use('/api/interactions', interactionRoutes);
 app.use('/api/cms', cmsRoutes);
 app.use('/api/savepoints', savepointRoutes);
 app.use('/api/revenue', revenueRoutes);
+app.use('/api/discover', discoverRoutes);
+app.use('/api/feedback', feedbackRoutes);
+app.use('/api/reading-paths', readingPathRoutes);
 app.use('/api/merges', mergeRoutes);
+app.use('/api/follows', followRoutes);
+app.use('/api/activities', activityRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/moderation', moderationRoutes);
 app.use('/api/review-workflow', reviewWorkflowRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/editorial', editorialRoutes);
+app.use('/api/search', searchRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/init', initRoutes);
 
 // Health check
@@ -209,28 +269,27 @@ app.use('/api/*', (req: Request, res: Response) => {
   res.status(404).json({ error: 'API Route not found' });
 });
 
+// Error handling middleware (必须在 SPA fallback 之前注册)
+app.use(errorHandler);
+
 // SPA Fallback: 非 API 请求全部重定向到 index.html
 app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
 
-// Error handling middleware
-app.use(errorHandler);
-
 // Graceful shutdown
 process.on('SIGINT', async () => {
-  console.log('\nShutting down gracefully...');
+  logger.info('Shutting down gracefully...');
   await prisma.$disconnect();
   server.close(() => {
-    console.log('Server closed');
+    logger.info('Server closed');
     process.exit(0);
   });
 });
 
 // Start server
 server.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
-  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+  logger.info(`Server running`, { port: PORT, env: process.env.NODE_ENV || 'development' });
 });
 
 export { prisma, io };

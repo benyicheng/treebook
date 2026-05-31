@@ -2,6 +2,8 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { SpinoffService } from '../services/SpinoffService';
+import { NotificationService } from '../services/NotificationService';
+import { prisma } from '../prisma';
 import { AppError } from '../utils/http';
 import { moderateText, reviewContent } from '../utils/contentModeration';
 import { ModerationVisibilityService } from '../domains/moderation/ModerationVisibilityService';
@@ -11,6 +13,27 @@ export const createSpinoff = catchAsync(async (req: AuthRequest, res: Response) 
   if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
 
   const spinoff = await SpinoffService.createSpinoff(authorId, req.body);
+
+  // 通知故事原作者：有人为你的故事发布了番外
+  try {
+    const story = await prisma.story.findUnique({
+      where: { id: spinoff.originalStoryId },
+      select: { authorId: true, title: true },
+    });
+    if (story && story.authorId !== authorId) {
+      await NotificationService.createNotification({
+        userId: story.authorId,
+        actorId: authorId,
+        type: 'spinoff_published',
+        targetType: 'spinoff',
+        targetId: spinoff.id,
+        message: `有人为你的故事「${story.title}」发布了番外「${spinoff.title}」`,
+      });
+    }
+  } catch (err) {
+    console.error('Failed to create spinoff notification:', err);
+  }
+
   moderateText(req, 'spinoffs', 'spinoff', spinoff.id, 'title', spinoff.title, authorId);
   moderateText(req, 'spinoffs', 'spinoff', spinoff.id, 'summary', spinoff.summary, authorId);
   moderateText(req, 'spinoffs', 'spinoff', spinoff.id, 'content', spinoff.content, authorId);
@@ -21,15 +44,15 @@ export const getSpinoffById = catchAsync(async (req: Request, res: Response) => 
   const spinoff = await SpinoffService.getSpinoffById(req.params.id);
   if (spinoff && spinoff.id && await ModerationVisibilityService.shouldMask('spinoff', spinoff.id)) {
     spinoff.title = ModerationVisibilityService.maskText(spinoff.title);
-    spinoff.summary = ModerationVisibilityService.maskText(spinoff.summary);
-    spinoff.content = ModerationVisibilityService.maskText(spinoff.content);
+    spinoff.summary = ModerationVisibilityService.maskText(spinoff.summary || '');
+    spinoff.content = ModerationVisibilityService.maskText(spinoff.content || '');
   }
   res.json({ success: true, data: spinoff });
 });
 
 export const getAllSpinoffs = catchAsync(async (req: Request, res: Response) => {
-  const spinoffs = await SpinoffService.getAllSpinoffs(req.query);
-  res.json({ success: true, data: spinoffs });
+  const result = await SpinoffService.getAllSpinoffs(req.query);
+  res.json({ success: true, ...result });
 });
 
 export const updateSpinoff = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -51,8 +74,8 @@ export const getMySpinoffs = catchAsync(async (req: AuthRequest, res: Response) 
   const authorId = req.user?.id;
   if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
 
-  const spinoffs = await SpinoffService.getMySpinoffs(authorId);
-  res.json({ success: true, data: spinoffs });
+  const result = await SpinoffService.getMySpinoffs(authorId, req.query as any);
+  res.json({ success: true, ...result });
 });
 
 export const deleteSpinoff = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -61,5 +84,5 @@ export const deleteSpinoff = catchAsync(async (req: AuthRequest, res: Response) 
   if (!authorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
 
   const result = await SpinoffService.deleteSpinoff(req.params.id, authorId, userRole);
-  res.json(result);
+  res.json({ success: true, data: result });
 });

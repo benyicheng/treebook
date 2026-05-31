@@ -1,125 +1,151 @@
-import React, { useEffect, useState } from 'react';
-import { storyService, Story } from '../../api/storyService';
-import { BookOpen, Star, TrendingUp, ChevronRight, Filter } from 'lucide-react';
+import React, { useEffect } from 'react';
+import { BookOpen, Star, TrendingUp, ChevronRight, Filter, RefreshCw } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useSiteConfigStore } from '../../stores/useSiteConfigStore';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { useRecommendations, useFallbackStories, RecItem } from '../../hooks/useRecommendations';
 
 const RecommendationsPage: React.FC = () => {
-  const [stories, setStories] = useState<Story[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { config, fetchConfig } = useSiteConfigStore();
-  
-  const fetchData = async () => {
-    setIsLoading(true);
-    try {
-      await fetchConfig();
-      // Parse editor picks from config
-      let editorPicks = [];
-      try {
-        editorPicks = JSON.parse(config.editorPicks || '[]');
-      } catch (e) {
-        editorPicks = [];
-      }
+  const { config } = useSiteConfigStore();
+  const { user } = useAuthStore();
 
-      if (editorPicks.length > 0) {
-        setStories(editorPicks);
-      } else {
-        // Fallback to official or highly rated stories
-        const data = await storyService.getAll({ isOfficial: true });
-        setStories(Array.isArray(data) ? data : (data as any)?.data || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch recommendations', err);
-    } finally {
-      setIsLoading(false);
+  // ── Data fetching with React Query ──
+  // Personalized recommendations (only if logged in)
+  const {
+    data: recItems = [],
+    isLoading: recLoading,
+    error: recError,
+  } = useRecommendations(16);
+
+  // Fallback: editor picks or official stories
+  const {
+    data: fallbackStories = [],
+    isLoading: fallbackLoading,
+  } = useFallbackStories(16);
+
+  // Trigger config fetch on mount
+  useEffect(() => {
+    useSiteConfigStore.getState().fetchConfig();
+  }, []);
+
+  const isLoading = recLoading || fallbackLoading;
+  const usingFallback = recItems.length === 0;
+  const displayItems: RecItem[] = usingFallback
+    ? (fallbackStories as any as RecItem[])
+    : recItems;
+
+  const getItemLink = (item: RecItem): string => {
+    const type = (item as any).type || 'story';
+    switch (type) {
+      case 'story': return `/story/${item.id}`;
+      case 'branch': return `/branch/${item.id}`;
+      case 'spinoff': return `/spinoff/${item.id}`;
+      default: return `/story/${item.id}`;
     }
   };
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const getReasonLabel = (reason: string) => {
+    switch (reason) {
+      case 'following_network': return '好友在看';
+      case 'similar_tags': return '与你兴趣相关';
+      case 'hot': return '热门推荐';
+      default: return '';
+    }
+  };
+
+  const getReasonColor = (reason: string) => {
+    switch (reason) {
+      case 'following_network': return 'bg-purple-50 text-accent-500';
+      case 'similar_tags': return 'bg-accent-50 text-accent-500';
+      case 'hot': return 'bg-amber-50 text-amber-600';
+      default: return 'bg-ink-50 text-ink-500';
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4">
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div>
-          <div className="flex items-center gap-2 text-blue-600 font-black text-xs uppercase tracking-widest mb-2">
-            <Star size={14} className="fill-blue-600" />
-            Editor's Choice
+          <div className="flex items-center gap-2 text-accent-500 font-black text-xs uppercase tracking-widest mb-2">
+            <Star size={14} className="fill-accent-500" />
+            {recItems.length > 0 ? '为你推荐' : "Editor's Choice"}
           </div>
-          <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight">编辑推荐</h1>
-          <p className="mt-2 text-gray-500 dark:text-gray-400 text-lg font-light max-w-2xl">
-            由资深编辑团队深度阅读并认证的精品佳作，包含卓越的世界观设定与叙事逻辑。
+          <h1 className="text-4xl font-black text-ink-800 dark:text-white tracking-tight">
+            {recItems.length > 0 ? '个性化推荐' : '编辑推荐'}
+          </h1>
+          <p className="mt-2 text-ink-500 dark:text-ink-400 text-lg font-light max-w-2xl">
+            {recItems.length > 0
+              ? '基于你的阅读历史和关注网络，为你精选的内容'
+              : '由资深编辑团队深度阅读并认证的精品佳作，包含卓越的世界观设定与叙事逻辑。'}
           </p>
         </div>
       </div>
 
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-500"></div>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {stories.map((story) => (
-            <Link 
-              key={story.id} 
-              to={`/story/${story.id}`}
-              className="group flex flex-col md:flex-row bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500"
+          {displayItems.map((item) => (
+            <Link
+              key={`${'type' in item ? (item as any).type || 'story' : 'story'}-${item.id}`}
+              to={getItemLink(item)}
+              className="group flex flex-col md:flex-row bg-ink-50 dark:bg-ink-700 rounded-[2.5rem] border border-ink-100 dark:border-ink-600 overflow-hidden hover:shadow-2xl hover:shadow-accent-400/10 transition-all duration-500"
             >
-              <div className="md:w-48 aspect-[2/3] shrink-0 overflow-hidden relative">
-                <img 
-                  src={story.coverImage || `https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=300&h=450&fit=crop`} 
-                  alt={story.title}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="md:w-48 shrink-0 p-6 flex items-center justify-center relative bg-gradient-to-br from-accent-50 to-purple-50 dark:from-accent-700/30 dark:to-accent-600/30">
+                <div className="text-center space-y-3">
+                  <div className="mx-auto w-16 h-16 rounded-2xl bg-ink-50 dark:bg-ink-700 shadow-lg flex items-center justify-center">
+                    <BookOpen size={28} className="text-accent-400" />
+                  </div>
+                  {usingFallback ? null : (
+                    <span className={`inline-block px-2.5 py-1 rounded-full text-[10px] font-black ${getReasonColor((item as RecItem).reason)}`}>
+                      {getReasonLabel((item as RecItem).reason)}
+                    </span>
+                  )}
+                </div>
               </div>
-              
+
               <div className="flex-1 p-8 flex flex-col">
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex gap-2">
-                    <span className="px-3 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 text-[10px] font-black uppercase tracking-wider rounded-full">
-                      精品主线
+                    <span className="px-3 py-1 bg-accent-50 dark:bg-accent-500/15 text-accent-500 dark:text-accent-400 text-[10px] font-black uppercase tracking-wider rounded-full">
+                      {usingFallback ? '精品主线' : ('type' in item ? (item as any).type || 'story' : 'story') === 'story' ? '主线' : ('type' in item ? (item as any).type || 'story' : 'story') === 'branch' ? '分支' : '番外'}
                     </span>
-                    {story.author?.role === 'author' && (
-                      <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider rounded-full">
-                        官方认证
-                      </span>
-                    )}
                   </div>
                 </div>
 
-                <h3 className="text-2xl font-black text-gray-900 dark:text-white group-hover:text-blue-600 transition-colors mb-3 leading-tight">
-                  {story.title}
+                <h3 className="text-2xl font-black text-ink-800 dark:text-white group-hover:text-accent-500 transition-colors mb-3 leading-tight">
+                  {item.title}
                 </h3>
-                
-                <p className="text-gray-500 dark:text-gray-400 font-light leading-relaxed line-clamp-3 text-sm mb-6">
-                  {story.description}
+
+                <p className="text-ink-500 dark:text-ink-400 font-light leading-relaxed line-clamp-3 text-sm mb-6">
+                  {item.description || '暂无简介'}
                 </p>
 
-                <div className="mt-auto pt-6 border-t border-gray-50 dark:border-gray-700 flex items-center justify-between">
+                <div className="mt-auto pt-6 border-t border-ink-50 dark:border-ink-600 flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400 font-black text-xs">
-                      {story.author?.username?.[0] || 'A'}
+                    <div className="w-8 h-8 rounded-full bg-accent-100 dark:bg-accent-500/20 flex items-center justify-center text-accent-500 dark:text-accent-400 font-black text-xs">
+                      {(item as any).author?.username?.[0] || '?'}
                     </div>
                     <div>
-                      <p className="text-sm font-bold text-gray-700 dark:text-gray-300">{story.author?.username}</p>
-                      <p className="text-[10px] text-gray-400">{story._count?.chapters || 0} 个章节</p>
+                      <p className="text-sm font-bold text-ink-600 dark:text-ink-300">{(item as any).author?.username || '未知'}</p>
+                      <p className="text-[10px] text-ink-400">{(item as any).viewCount || 0} 次浏览</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 text-blue-600 font-black text-xs group-hover:gap-2 transition-all">
+                  <div className="flex items-center gap-1 text-accent-500 font-black text-xs group-hover:gap-2 transition-all">
                     立即阅读 <ChevronRight size={14} />
                   </div>
                 </div>
               </div>
             </Link>
           ))}
-          
-          {stories.length === 0 && (
-            <div className="col-span-full py-24 text-center bg-gray-50 dark:bg-gray-900/30 rounded-[3rem] border-2 border-dashed border-gray-200 dark:border-gray-800">
-              <TrendingUp size={64} className="mx-auto text-gray-200 mb-6" />
-              <p className="text-gray-500 font-black text-2xl">暂无推荐内容</p>
-              <p className="text-gray-400 mt-2">编辑们正在加紧审阅，敬请期待！</p>
+
+          {displayItems.length === 0 && (
+            <div className="col-span-full py-24 text-center bg-ink-50 dark:bg-ink-800/30 rounded-[3rem] border-2 border-dashed border-ink-200 dark:border-ink-700">
+              <TrendingUp size={64} className="mx-auto text-ink-200 mb-6" />
+              <p className="text-ink-500 font-black text-2xl">暂无推荐内容</p>
+              <p className="text-ink-400 mt-2">编辑们正在加紧审阅，敬请期待！</p>
             </div>
           )}
         </div>

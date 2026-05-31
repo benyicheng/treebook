@@ -243,3 +243,19 @@ export const updateCommentRequest = z.object({
     content: z.string().min(1).max(1000),
   }),
 });
+
+const characterAppearanceSchema = z.object({
+  characterId: z.string().uuid('无效的角色ID'),
+  targetType: z.enum(['chapter', 'branch', 'spinoff']),
+  targetId: z.string().uuid('无效的目标ID'),
+  appearanceType: z.enum(['appears', 'main_focus', 'mention', 'cameo']),
+});
+
+export const batchCharacterAppearancesRequest = z.object({
+  params: z.object({
+    id: z.string().uuid('无效的故事ID'),
+  }),
+  body: z.object({
+    appearances: z.array(characterAppearanceSchema),
+  }),
+});

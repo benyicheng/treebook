@@ -99,4 +99,66 @@ describe('StoryBranchTree', () => {
     fireEvent.click(chapterNode);
     expect(onNodeClick).toHaveBeenCalledWith(chapterId, 'chapter');
   });
+
+  it('should cluster 6+ branches from same parent chapter', () => {
+    const onNodeClick = vi.fn();
+    const parentChapterId = 'chapter-1';
+
+    // 6 branches from the same parent → triggers clustering
+    const branches = Array.from({ length: 6 }, (_, i) => ({
+      id: `branch-${i}`,
+      parentStoryId: 'story-1',
+      parentChapterId,
+      authorId: 'user-1',
+      title: `Branch ${i}`,
+      description: '',
+      branchType: 'parallel' as const,
+      isOfficial: false,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }));
+
+    const chapters = [
+      {
+        id: parentChapterId,
+        storyId: 'story-1',
+        title: 'Chapter 1',
+        content: 'Content',
+        orderIndex: 1,
+        isBranchPoint: true,
+        createdAt: new Date().toISOString(),
+      },
+    ];
+
+    render(
+      <ReactFlowProvider>
+        <StoryBranchTree
+          chapters={chapters}
+          branches={branches}
+          onNodeClick={onNodeClick}
+        />
+      </ReactFlowProvider>
+    );
+
+    // Should render cluster node, not individual branch nodes
+    expect(screen.getByTestId(`node-cluster-${parentChapterId}`)).toBeTruthy();
+    expect(screen.queryByTestId('node-branch-branch-0')).toBeNull();
+
+    // Click cluster → should not call onNodeClick (intercepted by toggle)
+    const clusterNode = screen.getByTestId(`node-cluster-${parentChapterId}`);
+    fireEvent.click(clusterNode);
+    expect(onNodeClick).not.toHaveBeenCalled();
+
+    // Now the cluster should be expanded → individual branches appear
+    expect(screen.getByTestId('node-branch-branch-0')).toBeTruthy();
+    expect(screen.queryByTestId(`node-cluster-${parentChapterId}`)).toBeNull();
+
+    // Click collapse button → should fold back
+    const collapseNode = screen.getByTestId(`node-collapse-${parentChapterId}`);
+    fireEvent.click(collapseNode);
+
+    // Back to cluster state
+    expect(screen.getByTestId(`node-cluster-${parentChapterId}`)).toBeTruthy();
+    expect(screen.queryByTestId('node-branch-branch-0')).toBeNull();
+  });
 });

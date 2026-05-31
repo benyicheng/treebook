@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import StoryBranchTree from '../../components/StoryTree/StoryBranchTree';
 import CharacterManager from './CharacterManager';
+import AppearanceManager from './components/AppearanceManager';
 import { useStoryDetails } from './hooks/useStoryDetails';
 
 // Sub-components
@@ -47,13 +48,12 @@ const MainlinePage: React.FC = () => {
     handleCreateChapter,
     handleUpdateStory,
     handleSettleRevenue,
-    fetchStoryById,
   } = useStoryDetails();
 
   if (isLoading || !currentStory) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-500"></div>
       </div>
     );
   }
@@ -103,26 +103,26 @@ const MainlinePage: React.FC = () => {
           <div className="space-y-6">
             <div className="flex items-center justify-between px-4">
               <h3 className="text-2xl font-black">宇宙分叉网络 (Space-Time Tree)</h3>
-              <div className="flex gap-6 p-3 bg-gray-50 dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700">
+              <div className="flex gap-6 p-3 bg-ink-50 dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600">
                 <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">主线世界线</span>
+                  <div className="w-3 h-3 bg-accent-400 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                  <span className="text-[10px] font-black text-ink-400 uppercase tracking-widest">主线世界线</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-amber-500 rounded-full shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">认证/官方分支</span>
+                  <span className="text-[10px] font-black text-ink-400 uppercase tracking-widest">认证/官方分支</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">平行宇宙</span>
+                  <span className="text-[10px] font-black text-ink-400 uppercase tracking-widest">平行宇宙</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 bg-indigo-400 rounded-full"></div>
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">精彩番外</span>
+                  <span className="text-[10px] font-black text-ink-400 uppercase tracking-widest">精彩番外</span>
                 </div>
               </div>
             </div>
-            <div className="bg-white dark:bg-gray-900 rounded-[2.5rem] border border-gray-100 dark:border-gray-800 h-[700px] overflow-hidden shadow-2xl">
+            <div className="bg-white dark:bg-ink-800 rounded-[2.5rem] border border-ink-100 dark:border-ink-700 h-[700px] overflow-hidden shadow-2xl">
               <StoryBranchTree 
                 chapters={currentStory.chapters || []} 
                 branches={currentStory.branches || []}
@@ -162,7 +162,16 @@ const MainlinePage: React.FC = () => {
         )}
 
         {activeTab === 'characters' && (
-          <CharacterManager storyId={id!} isAuthor={isAuthor} />
+          <div className="space-y-8">
+            <CharacterManager storyId={id!} isAuthor={isAuthor} />
+            <AppearanceManager
+              storyId={id!}
+              isAuthor={isAuthor}
+              chapters={currentStory.chapters}
+              branches={currentStory.branches}
+              spinoffs={currentStory.spinoffs}
+            />
+          </div>
         )}
       </div>
 
@@ -190,7 +199,6 @@ const MainlinePage: React.FC = () => {
         isAuthor={isAuthor}
         currentStory={currentStory}
         id={id!}
-        fetchStoryById={fetchStoryById}
       />
     </div>
   );

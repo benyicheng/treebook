@@ -1,22 +1,38 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { useStoryStore } from '../../stores/useStoryStore';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { BookOpen, GitBranch, MessageSquare, Edit3, Share2, PlusCircle, ArrowLeft, BookMarked, GitMerge, ChevronRight, Star, Sparkles, Crown, GitPullRequest } from 'lucide-react';
+import { BookOpen, GitBranch, MessageSquare, Edit3, Share2, PlusCircle, ArrowLeft, Bookmark, GitMerge, ChevronRight, Star, Sparkles, Crown, GitPullRequest } from 'lucide-react';
 import ChapterEditor from '../../components/Editor/ChapterEditor';
-import { chapterService, spinoffService, branchService } from '../../api/storyService';
 import Modal from '../../components/Modal';
 import AddToBooklistModal from '../../components/AddToBooklistModal';
 import MergeRequestModal from '../../components/Merge/MergeRequestModal';
+import { useToast } from '../../components/Toast';
+import FollowButton from '../../components/FollowButton';
+import { useBranch, useCertifyBranch } from '../../hooks/useBranches';
+import { useCreateChapter, useUpdateChapter } from '../../hooks/useChapters';
+import { useCreateSpinoff } from '../../hooks/useSpinoffs';
+import { useQueryClient } from '@tanstack/react-query';
+import { queryKeys } from '../../lib/queryKeys';
 
 const BranchPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { currentBranch, fetchBranchById, isLoading } = useStoryStore();
   const { user } = useAuthStore();
+  const { addToast } = useToast();
+  const queryClient = useQueryClient();
+
+  // ─── React Query: data fetching ───
+  const { data: currentBranch, isLoading } = useBranch(id || '');
+
+  // ─── React Query: mutations ───
+  const updateChapter = useUpdateChapter();
+  const createChapter = useCreateChapter();
+  const certifyBranch = useCertifyBranch();
+
+  // ─── Local UI state ───
   const [activeTab, setActiveTab] = useState<'chapters' | 'editor'>('chapters');
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
-  
+
   // Modal State
   const [isChapterModalOpen, setIsChapterModalOpen] = useState(false);
   const [isSpinoffModalOpen, setIsSpinoffModalOpen] = useState(false);
@@ -34,64 +50,58 @@ const BranchPage: React.FC = () => {
   // 加入书单
   const [booklistTargetChapter, setBooklistTargetChapter] = useState<{ id: string; title: string } | null>(null);
 
-  useEffect(() => {
-    if (id) {
-      fetchBranchById(id);
-    }
-  }, [id, fetchBranchById]);
-
+  // Initialize orderIndex when branch loads
   useEffect(() => {
     if (currentBranch) {
       setNewChapterData(prev => ({ ...prev, orderIndex: currentBranch.chapters.length + 1 }));
     }
   }, [currentBranch]);
 
+  // ─── Loading state ───
   if (isLoading || !currentBranch) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-500"></div>
       </div>
     );
   }
 
   // 权限判断：分支作者、主线故事作者或管理员可以编辑
-  const isAuthor = user && (
-    user.id === currentBranch.authorId || 
+  const isAuthor = !!(user && (
+    user.id === currentBranch.authorId ||
     user.id === currentBranch.parentStory?.authorId ||
     user.role === 'admin'
-  );
+  ));
 
   // 认证权限：只有主线作者或管理员可以认证
-  const canCertify = user && (
+  const canCertify = !!(user && (
     user.id === currentBranch.parentStory?.authorId ||
     user.role === 'admin'
-  );
+  ));
 
+  // ─── Handlers ───
   const handleCertify = async () => {
     if (!id) return;
     setIsSubmitting(true);
     try {
-      await branchService.certify(id, !(currentBranch as any).isCertified);
-      alert((currentBranch as any).isCertified ? '已取消认证' : '分支已认证为金级');
-      fetchBranchById(id);
+      await certifyBranch.mutateAsync({ id, certify: !currentBranch.isCertified });
+      addToast('success', currentBranch.isCertified ? '已取消认证' : '分支已认证为金级');
     } catch (err) {
-      alert('操作失败');
+      addToast('error', '操作失败');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleSaveChapter = async (content: string) => {
-    if (editingChapterId) {
-      try {
-        await chapterService.update(editingChapterId, { content });
-        alert('章节已保存');
-        setEditingChapterId(null);
-        setActiveTab('chapters');
-        if (id) fetchBranchById(id);
-      } catch (err) {
-        alert('保存失败');
-      }
+    if (!editingChapterId) return;
+    try {
+      await updateChapter.mutateAsync({ id: editingChapterId, data: { content } });
+      addToast('success', '章节已保存');
+      setEditingChapterId(null);
+      setActiveTab('chapters');
+    } catch (err) {
+      addToast('error', '保存失败');
     }
   };
 
@@ -99,37 +109,16 @@ const BranchPage: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
-      await chapterService.create({
+      await createChapter.mutateAsync({
         ...newChapterData,
         branchId: id,
         storyId: currentBranch.parentStoryId,
         content: '<p>新章节内容...</p>',
       });
       setIsChapterModalOpen(false);
-      if (id) fetchBranchById(id);
-      setNewChapterData({ title: '', orderIndex: currentBranch.chapters.length + 2 });
+      setNewChapterData({ title: '', orderIndex: (currentBranch.chapters.length || 0) + 2 });
     } catch (err) {
-      alert('添加章节失败');
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCreateSpinoff = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!currentBranch.parentStoryId) return;
-    setIsSubmitting(true);
-    try {
-      await spinoffService.create({
-        ...newSpinoffData,
-        originalStoryId: currentBranch.parentStoryId,
-      });
-      setIsSpinoffModalOpen(false);
-      fetchBranchById(id);
-      setNewSpinoffData({ title: '', content: '' });
-      alert('番外发布成功');
-    } catch (err) {
-      alert('发布失败');
+      addToast('error', '添加章节失败');
     } finally {
       setIsSubmitting(false);
     }
@@ -138,101 +127,95 @@ const BranchPage: React.FC = () => {
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20">
       {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-3xl overflow-hidden shadow-xl border border-gray-100 dark:border-gray-700">
+      <div className="bg-white dark:bg-ink-700 rounded-3xl overflow-hidden shadow-xl border border-ink-100 dark:border-ink-600">
         <div className="p-8 space-y-6">
           {/* 面包屑 + 分叉点上下文 */}
-          <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-gray-400">
-            <Link to={`/story/${currentBranch.parentStoryId}`} className="flex items-center gap-1.5 hover:text-blue-600 transition-colors">
+          <div className="flex flex-wrap items-center gap-2 text-sm font-bold text-ink-400">
+            <Link to={`/story/${currentBranch.parentStoryId}`} className="flex items-center gap-1.5 hover:text-accent-500 transition-colors">
               <ArrowLeft size={14} />
               {currentBranch.parentStory?.title}
             </Link>
-            {(currentBranch as any).parentChapter && (
+            {currentBranch.parentChapter?.id && (
               <>
-                <ChevronRight size={14} className="text-gray-300" />
+                <ChevronRight size={14} className="text-ink-300" />
                 <Link
-                  to={`/read/${(currentBranch as any).parentChapter.id}`}
-                  className="flex items-center gap-1 px-2.5 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-full hover:bg-blue-100 transition-colors"
+                  to={`/read/${currentBranch.parentChapter.id}`}
+                  className="flex items-center gap-1 px-2.5 py-1 bg-accent-50 dark:bg-accent-500/10 text-accent-500 dark:text-accent-400 rounded-full hover:bg-accent-100 transition-colors"
                 >
                   <GitMerge size={12} />
-                  第 {(currentBranch as any).parentChapter.orderIndex} 章：{(currentBranch as any).parentChapter.title}
+                  第 {currentBranch.parentChapter.orderIndex} 章：{currentBranch.parentChapter.title}
                 </Link>
-                <ChevronRight size={14} className="text-gray-300" />
-                <span className="text-purple-600 dark:text-purple-400">本分支</span>
+                <ChevronRight size={14} className="text-ink-300" />
+                <span className="text-accent-500 dark:text-purple-400">本分支</span>
               </>
             )}
           </div>
-          
+
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="space-y-4">
               <div className="flex gap-2">
-                <span className="px-3 py-1 bg-purple-600 text-white text-xs font-black rounded-full uppercase tracking-wider">平行宇宙分支</span>
+                <span className="px-3 py-1 bg-accent-500 text-white text-xs font-black rounded-full uppercase tracking-wider">平行宇宙分支</span>
                 {currentBranch.isOfficial && (
                   <span className="px-3 py-1 bg-amber-500 text-white text-xs font-black rounded-full uppercase tracking-wider">官方认证</span>
                 )}
               </div>
-              <h1 className="text-4xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+              <h1 className="text-4xl font-black text-ink-800 dark:text-white tracking-tight flex items-center gap-3">
                 {currentBranch.title}
-                {(currentBranch as any).isCertified && (
+                {currentBranch.isCertified && (
                   <div className="w-10 h-10 bg-amber-500 text-white rounded-xl flex items-center justify-center shadow-lg rotate-[-12deg] shrink-0">
                     <Crown size={22} />
                   </div>
                 )}
               </h1>
-              <p className="text-gray-500 dark:text-gray-400 text-lg font-light max-w-2xl leading-relaxed">
+              <p className="text-ink-500 dark:text-ink-400 text-lg font-light max-w-2xl leading-relaxed">
                 {currentBranch.description}
               </p>
-              <div className="flex items-center gap-4 text-gray-400">
+              <div className="flex items-center gap-4 text-ink-400">
                 <div className="flex items-center gap-2">
                   <div className="w-6 h-6 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-[10px]">
-                    {currentBranch.author?.username?.[0] || 'A'}
+                    {(currentBranch.author?.username?.[0] || 'A')}
                   </div>
-                  <span className="text-sm font-bold text-gray-600 dark:text-gray-300">{currentBranch.author?.username}</span>
+                  <span className="text-sm font-bold text-ink-500 dark:text-ink-300">{currentBranch.author?.username}</span>
+                  {currentBranch.author?.id && (
+                    <FollowButton targetUserId={currentBranch.author.id} size="sm" />
+                  )}
                 </div>
-                <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                <span className="w-1 h-1 bg-ink-300 rounded-full"></span>
                 <span className="text-sm">{new Date(currentBranch.createdAt).toLocaleDateString()} 创建</span>
               </div>
             </div>
-            
+
             <div className="flex gap-3">
               {canCertify && (
-                <button 
+                <button
                   onClick={handleCertify}
                   className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-black transition-all shadow-lg active:scale-95 ${
-                    (currentBranch as any).isCertified 
-                      ? 'bg-amber-100 text-amber-600 border-2 border-amber-400' 
+                    currentBranch.isCertified
+                      ? 'bg-amber-100 text-amber-600 border-2 border-amber-400'
                       : 'bg-amber-500 text-white hover:bg-amber-600'
                   }`}
                 >
                   <Crown size={18} />
-                  {(currentBranch as any).isCertified ? '已认证金级' : '认证金级分支'}
+                  {currentBranch.isCertified ? '已认证金级' : '认证金级分支'}
                 </button>
               )}
-              <button 
+              <button
                 onClick={() => {
                   const firstChapterId = currentBranch.chapters[0]?.id;
                   if (firstChapterId) navigate(`/read/${firstChapterId}`);
                 }}
-                className="flex items-center gap-2 px-6 py-3 bg-gray-900 text-white dark:bg-white dark:text-gray-900 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg active:scale-95"
+                className="flex items-center gap-2 px-6 py-3 bg-ink-800 text-white dark:bg-white dark:text-ink-800 rounded-2xl font-bold hover:opacity-90 transition-all shadow-lg active:scale-95"
               >
                 <BookOpen size={18} />
                 开始阅读
               </button>
               {isAuthor && (
-                <button 
+                <button
                   onClick={() => setIsChapterModalOpen(true)}
-                  className="flex items-center gap-2 px-6 py-3 bg-purple-600 text-white rounded-2xl font-bold hover:bg-purple-700 transition-all shadow-lg active:scale-95"
+                  className="flex items-center gap-2 px-6 py-3 bg-accent-500 text-white rounded-2xl font-bold hover:bg-purple-700 transition-all shadow-lg active:scale-95"
                 >
                   <PlusCircle size={18} />
                   添加新章节
-                </button>
-              )}
-              {user && user.id === currentBranch.authorId && (currentBranch as any).status !== 'merged' && (
-                <button 
-                  onClick={() => setIsMergeModalOpen(true)}
-                  className="flex items-center gap-2 px-6 py-3 bg-indigo-100 text-indigo-600 rounded-2xl font-bold hover:bg-indigo-200 transition-all shadow-lg active:scale-95"
-                >
-                  <GitPullRequest size={18} />
-                  发起合并
                 </button>
               )}
             </div>
@@ -240,11 +223,11 @@ const BranchPage: React.FC = () => {
         </div>
 
         {/* 番外作品展示 */}
-        <div className="px-8 py-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-t border-gray-100 dark:border-gray-700">
+        <div className="px-8 py-6 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-t border-ink-100 dark:border-ink-600">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-2">
               <Star size={18} className="text-amber-500" />
-              <span className="text-sm font-bold text-gray-700 dark:text-gray-300">
+              <span className="text-sm font-bold text-ink-600 dark:text-ink-300">
                 番外作品
                 {(currentBranch.parentStory?.spinoffs || []).length > 0 && (
                   <span className="ml-1 px-2 py-0.5 bg-amber-500 text-white text-[10px] font-black rounded-full">
@@ -265,24 +248,24 @@ const BranchPage: React.FC = () => {
           </div>
           {(currentBranch.parentStory?.spinoffs || []).length > 0 ? (
             <div className="flex gap-3 overflow-x-auto pb-2">
-              {(currentBranch.parentStory?.spinoffs || []).slice(0, 5).map(spinoff => (
+              {(currentBranch.parentStory?.spinoffs || []).slice(0, 5).map((spinoff: any) => (
                 <Link
                   key={spinoff.id}
                   to={`/spinoff/${spinoff.id}`}
-                  className="flex-shrink-0 w-64 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-lg transition-all group"
+                  className="flex-shrink-0 w-64 p-4 bg-ink-50 dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-lg transition-all group"
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <div className={`p-2 rounded-lg ${spinoff.isOfficial ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-600'}`}>
+                    <div className={`p-2 rounded-lg ${spinoff.isOfficial ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600' : 'bg-ink-100 dark:bg-ink-600 text-ink-500'}`}>
                       <Star size={14} />
                     </div>
                     {spinoff.isOfficial && (
                       <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[8px] font-black rounded-full uppercase">官方</span>
                     )}
                   </div>
-                  <h4 className="font-bold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-amber-600 transition-colors">{spinoff.title}</h4>
-                  <div className="flex items-center gap-1.5 mt-2 text-[10px] text-gray-400">
+                  <h4 className="font-bold text-ink-800 dark:text-white text-sm line-clamp-2 group-hover:text-amber-600 transition-colors">{spinoff.title}</h4>
+                  <div className="flex items-center gap-1.5 mt-2 text-[10px] text-ink-400">
                     <span>{spinoff.author?.username}</span>
-                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                    <span className="w-1 h-1 bg-ink-300 rounded-full"></span>
                     <span>{new Date(spinoff.createdAt).toLocaleDateString()}</span>
                   </div>
                 </Link>
@@ -290,14 +273,14 @@ const BranchPage: React.FC = () => {
             </div>
           ) : (
             <div className="text-center py-3">
-              <Sparkles size={24} className="mx-auto text-gray-300 mb-2" />
-              <p className="text-xs text-gray-400">暂无番外作品</p>
+              <Sparkles size={24} className="mx-auto text-ink-300 mb-2" />
+              <p className="text-xs text-ink-400">暂无番外作品</p>
             </div>
           )}
         </div>
 
         {/* Tabs */}
-        <div className="flex px-8 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex px-8 border-t border-ink-100 dark:border-ink-600">
           {[
             { id: 'chapters', label: '章节目录', icon: MessageSquare },
             ...(editingChapterId ? [{ id: 'editor', label: '正在编辑', icon: Edit3 }] : []),
@@ -306,15 +289,15 @@ const BranchPage: React.FC = () => {
               key={tab.id}
               onClick={() => setActiveTab(tab.id as any)}
               className={`flex items-center gap-2 px-6 py-5 text-sm font-bold transition-all relative ${
-                activeTab === tab.id 
-                  ? 'text-purple-600 dark:text-purple-400' 
-                  : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                activeTab === tab.id
+                  ? 'text-accent-500 dark:text-purple-400'
+                  : 'text-ink-500 hover:text-ink-600 dark:hover:text-ink-300'
               }`}
             >
               <tab.icon size={16} />
               {tab.label}
               {activeTab === tab.id && (
-                <div className="absolute bottom-0 left-0 right-0 h-1 bg-purple-600 rounded-t-full"></div>
+                <div className="absolute bottom-0 left-0 right-0 h-1 bg-accent-500 rounded-t-full"></div>
               )}
             </button>
           ))}
@@ -322,7 +305,7 @@ const BranchPage: React.FC = () => {
       </div>
 
       {/* Content */}
-      <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-ink-700 rounded-3xl shadow-sm border border-ink-100 dark:border-ink-600 overflow-hidden">
         {activeTab === 'editor' && editingChapterId ? (
           <div className="p-8 h-[700px]">
             <div className="flex items-center justify-between mb-6">
@@ -330,47 +313,47 @@ const BranchPage: React.FC = () => {
               <button onClick={() => {
                 setEditingChapterId(null);
                 setActiveTab('chapters');
-              }} className="text-gray-500 font-bold hover:text-gray-700">取消编辑</button>
+              }} className="text-ink-500 font-bold hover:text-ink-600">取消编辑</button>
             </div>
-            <ChapterEditor 
-              chapterId={editingChapterId} 
-              initialContent={currentBranch.chapters.find(c => c.id === editingChapterId)?.content || ''} 
+            <ChapterEditor
+              chapterId={editingChapterId}
+              initialContent={currentBranch.chapters.find((c: any) => c.id === editingChapterId)?.content || ''}
               onSave={handleSaveChapter}
             />
           </div>
         ) : (
-          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+          <div className="divide-y divide-ink-100 dark:divide-ink-600">
             {currentBranch.chapters.length > 0 ? (
-              currentBranch.chapters.map(chapter => (
-                <div key={chapter.id} className="p-8 hover:bg-gray-50 dark:hover:bg-gray-900/30 transition-colors group">
+              currentBranch.chapters.map((chapter: any) => (
+                <div key={chapter.id} className="p-8 hover:bg-ink-50 dark:hover:bg-ink-800/30 transition-colors group">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-6">
-                      <span className="text-4xl font-black text-gray-100 dark:text-gray-800 group-hover:text-purple-100 dark:group-hover:text-purple-900 transition-colors w-12 text-center">
+                      <span className="text-4xl font-black text-ink-100 dark:text-ink-700 group-hover:text-accent-100 dark:group-hover:text-purple-900 transition-colors w-12 text-center">
                         {chapter.orderIndex}
                       </span>
                       <div>
-                        <Link 
+                        <Link
                           to={`/read/${chapter.id}`}
-                          className="text-xl font-bold text-gray-900 dark:text-white group-hover:text-purple-600 transition-colors mb-1 block hover:underline"
+                          className="text-xl font-bold text-ink-800 dark:text-white group-hover:text-accent-500 transition-colors mb-1 block hover:underline"
                         >
                           {chapter.title}
                         </Link>
-                        <div className="flex items-center gap-3 text-sm text-gray-400">
+                        <div className="flex items-center gap-3 text-sm text-ink-400">
                           <span>约 {(chapter.content.length / 2).toFixed(0)} 字</span>
-                          <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                          <span className="w-1 h-1 bg-ink-300 rounded-full"></span>
                           <span>{new Date(chapter.createdAt).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </div>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                       {isAuthor && (
-                        <button 
-                          onClick={(e) => { 
+                        <button
+                          onClick={(e) => {
                             e.preventDefault();
                             setEditingChapterId(chapter.id);
                             setActiveTab('editor');
                           }}
-                          className="p-3 text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all"
+                          className="p-3 text-ink-400 hover:text-accent-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all"
                           title="编辑章节"
                         >
                           <Edit3 size={20} />
@@ -378,12 +361,12 @@ const BranchPage: React.FC = () => {
                       )}
                       <button
                         onClick={() => setBooklistTargetChapter({ id: chapter.id, title: chapter.title })}
-                        className="p-3 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-xl transition-all"
+                        className="p-3 text-ink-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-500/10 rounded-xl transition-all"
                         title="加入书单"
                       >
-                        <BookMarked size={20} />
+                        <Bookmark size={20} />
                       </button>
-                      <button className="p-3 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all">
+                      <button className="p-3 text-ink-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-500/10 rounded-xl transition-all">
                         <Share2 size={20} />
                       </button>
                     </div>
@@ -392,14 +375,14 @@ const BranchPage: React.FC = () => {
               ))
             ) : (
               <div className="p-20 text-center space-y-4">
-                <div className="w-20 h-20 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto text-gray-400">
+                <div className="w-20 h-20 bg-ink-100 dark:bg-ink-700 rounded-full flex items-center justify-center mx-auto text-ink-400">
                   <GitBranch size={40} />
                 </div>
-                <p className="text-gray-500 font-medium">这个世界还在孕育中，暂无章节内容</p>
+                <p className="text-ink-500 font-medium">这个世界还在孕育中，暂无章节内容</p>
                 {isAuthor && (
-                  <button 
+                  <button
                     onClick={() => setIsChapterModalOpen(true)}
-                    className="px-6 py-2 bg-purple-600 text-white rounded-xl font-bold hover:bg-purple-700 transition-all"
+                    className="px-6 py-2 bg-accent-500 text-white rounded-xl font-bold hover:bg-purple-700 transition-all"
                   >
                     撰写第一章
                   </button>
@@ -411,37 +394,37 @@ const BranchPage: React.FC = () => {
       </div>
 
       {/* Chapter Modal */}
-      <Modal 
-        isOpen={isChapterModalOpen} 
-        onClose={() => setIsChapterModalOpen(false)} 
+      <Modal
+        isOpen={isChapterModalOpen}
+        onClose={() => setIsChapterModalOpen(false)}
         title="添加分支新章节"
       >
         <form onSubmit={handleCreateChapter} className="space-y-4">
           <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-500">章节标题</label>
-            <input 
-              type="text" 
+            <label className="text-sm font-bold text-ink-500">章节标题</label>
+            <input
+              type="text"
               required
-              className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-purple-500 outline-none transition-all"
               placeholder="例如：抉择的后果"
               value={newChapterData.title}
               onChange={e => setNewChapterData(prev => ({ ...prev, title: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-500">章节顺序</label>
-            <input 
-              type="number" 
+            <label className="text-sm font-bold text-ink-500">章节顺序</label>
+            <input
+              type="number"
               required
-              className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-purple-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-purple-500 outline-none transition-all"
               value={newChapterData.orderIndex}
               onChange={e => setNewChapterData(prev => ({ ...prev, orderIndex: parseInt(e.target.value) }))}
             />
           </div>
-          <button 
+          <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full py-4 bg-purple-600 text-white rounded-2xl font-black hover:bg-purple-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+            className="w-full py-4 bg-accent-500 text-white rounded-2xl font-black hover:bg-purple-700 transition-all shadow-lg active:scale-95 disabled:opacity-50"
           >
             {isSubmitting ? '正在发布...' : '确认发布'}
           </button>
@@ -454,28 +437,28 @@ const BranchPage: React.FC = () => {
         onClose={() => setIsSpinoffModalOpen(false)}
         title="发布番外作品"
       >
-        <form onSubmit={handleCreateSpinoff} className="space-y-4">
+        <form className="space-y-4">
           <div className="p-4 bg-amber-50 dark:bg-amber-900/20 rounded-2xl flex gap-3 text-amber-700 dark:text-amber-300 text-sm">
             <Sparkles size={20} className="shrink-0" />
             <p>番外作品是基于原著的独立短篇，探索角色的另一面，无需遵循主线剧情。</p>
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-500">番外标题</label>
+            <label className="text-sm font-bold text-ink-500">番外标题</label>
             <input
               type="text"
               required
-              className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-amber-500 outline-none transition-all"
+              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-amber-500 outline-none transition-all"
               placeholder="例如：某个角色的过去..."
               value={newSpinoffData.title}
               onChange={e => setNewSpinoffData(prev => ({ ...prev, title: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold text-gray-500">番外内容</label>
+            <label className="text-sm font-bold text-ink-500">番外内容</label>
             <textarea
               required
               rows={8}
-              className="w-full px-4 py-3 rounded-xl border border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-amber-500 outline-none transition-all resize-none"
+              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-amber-500 outline-none transition-all resize-none"
               placeholder="开始你的创作..."
               value={newSpinoffData.content}
               onChange={e => setNewSpinoffData(prev => ({ ...prev, content: e.target.value }))}
@@ -500,15 +483,15 @@ const BranchPage: React.FC = () => {
       />
 
       {/* 合并请求弹窗 */}
-      <MergeRequestModal 
+      <MergeRequestModal
         isOpen={isMergeModalOpen}
         onClose={() => setIsMergeModalOpen(false)}
         storyId={currentBranch.parentStoryId}
         branchId={currentBranch.id}
         branchTitle={currentBranch.title}
         onSuccess={() => {
-          alert('合并请求已发起，请等待原作者审核。');
-          if (id) fetchBranchById(id);
+          addToast('success', '合并请求已发起，请等待原作者审核。');
+          queryClient.invalidateQueries({ queryKey: queryKeys.branches.detail(id!) });
         }}
       />
     </div>

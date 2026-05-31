@@ -18,31 +18,32 @@ export const createBooklist = catchAsync(async (req: AuthRequest, res: Response)
 });
 
 export const getBooklists = catchAsync(async (req: Request, res: Response) => {
-  const { creatorId, isPublic, limit, type, tag, sortBy } = req.query;
-  const booklists = await BooklistService.getBooklists({
+  const { creatorId, isPublic, limit, type, tag, sortBy, page } = req.query;
+  const result = await BooklistService.getBooklists({
     creatorId: creatorId as string,
     isPublic: isPublic === 'false' ? false : true,
     limit: limit ? parseInt(limit as string) : undefined,
     type: type as string,
     tag: tag as string,
-    sortBy: sortBy as any
+    sortBy: sortBy as any,
+    page: page as string,
   });
-  res.json({ success: true, data: booklists });
+  res.json({ success: true, ...result });
 });
 
 export const getMyBooklists = catchAsync(async (req: AuthRequest, res: Response) => {
   const creatorId = req.user?.id;
   if (!creatorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
 
-  const booklists = await BooklistService.getMyBooklists(creatorId);
-  res.json({ success: true, data: booklists });
+  const result = await BooklistService.getMyBooklists(creatorId, req.query as any);
+  res.json({ success: true, ...result });
 });
 
 export const getBooklistById = catchAsync(async (req: Request, res: Response) => {
   const booklist = await BooklistService.getBooklistById(req.params.id);
   if (booklist && booklist.id && await ModerationVisibilityService.shouldMask('booklist', booklist.id)) {
     booklist.title = ModerationVisibilityService.maskText(booklist.title);
-    booklist.description = ModerationVisibilityService.maskText(booklist.description);
+    booklist.description = ModerationVisibilityService.maskText(booklist.description || '');
   }
   res.json({ success: true, data: booklist });
 });
@@ -68,7 +69,7 @@ export const deleteBooklist = catchAsync(async (req: AuthRequest, res: Response)
   if (!creatorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
 
   const result = await BooklistService.deleteBooklist(req.params.id, creatorId, userRole);
-  res.json(result);
+  res.json({ success: true, data: result });
 });
 
 export const addItemToBooklist = catchAsync(async (req: AuthRequest, res: Response) => {
@@ -101,6 +102,17 @@ export const upsertProgress = catchAsync(async (req: AuthRequest, res: Response)
   res.json({ success: true, data: progress });
 });
 
+export const toggleProgress = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
+  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+
+  const { itemId } = req.body;
+  if (!itemId) throw new AppError(400, 'BAD_REQUEST', '缺少 itemId');
+
+  const progress = await BooklistService.toggleProgressItem(req.params.id, userId, itemId);
+  res.json({ success: true, data: progress });
+});
+
 export const getProgress = catchAsync(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
   if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
@@ -115,5 +127,5 @@ export const removeItemFromBooklist = catchAsync(async (req: AuthRequest, res: R
   if (!creatorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
 
   const result = await BooklistService.removeItemFromBooklist(req.params.itemId, creatorId, userRole);
-  res.json(result);
+  res.json({ success: true, data: result });
 });

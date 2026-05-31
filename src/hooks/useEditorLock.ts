@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 import { useAuthStore } from '../stores/useAuthStore';
 
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:3001';
+
 interface LockInfo {
   userId: string;
   username: string;
@@ -14,7 +16,10 @@ export const useEditorLock = (chapterId: string, storyId?: string) => {
   const [isLockedByOthers, setIsLockedByOthers] = useState(false);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:3001');
+    const token = localStorage.getItem('token');
+    const newSocket = io(SOCKET_URL, {
+      auth: { token },
+    });
     setSocket(newSocket);
 
     const roomId = storyId || 'global';
@@ -24,8 +29,6 @@ export const useEditorLock = (chapterId: string, storyId?: string) => {
     if (user) {
       newSocket.emit('request-lock', {
         chapterId,
-        userId: user.id,
-        username: user.username,
         roomId
       });
     }
@@ -58,8 +61,6 @@ export const useEditorLock = (chapterId: string, storyId?: string) => {
         if (user) {
           newSocket.emit('request-lock', {
             chapterId,
-            userId: user.id,
-            username: user.username,
             roomId
           });
         }

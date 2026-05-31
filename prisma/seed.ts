@@ -5,6 +5,10 @@ const prisma = new PrismaClient();
 
 async function main() {
   // Clear existing data
+  await prisma.characterAppearance.deleteMany();
+  await prisma.character.deleteMany();
+  await prisma.readingPathNode.deleteMany();
+  await prisma.readingPath.deleteMany();
   await prisma.booklistItem.deleteMany();
   await prisma.booklist.deleteMany();
   await prisma.collaboration.deleteMany();
@@ -140,6 +144,99 @@ async function main() {
       content: '<p>东胜神洲傲来国海中有花果山，山项上一仙石孕育出一石猴...</p>',
       orderIndex: 1,
       isBranchPoint: true,
+    },
+  });
+
+  // ── Characters for 星际余晖 ──
+  const charCaptain = await prisma.character.create({
+    data: {
+      storyId: story1.id,
+      name: '艾伦·卡特',
+      description: '银河联盟第7探索舰前舰长，冷静果断，背负着失落文明的秘密。',
+      role: 'protagonist',
+    },
+  });
+
+  const charAI = await prisma.character.create({
+    data: {
+      storyId: story1.id,
+      name: 'NEXUS-9',
+      description: '空间站中枢人工智能，其真实意图无人知晓。',
+      role: 'antagonist',
+    },
+  });
+
+  const charCommander = await prisma.character.create({
+    data: {
+      storyId: story1.id,
+      name: '李薇',
+      description: '空间站驻留指挥官，技术专家，卡特的老战友。',
+      role: 'supporting',
+    },
+  });
+
+  // ── Reading Path for 星际余晖 ──
+  const readingPath = await prisma.readingPath.create({
+    data: {
+      storyId: story1.id,
+      creatorId: author.id,
+      title: '星际余晖 · 主线探索',
+      description: '从发现信号到揭开真相的完整主线旅程',
+      origin: 'author',
+      nodes: {
+        create: [
+          { sortOrder: 0, nodeCategory: 'chapter', contentId: chapter1.id, note: '故事从这里开始' },
+          { sortOrder: 1, nodeCategory: 'chapter', contentId: chapter2.id, note: '神秘信号之谜' },
+        ],
+      },
+    },
+    include: { nodes: true },
+  });
+
+  // ── Character Appearances ──
+  // 艾伦出现在第一章
+  await prisma.characterAppearance.create({
+    data: {
+      characterId: charCaptain.id,
+      targetType: 'chapter',
+      targetId: chapter1.id,
+      appearanceType: 'main_focus',
+    },
+  });
+  // 艾伦也出现在第二章
+  await prisma.characterAppearance.create({
+    data: {
+      characterId: charCaptain.id,
+      targetType: 'chapter',
+      targetId: chapter2.id,
+      appearanceType: 'main_focus',
+    },
+  });
+  // NEXUS-9 出现在第一章（伏笔）
+  await prisma.characterAppearance.create({
+    data: {
+      characterId: charAI.id,
+      targetType: 'chapter',
+      targetId: chapter1.id,
+      appearanceType: 'mention',
+    },
+  });
+  // NEXUS-9 在第二章正面出场
+  await prisma.characterAppearance.create({
+    data: {
+      characterId: charAI.id,
+      targetType: 'chapter',
+      targetId: chapter2.id,
+      appearanceType: 'appears',
+    },
+  });
+  // 李薇出现在第一章
+  await prisma.characterAppearance.create({
+    data: {
+      characterId: charCommander.id,
+      targetType: 'chapter',
+      targetId: chapter1.id,
+      appearanceType: 'appears',
     },
   });
 

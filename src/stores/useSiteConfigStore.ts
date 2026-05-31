@@ -79,8 +79,6 @@ export const useSiteConfigStore = create<SiteConfigStore>()(
           // 这里的 response.data 就是业务数据 (即之前的 result.data)
           const remoteConfig = response.data || {};
 
-          console.log('Fetched site config:', remoteConfig);
-
           set({
             config: { ...DEFAULT_CONFIG, ...remoteConfig },
             isLoading: false,
@@ -104,8 +102,6 @@ export const useSiteConfigStore = create<SiteConfigStore>()(
         try {
           // 使用统一的 axios 客户端 (会自动带上 Authorization Token)
           const response = await client.put('/cms', updates);
-
-          console.log('配置更新成功:', response.data);
 
           // 更新本地配置
           set((state) => ({

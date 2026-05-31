@@ -2,19 +2,27 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
 import Home from './Home';
-import { useStoryStore } from '../stores/useStoryStore';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSiteConfigStore } from '../stores/useSiteConfigStore';
-import { storyService, branchService, booklistService } from '../api/storyService';
 import '@testing-library/jest-dom';
 
-vi.mock('../stores/useStoryStore');
 vi.mock('../stores/useAuthStore');
 vi.mock('../stores/useSiteConfigStore');
-vi.mock('../api/storyService', () => ({
-  storyService: { getRecentReads: vi.fn() },
-  branchService: { getAll: vi.fn() },
-  booklistService: { getAll: vi.fn() },
+
+// Mock React Query hooks used by Home
+vi.mock('../hooks/useStories', () => ({
+  useStories: () => ({ data: [], isLoading: false }),
+  useRecentReads: () => ({ data: [] }),
+}));
+vi.mock('../hooks/useBooklists', () => ({
+  useHotBooklists: () => ({ data: [] }),
+}));
+vi.mock('../hooks/useBranches', () => ({
+  useNewBranches: () => ({ data: [] }),
+}));
+vi.mock('../hooks/useDiscover', () => ({
+  useHotReadingPaths: () => ({ data: [] }),
+  useUniverseFeed: () => ({ data: [] }),
 }));
 
 const mockNavigate = vi.fn();
@@ -54,21 +62,10 @@ describe('Home', () => {
       },
       fetchConfig: vi.fn(),
     });
-
-    (storyService.getRecentReads as any).mockResolvedValue([]);
-    (branchService.getAll as any).mockResolvedValue([]);
-    (booklistService.getAll as any).mockResolvedValue([]);
   });
 
-  it('calls fetchStories and fetchConfig on mount', () => {
-    const fetchStories = vi.fn();
+  it('renders home page and calls fetchConfig on mount', () => {
     const fetchConfig = vi.fn();
-
-    (useStoryStore as any).mockReturnValue({
-      stories: [],
-      fetchStories,
-      isLoading: false,
-    });
 
     (useSiteConfigStore as any).mockReturnValue({
       config: {
@@ -93,20 +90,15 @@ describe('Home', () => {
     render(
       <MemoryRouter>
         <Home />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
-    expect(fetchStories).toHaveBeenCalled();
     expect(fetchConfig).toHaveBeenCalled();
+    // Home should render the hero banner
+    expect(screen.getByText('书树创作计划')).toBeInTheDocument();
   });
 
   it('navigates to banner link when clicking banner button', () => {
-    (useStoryStore as any).mockReturnValue({
-      stories: [],
-      fetchStories: vi.fn(),
-      isLoading: false,
-    });
-
     (useSiteConfigStore as any).mockReturnValue({
       config: {
         siteName: '平行宇宙',
@@ -115,7 +107,9 @@ describe('Home', () => {
         faviconUrl: '',
         announcement: '',
         announcementEnabled: 'false',
-        bannerSlides: JSON.stringify([{ title: 'T', description: 'D', buttonText: '探索全站', link: '/stories' }]),
+        bannerSlides: JSON.stringify([
+          { title: 'T', description: 'D', buttonText: '探索全站', link: '/stories' },
+        ]),
         editorPicks: JSON.stringify([]),
         footerCopyright: '',
         primaryColor: '#2563eb',
@@ -130,7 +124,7 @@ describe('Home', () => {
     render(
       <MemoryRouter>
         <Home />
-      </MemoryRouter>
+      </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByRole('button', { name: '探索全站' }));

@@ -12,15 +12,19 @@ import {
   updateCharacter,
   deleteCharacter,
   getTags,
-  certifyBranch
+  certifyBranch,
+  batchCharacterAppearances,
+  getStoryCharacterAppearances
 } from '../controllers/storyController';
+import { getUniverseMap } from '../controllers/mapController';
 import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
 import { 
   createStoryRequest, 
   updateStoryRequest, 
   createCharacterRequest, 
-  updateCharacterRequest 
+  updateCharacterRequest,
+  batchCharacterAppearancesRequest
 } from '../utils/validation';
 
 const router = Router();
@@ -30,15 +34,16 @@ router.get('/tags', getTags);
 router.get('/my', authenticate, getMyStories);
 router.get('/recent', authenticate, getRecentReads);
 router.get('/:id', getStoryById);
+router.get('/:id/map', getUniverseMap);
 
 router.post('/', 
-  authenticate, 
+  authenticate,
   validateRequest(createStoryRequest), 
   createStory
 );
 
 router.put('/:id', 
-  authenticate, 
+  authenticate,
   validateRequest(updateStoryRequest), 
   updateStory
 );
@@ -49,18 +54,27 @@ router.delete('/:id', authenticate, deleteStory);
 router.get('/:id/characters', getStoryCharacters);
 
 router.post('/:id/characters', 
-  authenticate, 
+  authenticate,
   validateRequest(createCharacterRequest), 
   createCharacter
 );
 
 router.put('/characters/:charId', 
-  authenticate, 
+  authenticate,
   validateRequest(updateCharacterRequest), 
   updateCharacter
 );
 
 router.delete('/characters/:charId', authenticate, deleteCharacter);
+
+// Character appearance routes
+router.get('/:id/character-appearances', getStoryCharacterAppearances);
+
+router.put('/:id/character-appearances',
+  authenticate,
+  validateRequest(batchCharacterAppearancesRequest),
+  batchCharacterAppearances
+);
 
 // Branch routes
 router.post('/branches/:branchId/certify', authenticate, certifyBranch);

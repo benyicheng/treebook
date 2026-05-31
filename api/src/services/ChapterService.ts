@@ -53,11 +53,14 @@ export class ChapterService {
     return prisma.chapter.update({
       where: { id },
       data: {
-        title,
-        content,
-        orderIndex,
-        isBranchPoint,
-        characterData: characterData ? JSON.stringify(characterData) : chapter.characterData,
+        ...(title !== undefined && { title }),
+        ...(content !== undefined && { content }),
+        ...(orderIndex !== undefined && { orderIndex }),
+        ...(isBranchPoint !== undefined && { isBranchPoint }),
+        characterData: characterData !== undefined
+          ? (characterData ? JSON.stringify(characterData) : null)
+          : chapter.characterData,
+        updatedAt: new Date(),
       },
     });
   }
@@ -79,14 +82,14 @@ export class ChapterService {
           select: {
             id: true,
             title: true,
-            author: { select: { username: true } }
+            author: { select: { id: true, username: true } }
           }
         },
         branch: {
           select: {
             id: true,
             title: true,
-            author: { select: { username: true } }
+            author: { select: { id: true, username: true } }
           }
         },
         branchesFrom: {
@@ -96,7 +99,7 @@ export class ChapterService {
             description: true,
             isOfficial: true,
             viewCount: true,
-            author: { select: { username: true } },
+            author: { select: { id: true, username: true } },
             _count: { select: { chapters: true } },
           }
         }
@@ -105,68 +108,55 @@ export class ChapterService {
 
     if (!chapter) throw new AppError(404, 'NOT_FOUND', 'Chapter not found');
 
-    if (userId) {
-      // 检查引流书单是否存在（如果提供了）
-      let validReferralId: string | null = null;
-      if (referralBooklistId) {
-        const booklist = await prisma.booklist.findUnique({ where: { id: referralBooklistId } });
-        if (booklist) {
-          validReferralId = referralBooklistId;
-        }
-      }
+    // Fan-out: run side-effects + nav queries concurrently with main chapter fetch
+    const sideEffects: Promise<unknown>[] = [];
 
-      // 追踪阅读历史和引流来源
-      await prisma.readingHistory.upsert({
-        where: {
-          userId_chapterId: { userId, chapterId: id }
-        },
-        update: { 
-          readAt: new Date(),
-          referralBooklistId: validReferralId || undefined 
-        },
-        create: { 
-          userId, 
-          chapterId: id,
-          referralBooklistId: validReferralId
+    if (userId) {
+      // Validate referral booklist and upsert reading history concurrently
+      const readingHistoryPromise = (async () => {
+        let validReferralId: string | null = null;
+        if (referralBooklistId) {
+          const booklist = await prisma.booklist.findUnique({ where: { id: referralBooklistId }, select: { id: true } });
+          if (booklist) validReferralId = referralBooklistId;
         }
-      });
+        await prisma.readingHistory.upsert({
+          where: { userId_chapterId: { userId, chapterId: id } },
+          update: { readAt: new Date(), referralBooklistId: validReferralId || undefined },
+          create: { userId, chapterId: id, referralBooklistId: validReferralId },
+        });
+      })();
+      sideEffects.push(readingHistoryPromise);
     }
 
-    // Interaction stats
-    await prisma.interactionStat.upsert({
+    // upsert returns the updated record — no need for a separate findUnique
+    const viewStatPromise = prisma.interactionStat.upsert({
       where: { targetType_targetId: { targetType: 'chapter', targetId: id } },
       create: { targetType: 'chapter', targetId: id, viewCount: 1 },
       update: { viewCount: { increment: 1 } },
+      select: { viewCount: true },
     });
 
-    const [viewStat, commentCount] = await Promise.all([
-      prisma.interactionStat.findUnique({
-        where: { targetType_targetId: { targetType: 'chapter', targetId: id } },
-        select: { viewCount: true }
-      }),
-      prisma.comment.count({
-        where: { chapterId: id }
-      })
-    ]);
+    const commentCountPromise = prisma.comment.count({ where: { chapterId: id } });
 
-    const [nextChapter, prevChapter] = await Promise.all([
-      prisma.chapter.findFirst({
-        where: {
-          storyId: chapter.storyId,
-          branchId: chapter.branchId,
-          orderIndex: chapter.orderIndex + 1
-        },
-        select: { id: true, title: true }
-      }),
-      prisma.chapter.findFirst({
-        where: {
-          storyId: chapter.storyId,
-          branchId: chapter.branchId,
-          orderIndex: chapter.orderIndex - 1
-        },
-        select: { id: true, title: true }
-      })
-    ]);
+    const nextChapterPromise = prisma.chapter.findFirst({
+      where: { storyId: chapter.storyId, branchId: chapter.branchId, orderIndex: chapter.orderIndex + 1 },
+      select: { id: true, title: true },
+    });
+
+    const prevChapterPromise = prisma.chapter.findFirst({
+      where: { storyId: chapter.storyId, branchId: chapter.branchId, orderIndex: chapter.orderIndex - 1 },
+      select: { id: true, title: true },
+    });
+
+    type NavChapter = { id: string; title: string } | null;
+
+    const [viewStat, commentCount, nextChapter, prevChapter] = await Promise.all([
+      viewStatPromise,
+      commentCountPromise,
+      nextChapterPromise,
+      prevChapterPromise,
+      ...sideEffects,
+    ]) as [{ viewCount: number }, number, NavChapter, NavChapter];
 
     return {
       ...chapter,
@@ -233,7 +223,7 @@ export class ChapterService {
           select: {
             id: true,
             title: true,
-            author: { select: { username: true } },
+            author: { select: { id: true, username: true } },
           },
         },
       },

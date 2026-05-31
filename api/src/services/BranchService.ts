@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { AppError } from '../utils/http';
+import { parsePagination, paginatedResponse, PaginatedResponse } from '../utils/pagination';
 import { Prisma } from '@prisma/client';
 
 export class BranchService {
@@ -37,22 +38,32 @@ export class BranchService {
     return branch;
   }
 
-  static async getBranches(limit?: number) {
-    return prisma.branch.findMany({
-      include: {
-        author: {
-          select: { username: true, role: true }
+  static async getBranches(query: { page?: string; limit?: string } = {}): Promise<PaginatedResponse<any>> {
+    const { page, limit } = parsePagination(query);
+
+    const where = {};
+    const [items, total] = await Promise.all([
+      prisma.branch.findMany({
+        where,
+        include: {
+          author: {
+            select: { id: true, username: true, role: true }
+          },
+          parentStory: {
+            select: { title: true, coverImage: true }
+          },
+          _count: {
+            select: { chapters: true }
+          }
         },
-        parentStory: {
-          select: { title: true, coverImage: true }
-        },
-        _count: {
-          select: { chapters: true }
-        }
-      },
-      orderBy: { createdAt: 'desc' },
-      take: limit,
-    });
+        orderBy: { createdAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.branch.count({ where }),
+    ]);
+
+    return paginatedResponse(items, total, page, limit);
   }
 
   static async getBranchById(id: string) {
@@ -60,7 +71,7 @@ export class BranchService {
       where: { id },
       include: {
         author: {
-          select: { username: true, role: true }
+          select: { id: true, username: true, role: true }
         },
         chapters: {
           orderBy: { orderIndex: 'asc' }
@@ -70,7 +81,7 @@ export class BranchService {
             spinoffs: {
               include: {
                 author: {
-                  select: { username: true },
+                  select: { id: true, username: true },
                 },
               },
               orderBy: { createdAt: 'desc' },
@@ -124,19 +135,29 @@ export class BranchService {
     });
   }
 
-  static async getMyBranches(authorId: string) {
-    return prisma.branch.findMany({
-      where: { authorId },
-      include: {
-        parentStory: {
-          select: { title: true }
+  static async getMyBranches(authorId: string, query: { page?: string; limit?: string } = {}) {
+    const { page, limit } = parsePagination(query);
+
+    const where = { authorId };
+    const [items, total] = await Promise.all([
+      prisma.branch.findMany({
+        where,
+        include: {
+          parentStory: {
+            select: { title: true }
+          },
+          _count: {
+            select: { chapters: true }
+          }
         },
-        _count: {
-          select: { chapters: true }
-        }
-      },
-      orderBy: { updatedAt: 'desc' }
-    });
+        orderBy: { updatedAt: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      prisma.branch.count({ where }),
+    ]);
+
+    return paginatedResponse(items, total, page, limit);
   }
 
   static async deleteBranch(id: string, authorId: string, userRole: string) {

@@ -78,8 +78,8 @@ const ReviewCasesPage: React.FC = () => {
     <div className="max-w-6xl mx-auto space-y-6 pb-20">
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="text-3xl font-black text-gray-900 dark:text-white">人工复核工单</h1>
-          <p className="text-sm text-gray-400 mt-2">机审拒绝/失败自动生成待办，人工复核可覆盖机审裁决并留痕</p>
+          <h1 className="text-3xl font-black text-ink-800 dark:text-white">人工复核工单</h1>
+          <p className="text-sm text-ink-400 mt-2">机审拒绝/失败自动生成待办，人工复核可覆盖机审裁决并留痕</p>
         </div>
         <select
           value={status}
@@ -87,7 +87,7 @@ const ReviewCasesPage: React.FC = () => {
             setStatus(e.target.value);
             setSelected(null);
           }}
-          className="px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+          className="px-4 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm"
         >
           <option value="open">待处理</option>
           <option value="in_review">处理中</option>
@@ -105,74 +105,74 @@ const ReviewCasesPage: React.FC = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-            <div className="text-sm font-black text-gray-900 dark:text-white">工单列表</div>
-            <div className="text-xs text-gray-400">{loading ? '加载中…' : `${cases.length} 条`}</div>
+        <div className="rounded-2xl border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 overflow-hidden">
+          <div className="px-5 py-4 border-b border-ink-100 dark:border-ink-700 flex items-center justify-between">
+            <div className="text-sm font-black text-ink-800 dark:text-white">工单列表</div>
+            <div className="text-xs text-ink-400">{loading ? '加载中…' : `${cases.length} 条`}</div>
           </div>
-          <div className="divide-y divide-gray-100 dark:divide-gray-800">
+          <div className="divide-y divide-ink-100 dark:divide-ink-700">
             {cases.map((c) => (
               <button
                 key={c.id}
                 onClick={() => void loadDetail(c.id)}
-                className={`w-full text-left px-5 py-4 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors ${
-                  selected?.id === c.id ? 'bg-gray-50 dark:bg-gray-800' : ''
+                className={`w-full text-left px-5 py-4 hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors ${
+                  selected?.id === c.id ? 'bg-ink-50 dark:bg-ink-700' : ''
                 }`}
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-sm font-black text-gray-900 dark:text-white truncate">
+                    <div className="text-sm font-black text-ink-800 dark:text-white truncate">
                       L{c.level} · {c.targetType} · {c.contentType}{c.field ? ` · ${c.field}` : ''}
                     </div>
-                    <div className="text-xs text-gray-400 truncate">{c.targetId}</div>
+                    <div className="text-xs text-ink-400 truncate">{c.targetId}</div>
                   </div>
-                  <div className="text-[10px] text-gray-400 shrink-0">
+                  <div className="text-[10px] text-ink-400 shrink-0">
                     {c.dueAt ? `SLA ${new Date(c.dueAt).toLocaleString()}` : new Date(c.updatedAt).toLocaleString()}
                   </div>
                 </div>
               </button>
             ))}
             {!loading && cases.length === 0 && (
-              <div className="px-5 py-10 text-sm text-gray-400 text-center">暂无数据</div>
+              <div className="px-5 py-10 text-sm text-ink-400 text-center">暂无数据</div>
             )}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-hidden">
-          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800 flex items-center justify-between">
-            <div className="text-sm font-black text-gray-900 dark:text-white">工单详情</div>
-            <div className="text-xs text-gray-400">{loadingDetail ? '加载中…' : selected ? selected.status : ''}</div>
+        <div className="rounded-2xl border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 overflow-hidden">
+          <div className="px-5 py-4 border-b border-ink-100 dark:border-ink-700 flex items-center justify-between">
+            <div className="text-sm font-black text-ink-800 dark:text-white">工单详情</div>
+            <div className="text-xs text-ink-400">{loadingDetail ? '加载中…' : selected ? selected.status : ''}</div>
           </div>
 
           {!selected && (
-            <div className="px-5 py-10 text-sm text-gray-400 text-center">选择左侧工单查看详情</div>
+            <div className="px-5 py-10 text-sm text-ink-400 text-center">选择左侧工单查看详情</div>
           )}
 
           {selected && (
             <div className="p-5 space-y-4">
-              <div className="text-xs text-gray-400 space-y-1">
+              <div className="text-xs text-ink-400 space-y-1">
                 <div>businessLine：{selected.businessLine}</div>
                 <div>target：{selected.targetType} / {selected.targetId}</div>
                 <div>content：{selected.contentType}{selected.field ? ` / ${selected.field}` : ''}</div>
                 <div>level：L{selected.level}{typeof selected.reopenedCount === 'number' ? ` · reopened ${selected.reopenedCount}` : ''}{selected.dueAt ? ` · due ${new Date(selected.dueAt).toLocaleString()}` : ''}</div>
               </div>
 
-              <div className="rounded-xl border border-gray-100 dark:border-gray-800 p-4">
-                <div className="text-xs font-black text-gray-500 mb-2">内容快照</div>
-                <pre className="text-xs whitespace-pre-wrap break-words text-gray-700 dark:text-gray-200">{snapshot ? JSON.stringify(snapshot, null, 2) : (selected.snapshot || '')}</pre>
+              <div className="rounded-xl border border-ink-100 dark:border-ink-700 p-4">
+                <div className="text-xs font-black text-ink-500 mb-2">内容快照</div>
+                <pre className="text-xs whitespace-pre-wrap break-words text-ink-600 dark:text-ink-200">{snapshot ? JSON.stringify(snapshot, null, 2) : (selected.snapshot || '')}</pre>
               </div>
 
-              <div className="rounded-xl border border-gray-100 dark:border-gray-800 p-4">
-                <div className="text-xs font-black text-gray-500 mb-2">操作日志</div>
+              <div className="rounded-xl border border-ink-100 dark:border-ink-700 p-4">
+                <div className="text-xs font-black text-ink-500 mb-2">操作日志</div>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {(selected.actions || []).map((a) => (
                     <div key={a.id} className="text-xs">
                       <div className="flex items-center justify-between">
-                        <div className="font-bold text-gray-700 dark:text-gray-200">{a.action}</div>
-                        <div className="text-gray-400">{new Date(a.createdAt).toLocaleString()}</div>
+                        <div className="font-bold text-ink-600 dark:text-ink-200">{a.action}</div>
+                        <div className="text-ink-400">{new Date(a.createdAt).toLocaleString()}</div>
                       </div>
                       {a.payload && (
-                        <pre className="mt-1 text-[11px] whitespace-pre-wrap break-words text-gray-500">{a.payload}</pre>
+                        <pre className="mt-1 text-[11px] whitespace-pre-wrap break-words text-ink-500">{a.payload}</pre>
                       )}
                     </div>
                   ))}
@@ -180,18 +180,18 @@ const ReviewCasesPage: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <div className="text-xs font-black text-gray-500">备注（退回/拒绝原因或通过说明）</div>
+                <div className="text-xs font-black text-ink-500">备注（退回/拒绝原因或通过说明）</div>
                 <textarea
                   value={actionNote}
                   onChange={(e) => setActionNote(e.target.value)}
-                  className="w-full min-h-24 p-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-sm"
+                  className="w-full min-h-24 p-3 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm"
                   placeholder="输入备注…"
                 />
                 <div className="flex gap-2">
                   <button
                     disabled={acting}
                     onClick={() => void submitAction('approve')}
-                    className="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-black disabled:opacity-50"
+                    className="px-4 py-2 rounded-xl bg-accent-500 text-white text-sm font-black disabled:opacity-50"
                   >
                     通过
                   </button>

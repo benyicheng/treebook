@@ -26,7 +26,11 @@ describe('useAuthStore', () => {
     const errorMessage = 'Invalid credentials';
     (authService.login as any).mockRejectedValue({ message: errorMessage });
 
-    await useAuthStore.getState().login({ email: 'test@example.com', password: 'wrong' });
+    try {
+      await useAuthStore.getState().login({ email: 'test@example.com', password: 'wrong' });
+    } catch (_) {
+      // login re-throws after setting state
+    }
 
     expect(useAuthStore.getState().isAuthenticated).toBe(false);
     expect(useAuthStore.getState().user).toBeNull();

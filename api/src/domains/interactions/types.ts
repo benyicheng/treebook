@@ -1,2 +1,1 @@
-export type TargetType = 'story' | 'chapter' | 'booklist' | 'spinoff';
-
+export type TargetType = 'story' | 'chapter' | 'booklist' | 'spinoff' | 'branch' | 'page' | 'system' | 'search';

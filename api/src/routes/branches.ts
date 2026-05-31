@@ -22,13 +22,13 @@ router.get('/my', authenticate, getMyBranches);
 router.get('/:id', getBranchById);
 
 router.post('/', 
-  authenticate, 
+  authenticate,
   validateRequest(createBranchRequest), 
   createBranch
 );
 
 router.put('/:id', 
-  authenticate, 
+  authenticate,
   validateRequest(updateBranchRequest), 
   updateBranch
 );

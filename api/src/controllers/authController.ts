@@ -5,8 +5,8 @@ import { prisma } from '../prisma';
 import { registerSchema, loginSchema } from '../utils/validation';
 import { catchAsync } from '../utils/catchAsync';
 import { AppError } from '../utils/http';
-
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
+import { JWT_SECRET } from '../config/jwt';
+import { extractPermissions, USER_WITH_ROLES_INCLUDE } from '../services/UserService';
 
 export const register = catchAsync(async (req: Request, res: Response) => {
   const { email, username, password, role } = registerSchema.parse(req.body);
@@ -30,6 +30,14 @@ export const register = catchAsync(async (req: Request, res: Response) => {
       role: role || 'reader',
     },
   });
+
+  // Assign default 'reader' RBAC role to new user
+  const readerRole = await prisma.role.findUnique({ where: { name: 'reader' } });
+  if (readerRole) {
+    await prisma.userRole.create({
+      data: { userId: user.id, roleId: readerRole.id },
+    });
+  }
 
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role },
@@ -56,33 +64,14 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 
   const user = await prisma.user.findUnique({
     where: { email },
-    include: {
-      roles: {
-        include: {
-          role: {
-            include: {
-              permissions: {
-                include: {
-                  permission: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    include: USER_WITH_ROLES_INCLUDE,
   });
 
   if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
     throw new AppError(401, 'UNAUTHORIZED', 'Invalid credentials');
   }
 
-  // Flatten permissions
-  const permissions = Array.from(new Set(
-    user.roles.flatMap(ur => 
-      ur.role.permissions.map(rp => rp.permission.code)
-    )
-  ));
+  const permissions = extractPermissions(user.roles);
 
   const token = jwt.sign(
     { id: user.id, email: user.email, role: user.role, permissions },
@@ -109,32 +98,14 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 export const getMe = catchAsync(async (req: any, res: Response) => {
   const user = await prisma.user.findUnique({
     where: { id: req.user.id },
-    include: {
-      roles: {
-        include: {
-          role: {
-            include: {
-              permissions: {
-                include: {
-                  permission: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    include: USER_WITH_ROLES_INCLUDE,
   });
 
   if (!user) {
     throw new AppError(404, 'NOT_FOUND', 'User not found');
   }
 
-  const permissions = Array.from(new Set(
-    user.roles.flatMap(ur => 
-      ur.role.permissions.map(rp => rp.permission.code)
-    )
-  ));
+  const permissions = extractPermissions(user.roles);
 
   res.json({
     success: true,
@@ -144,9 +115,44 @@ export const getMe = catchAsync(async (req: any, res: Response) => {
       username: user.username,
       role: user.role,
       avatarUrl: user.avatarUrl,
+      followerCount: user.followerCount,
+      followingCount: user.followingCount,
       roles: user.roles.map(r => r.role.name),
       permissions
     }
+  });
+});
+
+export const getPublicProfile = catchAsync(async (req: any, res: Response) => {
+  const { userId } = req.params;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      username: true,
+      avatarUrl: true,
+      role: true,
+      followerCount: true,
+      followingCount: true,
+      createdAt: true,
+    },
+  });
+
+  if (!user) throw new AppError(404, 'NOT_FOUND', '用户不存在');
+
+  // Get story and branch counts
+  const storyCount = await prisma.story.count({ where: { authorId: userId } });
+  const branchCount = await prisma.branch.count({ where: { authorId: userId } });
+  const spinoffCount = await prisma.spinoff.count({ where: { authorId: userId } });
+
+  res.json({
+    success: true,
+    data: {
+      ...user,
+      storyCount,
+      branchCount,
+      spinoffCount,
+    },
   });
 });
 
@@ -177,32 +183,14 @@ export const updateMe = catchAsync(async (req: any, res: Response) => {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: {
-      roles: {
-        include: {
-          role: {
-            include: {
-              permissions: {
-                include: {
-                  permission: true
-                }
-              }
-            }
-          }
-        }
-      }
-    }
+    include: USER_WITH_ROLES_INCLUDE,
   });
 
   if (!user) {
     throw new AppError(404, 'NOT_FOUND', 'User not found');
   }
 
-  const permissions = Array.from(new Set(
-    user.roles.flatMap((ur: any) =>
-      ur.role.permissions.map((rp: any) => rp.permission.code)
-    )
-  ));
+  const permissions = extractPermissions(user.roles);
 
   res.json({
     success: true,
@@ -212,7 +200,7 @@ export const updateMe = catchAsync(async (req: any, res: Response) => {
       username: user.username,
       role: user.role,
       avatarUrl: user.avatarUrl,
-      roles: user.roles.map((r: any) => r.role.name),
+      roles: user.roles.map(r => r.role.name),
       permissions
     }
   });
