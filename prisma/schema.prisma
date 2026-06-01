@@ -103,6 +103,7 @@ model User {
   activities     Activity[]
   readingPaths   ReadingPath[]
   readingTrails  ReadingTrail[]
+  wikiPages      WikiPage[]    // 创建的百科页面
 
   @@map("users")
 }
@@ -207,6 +208,9 @@ model Story {
   savepoints  ReadingSavepoint[]
   mergeRequests MergeRequest[]
   readingPaths ReadingPath[]
+  wikiPages    WikiPage[]           // 该故事的百科页面
+  booklistStoryLinks BooklistStoryLink[] // 该故事被哪些书单引用
+  readingTrails ReadingTrail[]      // 该故事的阅读轨迹
 
   @@map("stories")
 }
@@ -251,6 +255,56 @@ model CharacterAppearance {
   @@map("character_appearances")
 }
 
+/// 百科页面 — 人物/世界观/事件/概念的知识库
+model WikiPage {
+  id            String     @id @default(uuid())
+  storyId       String?
+  story         Story?     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  title         String
+  slug          String
+  contentType   String     // 'character' | 'setting' | 'event' | 'concept' | 'faction' | 'item'
+  content       String     // Markdown 正文
+  summary       String?
+  attributes    String?    // JSON: 结构化属性
+  status        String     @default("published") // 'draft' | 'published' | 'archived'
+  version       Int        @default(1)
+  createdBy     String
+  creator       User       @relation(fields: [createdBy], references: [id])
+  updatedAt     DateTime   @updatedAt
+  createdAt     DateTime   @default(now())
+  aliases       WikiAlias[]
+  outgoingLinks WikiLink[] @relation("OutgoingLinks")
+  incomingLinks WikiLink[] @relation("IncomingLinks")
+
+  @@unique([storyId, slug])
+  @@map("wiki_pages")
+}
+
+/// 百科别名 — 支持多语言/曾用名搜索
+model WikiAlias {
+  id         String   @id @default(uuid())
+  wikiPageId String
+  wikiPage   WikiPage @relation(fields: [wikiPageId], references: [id], onDelete: Cascade)
+  alias      String
+  language   String?
+
+  @@index([alias])
+  @@map("wiki_aliases")
+}
+
+/// 百科内部链接 — 双向引用
+model WikiLink {
+  id           String   @id @default(uuid())
+  sourcePageId String
+  sourcePage   WikiPage @relation("OutgoingLinks", fields: [sourcePageId], references: [id], onDelete: Cascade)
+  targetPageId String
+  targetPage   WikiPage @relation("IncomingLinks", fields: [targetPageId], references: [id], onDelete: Cascade)
+  linkType     String   // 'reference' | 'see_also' | 'parent' | 'child' | 'related'
+
+  @@unique([sourcePageId, targetPageId, linkType])
+  @@map("wiki_links")
+}
+
 model Chapter {
   id             String    @id @default(uuid())
   story          Story     @relation(fields: [storyId], references: [id], onDelete: Cascade)
@@ -264,6 +318,7 @@ model Chapter {
   characterData  String?   // JSON string
   branchesFrom   Branch[]  @relation("BranchSource")
   booklistItems  BooklistItem[]
+  spinoffs       Spinoff[]
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   readingHistory ReadingHistory[]
@@ -297,6 +352,10 @@ model Branch {
   savepoints      ReadingSavepoint[]
   mergeRequests   MergeRequest[]
   spinoffs        Spinoff[]
+  parentBranchId  String?           // 父分支（子分支用）
+  parentBranch    Branch?           @relation("SubBranch", fields: [parentBranchId], references: [id])
+  subBranches     Branch[]          @relation("SubBranch")
+  treeDepth       Int               @default(0)  // 0=直接来自主线, 1=子分支, 2=子子分支...
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @default(now()) @updatedAt
 
@@ -314,6 +373,8 @@ model Spinoff {
   originalStoryId      String
   originalBranch       Branch?   @relation(fields: [originalBranchId], references: [id], onDelete: SetNull)
   originalBranchId     String?
+  originalChapter      Chapter?  @relation(fields: [originalChapterId], references: [id], onDelete: SetNull)
+  originalChapterId    String?
   title                String
   summary              String?   // 短简介
   content              String
@@ -331,6 +392,7 @@ model Spinoff {
   @@index([originalStoryId])
   @@index([authorId])
   @@index([originalBranchId])
+  @@index([originalChapterId])
   @@map("spinoffs")
 }
 
@@ -351,6 +413,8 @@ model Booklist {
   items              BooklistItem[]
   progress           BooklistProgress[]
   referralHistories  ReadingHistory[] @relation("BooklistReferral")
+  linkedStories      BooklistStoryLink[] // 书单涉及的故事（反向索引）
+  paths              ReadingPath[]       // 基于本书单的阅读路径
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @default(now()) @updatedAt
 
@@ -376,7 +440,7 @@ model BooklistItem {
   id         String    @id @default(uuid())
   booklist   Booklist  @relation(fields: [booklistId], references: [id], onDelete: Cascade)
   booklistId String
-  targetType String?   // 'story' | 'branch' | 'spinoff' | 'chapter'
+  targetType String?   // 'story' | 'branch' | 'spinoff' | 'chapter' | 'character' | 'wiki_page'
   targetId   String?
   chapter    Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
   chapterId  String?
@@ -385,9 +449,41 @@ model BooklistItem {
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
 
+  outgoingEdges BooklistItemRelation[] @relation("OutgoingEdges")
+  incomingEdges BooklistItemRelation[] @relation("IncomingEdges")
+
   @@index([booklistId])
   @@index([targetType, targetId])
   @@map("booklist_items")
+}
+
+/// 书单关系边 — 将书单从列表升格为关系图
+model BooklistItemRelation {
+  id              String       @id @default(uuid())
+  sourceItemId    String
+  sourceItem      BooklistItem @relation("OutgoingEdges", fields: [sourceItemId], references: [id], onDelete: Cascade)
+  targetItemId    String
+  targetItem      BooklistItem @relation("IncomingEdges", fields: [targetItemId], references: [id], onDelete: Cascade)
+  relationType    String       // SAME_CHARACTER | ALTERNATE_INTERPRETATION | SHARED_UNIVERSE | TIMELINE_FORK | PARALLEL_EVENT | PRECEDING_EVENT | CHARACTER_CAMEO | BACKGROUND_REFERENCE
+  label           String?
+  createdAt       DateTime     @default(now())
+
+  @@unique([sourceItemId, targetItemId, relationType])
+  @@map("booklist_item_relations")
+}
+
+/// 书单-故事关联索引 — 解决"故事不知道被哪些书单引用"
+model BooklistStoryLink {
+  id          String   @id @default(uuid())
+  booklistId  String
+  booklist    Booklist @relation(fields: [booklistId], references: [id], onDelete: Cascade)
+  storyId     String
+  story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  relation    String   // 'featured' | 'referenced' | 'comparison'
+  createdAt   DateTime @default(now())
+
+  @@unique([booklistId, storyId])
+  @@map("booklist_story_links")
 }
 
 model Collaboration {
@@ -695,13 +791,15 @@ model MediaRiskLog {
 /// 阅读路径 — 用户创建的阅读顺序导航
 model ReadingPath {
   id              String      @id @default(uuid())
-  storyId         String
-  story           Story       @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  storyId         String?     // 可选：跨作品路径不需要绑定单一故事
+  story           Story?      @relation(fields: [storyId], references: [id], onDelete: SetNull)
   creatorId       String
   creator         User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   title           String
   description     String?
   origin          String      @default("community")  // 'author' | 'community' | 'system'
+  booklistId      String?     // 所属书单（路径是对书单关系的阅读实现）
+  booklist        Booklist?   @relation(fields: [booklistId], references: [id], onDelete: SetNull)
   status          String      @default("published")  // 'draft' | 'published'
   viewCount       Int         @default(0)
   startCount      Int         @default(0)
@@ -725,6 +823,8 @@ model ReadingPathNode {
   sortOrder     Int
   nodeCategory  String        // 'chapter' | 'branch' | 'spinoff'
   contentId     String
+  storyId       String?       // 内容所属故事ID（支持跨作品，可选以兼容存量数据）
+  storyTitle    String?       // 显示用冗余
   contentTitle  String?
   note          String?
   estimatedMin  Int?
@@ -740,7 +840,8 @@ model ReadingTrail {
   user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   pathId          String?
   path            ReadingPath? @relation(fields: [pathId], references: [id], onDelete: SetNull)
-  storyId         String
+  storyId         String?      // 可选：跨作品路径不需要绑定单一故事
+  story           Story?       @relation(fields: [storyId], references: [id], onDelete: SetNull)
   currentNodeId   String?
   currentNodeIndex Int         @default(-1)
   trailNodes      String       @default("[]")  // JSON array
