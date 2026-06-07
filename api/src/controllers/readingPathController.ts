@@ -10,7 +10,7 @@ import { AppError } from '../utils/http';
 export const getAllReadingPaths = catchAsync(async (req: Request, res: Response) => {
   const sortBy = (req.query.sortBy as string) === 'new' ? 'new' : 'hot';
   const result = await ReadingPathService.getAllPaths(sortBy, req.query as any);
-  res.json({ success: true, ...result });
+  res.json({ success: true, data: result });
 });
 
 /**
@@ -20,7 +20,7 @@ export const getReadingPaths = catchAsync(async (req: Request, res: Response) =>
   const { id } = req.params;
   if (!id) throw new AppError(400, 'VALIDATION_ERROR', 'Universe ID is required');
   const result = await ReadingPathService.getPathsByStory(id, req.query as any);
-  res.json({ success: true, ...result });
+  res.json({ success: true, data: result });
 });
 
 /**
@@ -100,7 +100,7 @@ export const recordPathView = catchAsync(async (req: Request, res: Response) => 
   const { id } = req.params;
   if (!id) throw new AppError(400, 'VALIDATION_ERROR', 'Reading path ID is required');
   await ReadingPathService.incrementViewCount(id);
-  res.json({ success: true });
+  res.json({ success: true, data: {} });
 });
 
 /**

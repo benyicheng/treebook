@@ -233,5 +233,5 @@ export const deleteCharacterAppearance = catchAsync(async (req: AuthRequest, res
 
   await prisma.characterAppearance.delete({ where: { id } });
 
-  res.json({ success: true, message: 'Appearance record deleted' });
+  res.json({ success: true, data: { message: 'Appearance record deleted' } });
 });

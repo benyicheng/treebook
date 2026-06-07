@@ -37,7 +37,7 @@ export const updateSiteConfig = catchAsync(async (req: Request, res: Response) =
     });
   }
 
-  res.json({ success: true, updated: keys });
+  res.json({ success: true, data: { updated: keys } });
 });
 
 /**

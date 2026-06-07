@@ -12,7 +12,8 @@ export class InitController {
     try {
       const userCount = await prisma.user.count();
       res.json({
-        needsInit: userCount === 0
+        success: true,
+        data: { needsInit: userCount === 0 }
       });
     } catch (error) {
       next(error);
@@ -52,12 +53,15 @@ export class InitController {
       } catch {}
 
       res.status(201).json({
-        message: '管理员创建成功！系统初始化完成。',
-        user: {
-          id: admin.id,
-          username: admin.username,
-          email: admin.email,
-          role: admin.role
+        success: true,
+        data: {
+          message: '管理员创建成功！系统初始化完成。',
+          user: {
+            id: admin.id,
+            username: admin.username,
+            email: admin.email,
+            role: admin.role
+          }
         }
       });
     } catch (error) {

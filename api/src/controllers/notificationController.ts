@@ -15,7 +15,7 @@ export const getNotifications = async (req: AuthRequest, res: Response) => {
     res.json({ success: true, data: result });
   } catch (error) {
     console.error('[Notification] getNotifications error:', error);
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Failed to fetch notifications' });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to fetch notifications' } });
   }
 };
 
@@ -29,7 +29,7 @@ export const getUnreadCount = async (req: AuthRequest, res: Response) => {
     res.json({ success: true, data: { count } });
   } catch (error) {
     console.error('[Notification] getUnreadCount error:', error);
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Failed to get unread count' });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to get unread count' } });
   }
 };
 
@@ -43,13 +43,13 @@ export const markAsRead = async (req: AuthRequest, res: Response) => {
     res.json({ success: true, data: updated });
   } catch (error: any) {
     if (error?.message === 'NOTIFICATION_NOT_FOUND') {
-      return res.status(404).json({ error: 'NOT_FOUND', message: 'Notification not found' });
+      return res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'Notification not found' } });
     }
     if (error?.message === 'FORBIDDEN') {
-      return res.status(403).json({ error: 'FORBIDDEN', message: 'Access denied' });
+      return res.status(403).json({ success: false, error: { code: 'FORBIDDEN', message: 'Access denied' } });
     }
     console.error('[Notification] markAsRead error:', error);
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Failed to mark as read' });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to mark as read' } });
   }
 };
 
@@ -63,6 +63,6 @@ export const markAllAsRead = async (req: AuthRequest, res: Response) => {
     res.json({ success: true, data: { count: result.count } });
   } catch (error) {
     console.error('[Notification] markAllAsRead error:', error);
-    res.status(500).json({ error: 'INTERNAL_ERROR', message: 'Failed to mark all as read' });
+    res.status(500).json({ success: false, error: { code: 'INTERNAL_ERROR', message: 'Failed to mark all as read' } });
   }
 };

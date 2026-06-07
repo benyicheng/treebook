@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { JWT_SECRET } from '../config/jwt';
+import { sendErr } from '../utils/http';
 
 export interface AuthRequest extends Request {
   user?: {
@@ -15,7 +16,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
   const token = req.headers.authorization?.split(' ')[1];
 
   if (!token) {
-    return res.status(401).json({ error: 'Unauthorized', message: 'No token provided' });
+    return sendErr(res, 'UNAUTHORIZED', 'No token provided', undefined, 401);
   }
 
   try {
@@ -23,7 +24,7 @@ export const authenticate = (req: AuthRequest, res: Response, next: NextFunction
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Unauthorized', message: 'Invalid token' });
+    return sendErr(res, 'UNAUTHORIZED', 'Invalid token', undefined, 401);
   }
 };
 
@@ -46,10 +47,7 @@ export const requirePermission = (permission: string) => {
     }
 
     if (!req.user?.permissions?.includes(permission)) {
-      return res.status(403).json({ 
-        error: 'Forbidden', 
-        message: `Missing required permission: ${permission}` 
-      });
+      return sendErr(res, 'FORBIDDEN', `Missing required permission: ${permission}`, undefined, 403);
     }
     next();
   };
@@ -58,7 +56,7 @@ export const requirePermission = (permission: string) => {
 export const authorize = (roles: string[]) => {
   return (req: AuthRequest, res: Response, next: NextFunction) => {
     if (!req.user || !roles.includes(req.user.role)) {
-      return res.status(403).json({ error: 'Forbidden', message: 'Insufficient permissions' });
+      return sendErr(res, 'FORBIDDEN', 'Insufficient permissions', undefined, 403);
     }
     next();
   };

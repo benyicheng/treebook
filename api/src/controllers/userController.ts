@@ -52,11 +52,13 @@ export const getUsers = catchAsync(async (req: Request, res: Response) => {
 
   res.json({
     success: true,
-    items: users,
-    total,
-    page: Number(page) || 1,
-    limit: take,
-    totalPages: Math.ceil(total / take),
+    data: {
+      items: users,
+      total,
+      page: Number(page) || 1,
+      limit: take,
+      totalPages: Math.ceil(total / take),
+    },
   });
 });
 
@@ -81,7 +83,7 @@ export const assignRole = catchAsync(async (req: Request, res: Response) => {
 
   await prisma.userRole.create({ data: { userId, roleId } });
 
-  res.json({ success: true, message: 'Role assigned to user' });
+  res.json({ success: true, data: { message: 'Role assigned to user' } });
 });
 
 export const removeRole = catchAsync(async (req: Request, res: Response) => {
@@ -98,5 +100,5 @@ export const removeRole = catchAsync(async (req: Request, res: Response) => {
     where: { userId_roleId: { userId, roleId } },
   });
 
-  res.json({ success: true, message: 'Role removed from user' });
+  res.json({ success: true, data: { message: 'Role removed from user' } });
 });
