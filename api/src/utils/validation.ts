@@ -1,17 +1,37 @@
 import { z } from 'zod';
 import { SHARE_PLATFORMS } from './interaction';
 
+const passwordSchema = z
+  .string()
+  .min(8, '密码至少需要8个字符')
+  .regex(/[a-z]/, '密码必须包含小写字母')
+  .regex(/[A-Z]/, '密码必须包含大写字母')
+  .regex(/[0-9]/, '密码必须包含数字');
+
 export const registerSchema = z.object({
   email: z.string().email('无效的邮箱格式'),
   username: z.string().min(3, '用户名至少需要3个字符').max(20, '用户名不能超过20个字符'),
-  password: z.string().min(6, '密码至少需要6个字符'),
-  role: z.enum(['reader', 'author', 'admin']).optional(),
+  password: passwordSchema,
 });
 
 export const loginSchema = z.object({
   email: z.string().email('无效的邮箱格式'),
   password: z.string().min(1, '请输入密码'),
 });
+
+/** Profile JSON structure validated before storage */
+export const profileSchema = z
+  .object({
+    bio: z.string().max(500, '个人简介不能超过500个字符').optional(),
+    website: z.string().url('无效的网址').optional().or(z.literal('')),
+    location: z.string().max(100).optional(),
+    social: z
+      .record(z.string(), z.string().max(200))
+      .optional(),
+  })
+  .passthrough() // allow unknown keys but still validate types
+  .nullable()
+  .optional();
 
 export const storySchema = z.object({
   title: z.string().min(1, '标题不能为空').max(100, '标题太长了'),

@@ -36,7 +36,7 @@ export class InitController {
         throw new AppError(400, 'BAD_REQUEST', '请提供完整的管理员信息。');
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
+      const hashedPassword = await bcrypt.hash(password, 12);
 
       const admin = await prisma.user.create({
         data: {

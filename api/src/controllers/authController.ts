@@ -2,14 +2,14 @@ import { Request, Response } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma } from '../prisma';
-import { registerSchema, loginSchema } from '../utils/validation';
+import { registerSchema, loginSchema, profileSchema } from '../utils/validation';
 import { catchAsync } from '../utils/catchAsync';
 import { AppError } from '../utils/http';
 import { JWT_SECRET } from '../config/jwt';
 import { extractPermissions, USER_WITH_ROLES_INCLUDE } from '../services/UserService';
 
 export const register = catchAsync(async (req: Request, res: Response) => {
-  const { email, username, password, role } = registerSchema.parse(req.body);
+  const { email, username, password } = registerSchema.parse(req.body);
 
   const existingUser = await prisma.user.findFirst({
     where: {
@@ -21,13 +21,13 @@ export const register = catchAsync(async (req: Request, res: Response) => {
     throw new AppError(400, 'CONFLICT', 'User already exists');
   }
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  const passwordHash = await bcrypt.hash(password, 12);
   const user = await prisma.user.create({
     data: {
       email,
       username,
       passwordHash,
-      role: role || 'reader',
+      role: 'reader',
     },
   });
 
@@ -172,12 +172,15 @@ export const updateMe = catchAsync(async (req: any, res: Response) => {
     }
   }
 
+  // Validate profile structure (S1.8)
+  const validatedProfile = profileSchema.parse(profile);
+
   await prisma.user.update({
     where: { id: userId },
     data: {
       username: username ?? undefined,
       avatarUrl: avatarUrl ?? undefined,
-      profile: profile ? JSON.stringify(profile) : undefined,
+      profile: validatedProfile ? JSON.stringify(validatedProfile) : undefined,
     },
   });
 
