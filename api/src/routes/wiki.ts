@@ -7,6 +7,7 @@ import {
   deleteWikiPage,
   addAlias,
   removeAlias,
+  getLinks,
   createLink,
   removeLink,
   lookupWikis,
@@ -41,6 +42,7 @@ router.post('/:id/aliases', authenticate, validateRequest(createWikiAliasRequest
 router.delete('/:id/aliases/:aliasId', authenticate, validateRequest(deleteWikiAliasRequest), removeAlias);
 
 // Links
+router.get('/:id/links', getLinks);
 router.post('/:id/links', authenticate, validateRequest(createWikiLinkRequest), createLink);
 router.delete('/:id/links/:linkId', authenticate, validateRequest(deleteWikiLinkRequest), removeLink);
 

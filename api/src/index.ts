@@ -43,6 +43,7 @@ import userRoutes from './routes/users';
 import characterRoutes from './routes/characters';
 import readingProgressRoutes from './routes/readingProgress';
 import { trace } from './middleware/trace';
+import { encodingCheck } from './middleware/encodingCheck';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
 
@@ -162,6 +163,10 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Encoding check: reject body strings containing U+FFFD (�)
+// Guards against Git Bash curl mangling Chinese characters (codepage conversion loss)
+app.use(encodingCheck);
 
 app.use(express.urlencoded({ extended: true }));
 

@@ -43,6 +43,7 @@ const MainlinePage: React.FC = () => {
     setEditStoryData,
     savepoints,
     readingHistory,
+    pathIds,
     handleSaveChapter,
     handleCreateBranch,
     handleCreateChapter,
@@ -136,6 +137,8 @@ const MainlinePage: React.FC = () => {
                 readingHistory={readingHistory}
                 selectedChapterId={selectedChapterId}
                 storyId={id}
+                focusNodeId={selectedChapterId ?? undefined}
+                pathIds={pathIds}
                 onNodeClick={(id, type) => {
                   if (type === 'chapter') {
                     if (isAuthor) {

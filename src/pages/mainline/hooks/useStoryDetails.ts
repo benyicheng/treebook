@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../../stores/useAuthStore';
 import { useToast } from '../../../components/notifications';
@@ -6,6 +6,8 @@ import { useStory, useUpdateStory } from '../../../hooks/useStories';
 import { useCreateChapter, useUpdateChapter } from '../../../hooks/useChapters';
 import { useCreateBranch } from '../../../hooks/useBranches';
 import { useSavepoints } from '../../../hooks/useSavepoints';
+import { useReadingProgress } from '../../../hooks/useReadingProgress';
+import { useStoryReadingPaths } from '../../../hooks/useReadingPaths';
 import { revenueService } from '../../../api/revenueService';
 
 export const useStoryDetails = () => {
@@ -70,7 +72,24 @@ export const useStoryDetails = () => {
     coverImage: '',
   });
 
-  const [readingHistory] = useState<any[]>([]);
+  // ─── Fetch reading progress for tree visualization ───
+  const { data: readingProgressData = [] } = useReadingProgress();
+  const { data: storyReadingPaths = [] } = useStoryReadingPaths(id);
+
+  // Map ReadingProgress[] → format StoryBranchTree expects ({ chapterId })
+  const readingHistory = useMemo(() =>
+    readingProgressData.map((rp: any) => ({ chapterId: rp.chapterId, status: rp.status })),
+    [readingProgressData]
+  );
+
+  // Collect all content IDs from story reading paths for path highlighting
+  const pathIds = useMemo(() => {
+    const ids = new Set<string>();
+    storyReadingPaths.forEach((rp: any) => {
+      rp.nodes?.forEach((n: any) => { if (n.contentId) ids.add(n.contentId); });
+    });
+    return [...ids];
+  }, [storyReadingPaths]);
 
   // ─── Derived state ───
   const isAuthor = user?.id === currentStory?.authorId;
@@ -199,6 +218,7 @@ export const useStoryDetails = () => {
     setEditStoryData,
     savepoints,
     readingHistory,
+    pathIds,
     handleSaveChapter,
     handleCreateBranch,
     handleCreateChapter,

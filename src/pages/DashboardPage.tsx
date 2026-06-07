@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { storyService, branchService, spinoffService, booklistService } from '../api/storyService';
+import { readingProgressService } from '../api/readingProgressService';
 import { useQuery } from '@tanstack/react-query';
 import {
   Book,
@@ -13,14 +14,46 @@ import {
   ChevronRight,
   Clock,
   LayoutDashboard,
+  BarChart3,
+  Eye,
+  Heart,
+  TrendingUp,
+  BookOpen,
   Zap
 } from 'lucide-react';
 import { Skeleton } from '../components/ui';
 
+type TabId = 'overview' | 'stories' | 'branches' | 'spinoffs' | 'booklists' | 'analytics';
+
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated, logout } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'overview' | 'stories' | 'branches' | 'spinoffs' | 'booklists'>('overview');
+  const tabFromParam = searchParams.get('tab') as TabId | null;
+  const [activeTab, setActiveTab] = useState<TabId>(tabFromParam || 'overview');
+
+  // Sync tab → URL query param
+  useEffect(() => {
+    const current = searchParams.get('tab');
+    if (activeTab === 'overview' && current) {
+      // clear param when going back to overview
+      const next = new URLSearchParams(searchParams);
+      next.delete('tab');
+      setSearchParams(next, { replace: true });
+    } else if (activeTab !== 'overview' && current !== activeTab) {
+      const next = new URLSearchParams(searchParams);
+      next.set('tab', activeTab);
+      setSearchParams(next, { replace: true });
+    }
+  }, [activeTab, searchParams, setSearchParams]);
+
+  // Read tab from URL on mount
+  useEffect(() => {
+    if (tabFromParam && tabFromParam !== activeTab) {
+      setActiveTab(tabFromParam);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -52,6 +85,13 @@ const DashboardPage: React.FC = () => {
   const { data: booklists = [], isLoading: isBooklistsLoading } = useQuery({
     queryKey: ['myBooklists'],
     queryFn: booklistService.getMy,
+    enabled: isAuthenticated,
+    staleTime: 30000,
+  });
+
+  const { data: readingStats } = useQuery({
+    queryKey: ['readingStats'],
+    queryFn: readingProgressService.getStats,
     enabled: isAuthenticated,
     staleTime: 30000,
   });
@@ -149,6 +189,7 @@ const DashboardPage: React.FC = () => {
           { id: 'branches', label: '我的分支', icon: GitBranch },
           { id: 'spinoffs', label: '我的番外', icon: Star },
           { id: 'booklists', label: '我的书单', icon: List },
+          { id: 'analytics', label: '数据分析', icon: BarChart3 },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -329,6 +370,102 @@ const DashboardPage: React.FC = () => {
                 <p className="text-ink-500 dark:text-ink-400 text-sm line-clamp-2 font-light">{list.description}</p>
               </Link>
             ))}
+          </div>
+        )}
+
+        {activeTab === 'analytics' && (
+          <div className="space-y-8">
+            {/* Reading Stats */}
+            <div className="bg-white dark:bg-ink-800 rounded-[2rem] p-8 border border-ink-100 dark:border-ink-700 shadow-sm">
+              <h3 className="text-xl font-black text-ink-800 dark:text-white flex items-center gap-3 mb-6">
+                <BookOpen size={20} className="text-accent-500" />
+                阅读统计
+              </h3>
+              <div className="grid grid-cols-3 gap-6">
+                <div className="bg-accent-50 dark:bg-accent-500/10 rounded-2xl p-6 text-center">
+                  <div className="text-3xl font-black text-accent-500">{readingStats?.total ?? '-'}</div>
+                  <div className="text-xs font-bold text-ink-400 uppercase tracking-widest mt-2">总阅读章节</div>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-900/10 rounded-2xl p-6 text-center">
+                  <div className="text-3xl font-black text-emerald-600">{readingStats?.completed ?? '-'}</div>
+                  <div className="text-xs font-bold text-ink-400 uppercase tracking-widest mt-2">已完成</div>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-900/10 rounded-2xl p-6 text-center">
+                  <div className="text-3xl font-black text-amber-600">{readingStats?.inProgress ?? '-'}</div>
+                  <div className="text-xs font-bold text-ink-400 uppercase tracking-widest mt-2">在读中</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Overview */}
+            <div className="bg-white dark:bg-ink-800 rounded-[2rem] p-8 border border-ink-100 dark:border-ink-700 shadow-sm">
+              <h3 className="text-xl font-black text-ink-800 dark:text-white flex items-center gap-3 mb-6">
+                <TrendingUp size={20} className="text-accent-500" />
+                内容概览
+              </h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="p-5 rounded-2xl border border-ink-100 dark:border-ink-700 text-center">
+                  <Book size={24} className="mx-auto text-accent-500 mb-2" />
+                  <div className="text-2xl font-black text-ink-800 dark:text-white">{storyList.length}</div>
+                  <div className="text-[10px] font-black text-ink-400 uppercase tracking-widest">主线故事</div>
+                </div>
+                <div className="p-5 rounded-2xl border border-ink-100 dark:border-ink-700 text-center">
+                  <GitBranch size={24} className="mx-auto text-purple-500 mb-2" />
+                  <div className="text-2xl font-black text-ink-800 dark:text-white">{branchList.length}</div>
+                  <div className="text-[10px] font-black text-ink-400 uppercase tracking-widest">平行分支</div>
+                </div>
+                <div className="p-5 rounded-2xl border border-ink-100 dark:border-ink-700 text-center">
+                  <Star size={24} className="mx-auto text-amber-500 mb-2" />
+                  <div className="text-2xl font-black text-ink-800 dark:text-white">{spinoffList.length}</div>
+                  <div className="text-[10px] font-black text-ink-400 uppercase tracking-widest">精彩番外</div>
+                </div>
+                <div className="p-5 rounded-2xl border border-ink-100 dark:border-ink-700 text-center">
+                  <List size={24} className="mx-auto text-accent-400 mb-2" />
+                  <div className="text-2xl font-black text-ink-800 dark:text-white">{booklistList.length}</div>
+                  <div className="text-[10px] font-black text-ink-400 uppercase tracking-widest">精选书单</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Stories detail stats */}
+            {storyList.length > 0 && (
+              <div className="bg-white dark:bg-ink-800 rounded-[2rem] p-8 border border-ink-100 dark:border-ink-700 shadow-sm">
+                <h3 className="text-xl font-black text-ink-800 dark:text-white flex items-center gap-3 mb-6">
+                  <Eye size={20} className="text-accent-500" />
+                  作品数据
+                </h3>
+                <div className="space-y-4">
+                  {storyList.map(story => (
+                    <div key={story.id} className="flex items-center justify-between p-4 rounded-2xl bg-ink-50 dark:bg-ink-700/50 border border-ink-100 dark:border-ink-700">
+                      <div className="flex items-center gap-4 min-w-0">
+                        <div className="p-2 bg-accent-50 dark:bg-accent-500/10 rounded-xl shrink-0">
+                          <Book size={18} className="text-accent-500" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="text-sm font-black text-ink-800 dark:text-white truncate">{story.title}</div>
+                          <div className="text-[10px] text-ink-400 font-bold uppercase tracking-widest">
+                            {story.viewCount ?? 0} 次浏览 · {story._count?.chapters ?? 0} 章节
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 shrink-0 ml-4">
+                        <div className="flex items-center gap-1.5 text-xs font-bold text-ink-400">
+                          <Heart size={14} className="text-red-400" />
+                          <span>{story._count?.branches ?? 0}</span>
+                        </div>
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                          story.status === 'ongoing' ? 'bg-emerald-50 dark:bg-emerald-900/10 text-emerald-600' :
+                          story.status === 'completed' ? 'bg-accent-50 dark:bg-accent-500/10 text-accent-500' :
+                          'bg-ink-100 dark:bg-ink-700 text-ink-400'
+                        }`}>
+                          {story.status === 'ongoing' ? '连载中' : story.status === 'completed' ? '已完结' : '暂停'}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

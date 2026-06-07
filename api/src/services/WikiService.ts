@@ -203,6 +203,28 @@ export class WikiService {
 
   // ── Link Management ────────────────────────────────
 
+  static async getLinks(pageId: string) {
+    const page = await prisma.wikiPage.findUnique({ where: { id: pageId } });
+    if (!page) throw new AppError(404, 'NOT_FOUND', '百科页面不存在');
+
+    const [outgoingLinks, incomingLinks] = await Promise.all([
+      prisma.wikiLink.findMany({
+        where: { sourcePageId: pageId },
+        include: {
+          targetPage: { select: { id: true, title: true, slug: true, contentType: true } },
+        },
+      }),
+      prisma.wikiLink.findMany({
+        where: { targetPageId: pageId },
+        include: {
+          sourcePage: { select: { id: true, title: true, slug: true, contentType: true } },
+        },
+      }),
+    ]);
+
+    return { outgoingLinks, incomingLinks };
+  }
+
   static async createLink(pageId: string, data: { targetPageId: string; linkType: string }) {
     // Verify both pages exist
     const [source, target] = await Promise.all([
@@ -254,12 +276,14 @@ export class WikiService {
   static async lookupWikis(query: string, limit: number = 5) {
     if (!query?.trim()) return [];
 
+    const trimmed = query.trim();
+
     const pages = await prisma.wikiPage.findMany({
       where: {
-        status: 'published',
         OR: [
-          { title: { contains: query.trim() } },
-          { aliases: { some: { alias: { contains: query.trim() } } } },
+          { id: trimmed },
+          { title: { contains: trimmed } },
+          { aliases: { some: { alias: { contains: trimmed } } } },
         ],
       },
       select: {

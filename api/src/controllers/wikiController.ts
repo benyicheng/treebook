@@ -71,6 +71,11 @@ export const removeAlias = catchAsync(async (req: AuthRequest, res: Response) =>
 
 // ── Link Management ──────────────────────────────────
 
+export const getLinks = catchAsync(async (req: Request, res: Response) => {
+  const links = await WikiService.getLinks(req.params.id);
+  res.json({ success: true, data: links });
+});
+
 export const createLink = catchAsync(async (req: AuthRequest, res: Response) => {
   const authorId = req.user?.id;
   if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');

@@ -9,7 +9,7 @@ const creatorItems = [
   { name: '写新章', path: '/story/create', icon: FileEdit },
   { name: '分支管理', path: '/branches?mine=true', icon: GitBranch },
   { name: '收益', path: '/revenue', icon: Coins },
-  { name: '数据分析', path: '/dashboard', icon: BarChart3 },
+  { name: '数据分析', path: '/dashboard?tab=analytics', icon: BarChart3 },
 ];
 
 const CreatorNav: React.FC = () => {

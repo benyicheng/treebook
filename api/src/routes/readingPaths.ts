@@ -15,8 +15,8 @@ import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
-// Universe-scoped: GET /api/universes/:id/reading-paths
-router.get('/universes/:id/reading-paths', getReadingPaths);
+// Universe-scoped: GET /api/reading-paths/universes/:id
+router.get('/universes/:id', getReadingPaths);
 
 // Global list: GET /api/reading-paths?sortBy=hot|new&limit=20
 router.get('/', getAllReadingPaths);

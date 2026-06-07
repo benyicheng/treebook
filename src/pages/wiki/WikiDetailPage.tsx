@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { useWikiPage, useDeleteWikiPage, useAddWikiAlias, useRemoveWikiAlias, useCreateWikiLink, useRemoveWikiLink } from '../../hooks/useWiki';
+import { wikiService, WikiLookupResult } from '../../api/wikiService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useToast } from '../../components/notifications';
 import { Modal } from '../../components/ui';
@@ -9,6 +10,7 @@ import {
   ArrowLeft, Edit3, Trash2, Plus, X, Link2, Hash,
   FileText, Users, Globe, BookOpen, Zap, Puzzle,
   Swords, Package, Clock, Eye, AlertCircle,
+  Search, Loader2,
 } from 'lucide-react';
 
 const contentTypeLabels: Record<string, string> = {
@@ -54,8 +56,52 @@ const WikiDetailPage: React.FC = () => {
   const [aliasLanguage, setAliasLanguage] = useState('');
 
   // Link state
-  const [linkTargetId, setLinkTargetId] = useState('');
+  const [selectedLinkTarget, setSelectedLinkTarget] = useState<{ id: string; title: string } | null>(null);
+  const [linkSearchQuery, setLinkSearchQuery] = useState('');
+  const [linkSearchResults, setLinkSearchResults] = useState<WikiLookupResult[]>([]);
+  const [linkSearchLoading, setLinkSearchLoading] = useState(false);
+  const [linkSearchOpen, setLinkSearchOpen] = useState(false);
   const [linkType, setLinkType] = useState('reference');
+  const linkSearchRef = useRef<HTMLDivElement>(null);
+  const linkSearchTimer = useRef<ReturnType<typeof setTimeout>>();
+
+  // Debounced search
+  useEffect(() => {
+    if (linkSearchTimer.current) clearTimeout(linkSearchTimer.current);
+
+    if (!linkSearchQuery.trim()) {
+      setLinkSearchResults([]);
+      setLinkSearchOpen(false);
+      return;
+    }
+
+    linkSearchTimer.current = setTimeout(async () => {
+      setLinkSearchLoading(true);
+      try {
+        const results = await wikiService.lookup(linkSearchQuery);
+        setLinkSearchResults(results);
+        setLinkSearchOpen(true);
+      } catch {
+        setLinkSearchResults([]);
+      } finally {
+        setLinkSearchLoading(false);
+      }
+    }, 300);
+
+    return () => { if (linkSearchTimer.current) clearTimeout(linkSearchTimer.current); };
+  }, [linkSearchQuery]);
+
+  // Click outside to close dropdown
+  useEffect(() => {
+    if (!linkSearchOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (linkSearchRef.current && !linkSearchRef.current.contains(e.target as Node)) {
+        setLinkSearchOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [linkSearchOpen]);
 
   // Delete confirmation
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -99,14 +145,19 @@ const WikiDetailPage: React.FC = () => {
   };
 
   const handleCreateLink = async () => {
-    if (!linkTargetId.trim()) return;
+    if (!selectedLinkTarget?.id) {
+      addToast('warning', '请先搜索并选择一个百科页面');
+      return;
+    }
     try {
-      await createLink.mutateAsync({ targetPageId: linkTargetId.trim(), linkType });
-      setLinkTargetId('');
+      await createLink.mutateAsync({ targetPageId: selectedLinkTarget.id, linkType });
+      setSelectedLinkTarget(null);
+      setLinkSearchQuery('');
       setLinkType('reference');
       addToast('success', '链接已创建');
-    } catch {
-      addToast('error', '创建链接失败');
+    } catch (err: any) {
+      const message = err?.response?.data?.error?.message || err?.message || '创建链接失败';
+      addToast('error', message);
     }
   };
 
@@ -341,13 +392,72 @@ const WikiDetailPage: React.FC = () => {
             创建链接
           </h2>
           <div className="flex items-center gap-3">
-            <input
-              type="text"
-              placeholder="目标页面 ID..."
-              className="flex-1 px-4 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
-              value={linkTargetId}
-              onChange={e => setLinkTargetId(e.target.value)}
-            />
+            <div className="relative flex-1" ref={linkSearchRef}>
+              {selectedLinkTarget ? (
+                <div className="flex items-center justify-between px-4 py-2 rounded-xl border border-indigo-300 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-sm">
+                  <span className="font-bold text-indigo-600 dark:text-indigo-300 truncate">
+                    {selectedLinkTarget.title}
+                  </span>
+                  <button
+                    onClick={() => { setSelectedLinkTarget(null); setLinkSearchQuery(''); }}
+                    className="ml-2 text-indigo-400 hover:text-red-500 transition-colors shrink-0"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
+                  <input
+                    type="text"
+                    placeholder="搜索百科页面..."
+                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
+                    value={linkSearchQuery}
+                    onChange={e => setLinkSearchQuery(e.target.value)}
+                    onFocus={() => { if (linkSearchResults.length > 0) setLinkSearchOpen(true); }}
+                  />
+                  {linkSearchLoading && (
+                    <Loader2 size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-400 animate-spin" />
+                  )}
+                  {linkSearchOpen && linkSearchResults.length > 0 && (
+                    <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white dark:bg-ink-700 rounded-xl shadow-xl border border-ink-200 dark:border-ink-600 overflow-hidden">
+                      {linkSearchResults.map(r => (
+                        <button
+                          key={r.id}
+                          type="button"
+                          className="w-full text-left px-4 py-3 hover:bg-ink-50 dark:hover:bg-ink-600 border-b border-ink-100 dark:border-ink-600 last:border-b-0 transition-colors"
+                          onClick={() => {
+                            setSelectedLinkTarget({ id: r.id, title: r.title });
+                            setLinkSearchQuery('');
+                            setLinkSearchOpen(false);
+                            setLinkSearchResults([]);
+                          }}
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-sm text-ink-800 dark:text-ink-100 truncate">
+                              {r.title}
+                            </span>
+                            <span className="shrink-0 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300">
+                              {contentTypeLabels[r.contentType] || r.contentType}
+                            </span>
+                          </div>
+                          {r.summary && (
+                            <p className="mt-0.5 text-xs text-ink-500 dark:text-ink-400 line-clamp-1">
+                              {r.summary}
+                            </p>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {linkSearchOpen && !linkSearchLoading && linkSearchResults.length === 0 && linkSearchQuery.trim() && (
+                    <div className="absolute top-full left-0 right-0 mt-1 z-50 bg-white dark:bg-ink-700 rounded-xl shadow-xl border border-ink-200 dark:border-ink-600 p-4 text-sm text-ink-400 text-center">
+                      未找到匹配的百科页面
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
             <select
               className="px-3 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 outline-none text-sm font-bold"
               value={linkType}
@@ -359,7 +469,7 @@ const WikiDetailPage: React.FC = () => {
             </select>
             <button
               onClick={handleCreateLink}
-              disabled={createLink.isPending || !linkTargetId.trim()}
+              disabled={createLink.isPending || !selectedLinkTarget?.id}
               className="px-4 py-2 bg-indigo-500 text-white rounded-xl text-sm font-bold hover:bg-indigo-600 disabled:opacity-50 transition-colors"
             >
               添加
