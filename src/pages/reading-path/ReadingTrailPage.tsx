@@ -12,6 +12,7 @@ import {
   User,
   Route,
 } from 'lucide-react';
+import client from '../../api/client';
 import { useTrail } from '../../hooks/useReadingPaths';
 import { toast } from '../../lib/toast';
 import { TrailData, TrailNode } from '../../hooks/useReadingPaths';
@@ -93,14 +94,12 @@ const ReadingTrailPage: React.FC = () => {
     if (!trailId || advancing) return;
     setAdvancing(true);
     try {
-      const res = await fetch(`/api/reading-paths/trails/${trailId}/advance`, {
-        method: 'POST',
-      });
-      const data = await res.json();
-      if (data.data?.isCompleted || data.isCompleted) {
+      const res = await client.post(`/reading-paths/trails/${trailId}/advance`);
+      const result = res.data;
+      if (result.isCompleted) {
         setIsCompleted(true);
       } else {
-        const newIndex = data.data?.currentNodeIndex ?? data.currentNodeIndex;
+        const newIndex = result.currentNodeIndex;
         if (trail) {
           trail.currentNodeIndex = newIndex;
         }

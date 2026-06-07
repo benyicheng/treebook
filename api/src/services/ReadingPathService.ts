@@ -238,7 +238,7 @@ export class ReadingPathService {
     input: {
       title?: string;
       description?: string | null;
-      nodes?: { sortOrder: number; nodeCategory: string; contentId: string; note?: string }[];
+      nodes?: { sortOrder: number; nodeCategory: string; contentId: string; storyId?: string | null; storyTitle?: string | null; note?: string }[];
     },
   ) {
     const existing = await prisma.readingPath.findUnique({ where: { id: pathId } });
@@ -265,6 +265,8 @@ export class ReadingPathService {
             sortOrder: n.sortOrder,
             nodeCategory: n.nodeCategory,
             contentId: n.contentId,
+            storyId: n.storyId ?? null,
+            storyTitle: n.storyTitle ?? null,
             note: n.note,
           })),
         });
