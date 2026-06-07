@@ -1,1 +1,2 @@
-npx lint-staged
+npx tsc --noEmit --pretty 2>&1 || { echo "❌ Frontend tsc failed, aborting commit"; exit 1; }
+cd api && npx tsc --noEmit --pretty 2>&1 || { echo "❌ Backend tsc failed, aborting commit"; exit 1; }
