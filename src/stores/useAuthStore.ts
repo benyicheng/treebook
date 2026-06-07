@@ -15,6 +15,11 @@ interface AuthState {
   updateMe: (payload: { username?: string; avatarUrl?: string; profile?: any }) => Promise<void>;
 }
 
+/** Clear all auth state (used by checkAuth failure & auth:logout event) */
+function clearAuth(set: (partial: Partial<AuthState>) => void) {
+  set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+}
+
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   token: localStorage.getItem('token'),
@@ -53,7 +58,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   logout: () => {
     authService.logout();
-    set({ user: null, token: null, isAuthenticated: false });
+    clearAuth(set);
   },
 
   checkAuth: async () => {
@@ -66,7 +71,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (err) {
       localStorage.removeItem('token');
-      set({ user: null, token: null, isAuthenticated: false, isLoading: false });
+      localStorage.removeItem('refreshToken');
+      clearAuth(set);
     }
   },
 
@@ -80,3 +86,10 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     }
   },
 }));
+
+// Listen for forced logout from the API client (when auto-refresh fails)
+if (typeof window !== 'undefined') {
+  window.addEventListener('auth:logout', () => {
+    clearAuth(useAuthStore.setState);
+  });
+}

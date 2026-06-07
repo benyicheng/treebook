@@ -105,8 +105,24 @@ model User {
   readingTrails  ReadingTrail[]
   readingProgress ReadingProgress[]
   wikiPages      WikiPage[]    // 创建的百科页面
+  refreshTokens  RefreshToken[] // JWT refresh tokens
 
   @@map("users")
+}
+
+/// 刷新令牌 — 用于 JWT access token 的无感续期
+model RefreshToken {
+  id        String    @id @default(uuid())
+  tokenHash String
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  @@unique([tokenHash])
+  @@index([userId])
+  @@map("refresh_tokens")
 }
 
 model Wallet {

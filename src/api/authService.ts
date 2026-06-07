@@ -24,20 +24,34 @@ export interface PublicProfile {
   createdAt: string;
 }
 
+export interface AuthResponse {
+  user: User;
+  token: string;
+  refreshToken: string;
+}
+
+export interface RefreshResponse {
+  token: string;
+  refreshToken: string;
+}
+
 export const authService = {
   getPublicProfile: async (userId: string) => {
     const { data } = await client.get<PublicProfile>(`/auth/profile/${userId}`);
     return data;
   },
+
   login: async (credentials: { email: string; password: string }) => {
-    const { data } = await client.post<{ user: User; token: string }>('/auth/login', credentials);
+    const { data } = await client.post<AuthResponse>('/auth/login', credentials);
     localStorage.setItem('token', data.token);
+    localStorage.setItem('refreshToken', data.refreshToken);
     return data;
   },
 
   register: async (userData: any) => {
-    const { data } = await client.post<{ user: User; token: string }>('/auth/register', userData);
+    const { data } = await client.post<AuthResponse>('/auth/register', userData);
     localStorage.setItem('token', data.token);
+    localStorage.setItem('refreshToken', data.refreshToken);
     return data;
   },
 
@@ -51,7 +65,21 @@ export const authService = {
     return data;
   },
 
-  logout: () => {
+  /** Exchange a refresh token for a new access + refresh token pair */
+  refreshToken: async (refreshToken: string) => {
+    const { data } = await client.post<RefreshResponse>('/auth/refresh', {
+      refreshToken,
+    });
+    return data;
+  },
+
+  logout: async () => {
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (refreshToken) {
+      // Best-effort: revoke the refresh token on the server
+      client.post('/auth/logout', { refreshToken }).catch(() => {});
+    }
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
   },
 };

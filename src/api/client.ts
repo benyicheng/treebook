@@ -10,6 +10,27 @@ const client = axios.create({
   baseURL: API_URL,
 });
 
+// --- Refresh Token State ---
+// Guards against concurrent /refresh calls: only one refresh at a time,
+// subsequent 401s queue up and retry after the refresh completes.
+let isRefreshing = false;
+let failedQueue: Array<{
+  resolve: (value: any) => void;
+  reject: (reason?: any) => void;
+}> = [];
+
+function processQueue(error: any, token: string | null = null) {
+  failedQueue.forEach(({ resolve, reject }) => {
+    if (error) {
+      reject(error);
+    } else {
+      resolve(token);
+    }
+  });
+  failedQueue = [];
+}
+
+// --- Request Interceptor ---
 client.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -22,11 +43,10 @@ client.interceptors.request.use((config) => {
   return config;
 });
 
+// --- Response Interceptor (auto-refresh on 401) ---
 client.interceptors.response.use(
   (response) => {
     // 兼容新版统一返回格式 { success: true, data: T }
-    // 如果是统一格式，我们将 response.data 修改为内部的 data 字段
-    // 这样既能保持 Axios 的结构 (有 .data 字段)，又能直接获取业务数据
     if (response.data && typeof response.data.success === 'boolean') {
       if (response.data.success) {
         return {
@@ -34,21 +54,79 @@ client.interceptors.response.use(
           data: response.data.data !== undefined ? response.data.data : response.data
         };
       } else {
-        // 如果成功标志为 false，则视为错误
         return Promise.reject(response.data.error || { message: 'Unknown error' });
       }
     }
     return response;
   },
-  (error) => {
-    // 处理 HTTP 错误
-    const message = error.response?.data?.error?.message || error.response?.data?.message || error.message;
-    // 未登录时的 "No token provided" 是预期行为，不在控制台输出
-    if (error.response?.status === 401 && message === 'No token provided') {
+  async (error) => {
+    const originalRequest = error.config;
+
+    // Only attempt refresh on 401 errors that are NOT the /refresh or /auth/logout endpoint
+    // and have not already been retried
+    if (
+      error.response?.status !== 401 ||
+      originalRequest._retry ||
+      originalRequest.url === '/auth/refresh' ||
+      originalRequest.url === '/auth/logout'
+    ) {
+      // Log non-trivial errors (skip "No token provided" which is expected)
+      const message = error.response?.data?.error?.message || error.response?.data?.message || error.message;
+      if (!(error.response?.status === 401 && message === 'No token provided')) {
+        console.error('API Error:', message);
+      }
       return Promise.reject(error);
     }
-    console.error('API Error:', message);
-    return Promise.reject(error);
+
+    const refreshToken = localStorage.getItem('refreshToken');
+    if (!refreshToken) {
+      // No refresh token available — force logout
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      window.dispatchEvent(new Event('auth:logout'));
+      return Promise.reject(error);
+    }
+
+    if (isRefreshing) {
+      // Another refresh is in-flight — queue this request
+      return new Promise((resolve, reject) => {
+        failedQueue.push({ resolve, reject });
+      }).then((newToken) => {
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return client(originalRequest);
+      });
+    }
+
+    originalRequest._retry = true;
+    isRefreshing = true;
+
+    try {
+      const { data } = await client.post<{ token: string; refreshToken: string }>(
+        '/auth/refresh',
+        { refreshToken },
+        {
+          // Send the (possibly expired) access token so the server can identify the user
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+        }
+      );
+
+      // The success interceptor has already unwrapped response.data.data → data
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('refreshToken', data.refreshToken);
+
+      // Retry the original request with the fresh token
+      originalRequest.headers.Authorization = `Bearer ${data.token}`;
+      processQueue(null, data.token);
+      return client(originalRequest);
+    } catch (refreshError) {
+      processQueue(refreshError, null);
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      window.dispatchEvent(new Event('auth:logout'));
+      return Promise.reject(refreshError);
+    } finally {
+      isRefreshing = false;
+    }
   }
 );
 
