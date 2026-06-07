@@ -69,20 +69,12 @@ const ReadingPathsListPage: React.FC = () => {
   return (
     <div className="max-w-6xl mx-auto py-8 px-4 space-y-8 pb-20 md:pb-8">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 text-accent-500 font-black text-xs uppercase tracking-widest mb-2">
-            <Route size={14} />
-            阅读路径
-          </div>
-          <h1 className="text-3xl font-black text-ink-800 dark:text-white tracking-tight">
-            探索阅读路径
-          </h1>
-          <p className="mt-2 text-ink-500 dark:text-ink-400 text-base font-light">
-            由用户精心编排的阅读路线，带你领略平行宇宙的魅力
-          </p>
-        </div>
-
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 className="text-3xl font-black text-ink-800 dark:text-white tracking-tight flex items-center gap-2">
+          <Route size={24} className="text-accent-500" />
+          探索阅读路径
+        </h1>
+        
         {/* Create + Sort toggle */}
         <div className="flex items-center gap-3">
           <button

@@ -3,9 +3,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuthStore } from '../stores/useAuthStore';
 import { authService } from '../api/authService';
 import { useQuery } from '@tanstack/react-query';
-import FollowButton from '../components/FollowButton';
-import { useToast } from '../components/Toast';
-import ActivityFeed from '../components/ActivityFeed';
+import { FollowButton } from '../components/Interaction';
+import { useToast } from '../components/notifications';
+import { ActivityFeed } from '../components/notifications';
 import {
   Users, BookOpen, GitBranch, Sparkles, Calendar,
   Loader2, ArrowLeft, Settings, AlertCircle,

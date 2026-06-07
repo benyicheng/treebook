@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { Share2, Link2, Check, X, MessageCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { interactionService, SharePlatform, TargetType } from '../../api/interactionService';
-import Modal from '../Modal';
+import Modal from '../ui/Modal';
 
 // 平台配置
 const PLATFORMS: { id: SharePlatform; name: string; icon: string; color: string }[] = [

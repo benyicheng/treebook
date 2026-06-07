@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useCreateStory } from '../../hooks/useStories';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 import { Book, Image as ImageIcon, Type, AlignLeft, Send, ArrowLeft } from 'lucide-react';
 
 const CreateStoryPage: React.FC = () => {

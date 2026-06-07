@@ -1,9 +1,11 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import path from 'path';
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import dotenv from 'dotenv';
 import { Server } from 'socket.io';
 import http from 'http';
 import jwt from 'jsonwebtoken';
@@ -27,6 +29,7 @@ import mergeRoutes from './routes/merges';
 import followRoutes from './routes/follows';
 import activityRoutes from './routes/activities';
 import aiRoutes from './routes/ai';
+import wikiRoutes from './routes/wiki';
 import initRoutes from './routes/initRoutes';
 import moderationRoutes from './routes/moderation';
 import reviewWorkflowRoutes from './routes/reviewWorkflow';
@@ -37,11 +40,11 @@ import notificationRoutes from './routes/notifications';
 import analyticsRoutes from './routes/analytics';
 import recommendationRoutes from './routes/recommendations';
 import userRoutes from './routes/users';
+import characterRoutes from './routes/characters';
+import readingProgressRoutes from './routes/readingProgress';
 import { trace } from './middleware/trace';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
-
-dotenv.config();
 
 // 创建 Express 应用
 const app = express();
@@ -53,8 +56,19 @@ const server = http.createServer(app);
 const corsOrigins = (() => {
   const raw = process.env.CORS_ORIGINS || '';
   const origins = raw.split(',').map(s => s.trim()).filter(Boolean);
-  if (process.env.NODE_ENV !== 'production') {
-    origins.push('http://localhost:5173', 'http://127.0.0.1:5173');
+  
+  if (process.env.NODE_ENV === 'production') {
+    if (origins.length === 0) {
+      logger.warn('[CORS] CORS_ORIGINS not set in production environment. All cross-origin requests will be blocked.');
+    }
+  } else {
+    // 开发环境自动包含 common Vite dev server origins
+    const devOrigins = ['http://localhost:5173', 'http://127.0.0.1:5173'];
+    for (const origin of devOrigins) {
+      if (!origins.includes(origin)) {
+        origins.push(origin);
+      }
+    }
   }
   return origins;
 })();
@@ -85,12 +99,60 @@ const PORT = process.env.PORT || 3001;
 // chapterId -> { userId, username, socketId }
 const editLocks = new Map<string, { userId: string, username: string, socketId: string }>();
 
-// Middleware
+// Helmet CSP configuration (environment-aware)
+const isProduction = process.env.NODE_ENV === 'production';
+
+const helmetConfig = isProduction
+  ? {
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'"],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+        },
+      },
+      crossOriginResourcePolicy: { policy: "same-origin" as const },
+      hsts: { maxAge: 31536000, includeSubDomains: true, preload: true },
+      noSniff: true,
+      frameguard: { action: "deny" as const },
+      xssFilter: true,
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" as const },
+    }
+  : {
+      // Development: relax CSP for Vite HMR and localhost dev server
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
+          styleSrc: ["'self'", "'unsafe-inline'"],
+          imgSrc: ["'self'", "data:", "https:"],
+          connectSrc: ["'self'", "ws://localhost:5173", "http://localhost:5173", "http://localhost:3001"],
+          fontSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          mediaSrc: ["'self'"],
+          frameSrc: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+        },
+      },
+      crossOriginResourcePolicy: { policy: "cross-origin" as const }, // OK for dev (Vite proxy)
+      hsts: false, // Disable HSTS in dev
+      noSniff: true,
+      frameguard: { action: "deny" as const },
+      xssFilter: true,
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" as const },
+    };
+
 app.use(trace);
-app.use(helmet({
-  contentSecurityPolicy: false, // Disable for easier local development
-  crossOriginResourcePolicy: { policy: "cross-origin" }
-}));
+app.use(helmet(helmetConfig));
 
 // CORS Configuration (Express)
 app.use(cors({
@@ -146,7 +208,9 @@ io.use((socket, next) => {
     const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string; role: string };
     socket.data.user = decoded;
     next();
-  } catch {
+  } catch (err) {
+    const e = err as Error;
+    console.error('[Socket Auth] JWT verify failed:', e.message, e.name);
     next(new Error('Invalid socket token'));
   }
 });
@@ -251,7 +315,10 @@ app.use('/api/search', searchRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/analytics', analyticsRoutes);
 app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/wiki-pages', wikiRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/characters', characterRoutes);
+app.use('/api/reading-progress', readingProgressRoutes);
 app.use('/api/init', initRoutes);
 
 // Health check

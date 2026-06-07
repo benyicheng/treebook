@@ -4,10 +4,10 @@ import { useCharacters, useCreateCharacter, useUpdateCharacter } from '../../hoo
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { User, Plus, Trash2, Edit3, X, Save, Sparkles, Loader2 } from 'lucide-react';
-import Modal from '../../components/Modal';
+import { Modal } from '../../components/ui';
 import { queryKeys } from '../../lib/queryKeys';
 
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 
 interface CharacterManagerProps {
   storyId: string;

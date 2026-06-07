@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Character } from '../../../api/storyService';
 import { useCharacters } from '../../../hooks/useCharacters';
 import { useCharacterAppearances, useBatchCharacterAppearances } from '../../../hooks/useCharacterAppearances';
-import { useToast } from '../../../components/Toast';
+import { useToast } from '../../../components/notifications';
 import { Save, Loader2, User } from 'lucide-react';
 
 interface ChapterTarget {

@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import Modal from './Modal';
-import { booklistService, Booklist } from '../api/storyService';
-import { useAuthStore } from '../stores/useAuthStore';
-import { useToast } from './Toast';
+import Modal from '../ui/Modal';
+import { booklistService, Booklist } from '../../api/storyService';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { useToast } from '../notifications/Toast';
 import { Link } from 'react-router-dom';
 import { BookMarked, CheckCircle2 } from 'lucide-react';
 

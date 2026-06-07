@@ -3,7 +3,7 @@ import { GitPullRequest, X, CheckCircle, XCircle, Clock, AlertCircle, MessageSqu
 import { mergeService, MergeRequest } from '../../api/mergeService';
 import { format } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
-import { useToast } from '../Toast';
+import { useToast } from '../notifications/Toast';
 
 interface MergeManagementModalProps {
   storyId: string;

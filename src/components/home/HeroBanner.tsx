@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Sparkles, ArrowRight, BookOpen, Users, GitBranch } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 
 interface BannerSlide {
   imageUrl: string;
@@ -11,28 +11,14 @@ interface BannerSlide {
   link?: string;
 }
 
-interface SiteStats {
-  stories: number;
-  users: number;
-  branches: number;
-}
-
 interface HeroBannerProps {
   slides: BannerSlide[];
   bannerIndex: number;
   goBanner: (i: number) => void;
   fullWidth?: boolean;
-  stats?: SiteStats;
-  siteName?: string;
 }
 
-const statConfig = [
-  { key: 'stories' as const, label: '作品', icon: BookOpen },
-  { key: 'users' as const, label: '创作者', icon: Users },
-  { key: 'branches' as const, label: '分支宇宙', icon: GitBranch },
-];
-
-const HeroBanner: React.FC<HeroBannerProps> = ({ slides, bannerIndex, goBanner, fullWidth, stats, siteName }) => {
+const HeroBanner: React.FC<HeroBannerProps> = ({ slides, bannerIndex, goBanner, fullWidth }) => {
   const navigate = useNavigate();
   const slide = slides[bannerIndex];
 
@@ -65,24 +51,13 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ slides, bannerIndex, goBanner, 
 
       {/* Centered content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
-        {/* Eyebrow tag */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1, duration: 0.4 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 bg-white/15 backdrop-blur-md rounded-full text-white/90 text-[11px] font-bold mb-6 w-fit border border-white/10"
-        >
-          <Sparkles size={12} className="text-yellow-300" />
-          {siteName || '精选推荐'}
-        </motion.div>
-
         {/* Headline */}
         <motion.h2
           key={`title-${bannerIndex}`}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.5 }}
-          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white mb-4 leading-[1.1] drop-shadow-2xl max-w-4xl tracking-tight"
+          className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-white mb-6 leading-[1.2] max-w-4xl"
         >
           {slide.title}
         </motion.h2>
@@ -93,7 +68,7 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ slides, bannerIndex, goBanner, 
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.5 }}
-          className="text-sm sm:text-base md:text-lg text-white/70 mb-8 leading-relaxed max-w-xl font-medium"
+          className="text-sm sm:text-base md:text-lg text-white/80 mb-10 leading-relaxed max-w-2xl font-normal"
         >
           {slide.description}
         </motion.p>
@@ -119,31 +94,6 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ slides, bannerIndex, goBanner, 
             探索更多
           </button>
         </motion.div>
-
-        {/* Stats row */}
-        {stats && (
-          <motion.div
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5, duration: 0.4 }}
-            className="hidden sm:flex items-center gap-8 md:gap-14 mt-8 pt-6 border-t border-white/15"
-          >
-            {statConfig.map(({ key, label, icon: Icon }) => {
-              const value = stats[key];
-              return (
-                <div key={key} className="flex items-center gap-3">
-                  <div className="p-2 bg-white/10 backdrop-blur-sm rounded-lg">
-                    <Icon size={14} className="text-white/80" />
-                  </div>
-                  <div className="text-left">
-                    <div className="text-white text-lg md:text-xl font-black leading-none">{value.toLocaleString()}+</div>
-                    <div className="text-white/50 text-xs md:text-sm font-medium mt-0.5">{label}</div>
-                  </div>
-                </div>
-              );
-            })}
-          </motion.div>
-        )}
       </div>
 
       {/* Bottom dots */}

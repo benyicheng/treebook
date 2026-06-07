@@ -157,7 +157,7 @@ export class RecommendationService {
   /**
    * 策略 3: 热门兜底
    */
-  private static async getHotRecommendations(
+  static async getHotRecommendations(
     limit: number,
     excludeIds: Set<string>,
   ): Promise<RecommendationItem[]> {

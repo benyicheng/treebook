@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { BookOpen, Edit3, Coins, GitPullRequest, GitBranch, MessageSquare, Users } from 'lucide-react';
-import { useToast } from '../../../components/Toast';
-import FollowButton from '../../../components/FollowButton';
+import { useToast } from '../../../components/notifications';
+import { FollowButton } from '../../../components/Interaction';
 
 interface StoryHeaderProps {
   currentStory: any;

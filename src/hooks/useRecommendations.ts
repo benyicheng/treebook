@@ -18,10 +18,15 @@ export function useRecommendations(limit = 16) {
   return useQuery({
     queryKey: ['recommendations', 'forYou', limit],
     queryFn: async () => {
-      const res = await client.get('/recommendations/for-you', {
-        params: { limit },
-      });
-      return (res.data?.data || res.data || []) as RecItem[];
+      try {
+        const res = await client.get('/recommendations/for-you', {
+          params: { limit },
+        });
+        return (res.data?.data || res.data || []) as RecItem[];
+      } catch {
+        // 静默处理异常（未登录 / 网络错误），返回空数组让调用方走 fallback
+        return [] as RecItem[];
+      }
     },
   });
 }

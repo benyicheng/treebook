@@ -18,13 +18,14 @@ vi.mock('reactflow', async () => {
   return {
     ...actual,
     __esModule: true,
-    default: ({ nodes, onNodeClick }: any) => (
+    default: ({ nodes, onNodeClick, onNodeContextMenu }: any) => (
       <div>
         {nodes.map((node: any) => (
           <div
             key={node.id}
             data-testid={`node-${node.id}`}
             onClick={(e) => onNodeClick(e, node)}
+            onContextMenu={(e) => onNodeContextMenu?.(e, node)}
           >
             {node.data.label}
           </div>
@@ -34,6 +35,7 @@ vi.mock('reactflow', async () => {
     Background: () => <div>Background</div>,
     Controls: () => <div>Controls</div>,
     MiniMap: () => <div>MiniMap</div>,
+    useReactFlow: () => ({ fitView: vi.fn() }),
   };
 });
 

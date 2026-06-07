@@ -3,7 +3,7 @@ import { Story } from '../../api/storyService';
 import { useStories } from '../../hooks/useStories';
 import { BookOpen, Search, Filter, ChevronRight, Hash, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Skeleton } from '../../components/ui/Skeleton';
+import { Skeleton } from '../../components/ui';
 
 const AllStoriesPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -18,21 +18,12 @@ const AllStoriesPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-24 px-4">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-10">
-        <div className="space-y-4">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-accent-50 dark:bg-accent-500/15 text-accent-500 dark:text-accent-400 text-[10px] font-black uppercase tracking-widest rounded-full border border-accent-100 dark:border-accent-600/50 shadow-sm shadow-accent-400/5">
-            <BookOpen size={14} className="fill-accent-500/10" />
-            Universe Explorer
-          </div>
-          <h1 className="text-5xl font-black text-ink-800 dark:text-white tracking-tight leading-none">
-            主线宇宙
-          </h1>
-          <p className="text-ink-500 dark:text-ink-400 text-xl font-light max-w-2xl leading-relaxed">
-            探索所有核心叙事线。每一个故事都是一个完整宇宙的基石，承载着无数分叉的可能。
-          </p>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <h1 className="text-3xl font-black text-ink-800 dark:text-white tracking-tight">
+          主线宇宙
+        </h1>
         
-        <div className="relative group md:w-80">
+        <div className="relative group md:w-72">
           <input 
             type="text" 
             placeholder="搜索主线故事..." 

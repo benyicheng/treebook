@@ -40,12 +40,14 @@ export interface Branch {
   id: string;
   parentStoryId: string;
   parentChapterId: string;
+  parentBranchId?: string;
   authorId: string;
   title: string;
   description: string;
   branchType: string;
   isOfficial: boolean;
   isCertified?: boolean;
+  treeDepth?: number;
   status?: 'ongoing' | 'completed' | 'merged';
   viewCount?: number;
   createdAt: string;
@@ -71,6 +73,7 @@ export interface Spinoff {
   authorId: string;
   originalStoryId: string;
   originalBranchId?: string;
+  originalChapterId?: string;
   title: string;
   summary?: string;
   content: string;
@@ -100,6 +103,11 @@ export interface Spinoff {
   originalBranch?: {
     title: string;
     description?: string;
+  };
+  originalChapter?: {
+    id: string;
+    title: string;
+    orderIndex: number;
   };
   characters?: Pick<Character, 'id' | 'name' | 'role' | 'avatarUrl'>[];
 }
@@ -167,8 +175,12 @@ export const storyService = {
   },
 
   getRecentReads: async () => {
-    const { data } = await client.get<any>('/stories/recent');
-    return data;
+    try {
+      const { data } = await client.get<any>('/stories/recent');
+      return data;
+    } catch {
+      return { data: [] };
+    }
   },
 
   getCharacters: async (storyId: string) => {
@@ -299,6 +311,16 @@ export const branchService = {
     const { data } = await client.post<any>(`/branches/${id}/certify`, { isCertified });
     return data;
   },
+
+  createSubBranch: async (parentBranchId: string, subBranchData: {
+    parentChapterId: string;
+    title: string;
+    description?: string;
+    branchType?: string;
+  }) => {
+    const { data } = await client.post<any>(`/branches/${parentBranchId}/sub-branches`, subBranchData);
+    return data;
+  },
 };
 
 export const savepointService = {
@@ -414,7 +436,38 @@ export const booklistService = {
   toggleProgress: async (booklistId: string, itemId: string) => {
     const { data } = await client.post<any>(`/booklists/${booklistId}/progress/toggle`, { itemId });
     return data;
-  }
+  },
+
+  // ── Graph: Relations ──
+  getGraph: async (booklistId: string) => {
+    const { data } = await client.get<any>(`/booklists/${booklistId}/graph`);
+    return data;
+  },
+
+  createRelation: async (booklistId: string, relationData: {
+    sourceItemId: string;
+    targetItemId: string;
+    relationType: string;
+    label?: string | null;
+  }) => {
+    const { data } = await client.post<any>(`/booklists/${booklistId}/relations`, relationData);
+    return data;
+  },
+
+  deleteRelation: async (booklistId: string, relationId: string) => {
+    const { data } = await client.delete(`/booklists/${booklistId}/relations/${relationId}`);
+    return data;
+  },
+
+  getStoryLinks: async (booklistId: string) => {
+    const { data } = await client.get<any>(`/booklists/${booklistId}/story-links`);
+    return data;
+  },
+
+  syncStoryLinks: async (booklistId: string) => {
+    const { data } = await client.post<any>(`/booklists/${booklistId}/sync-story-links`);
+    return data;
+  },
 };
 
 export const aiService = {

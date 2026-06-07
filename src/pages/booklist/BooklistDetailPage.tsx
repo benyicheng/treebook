@@ -2,19 +2,21 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { booklistService, chapterService, Booklist } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
-import Modal from '../../components/Modal';
+import { Modal } from '../../components/ui';
 import { 
   ArrowLeft, CheckCircle2, Play, ArrowUp, ArrowDown,
   Heart, Share2, Eye, Edit3, Trash2, Plus, X,
   AlertCircle, Search, Check, Copy, Twitter, Facebook,
-  MessageCircle, Link2
+  MessageCircle, Link2, LayoutList, Share2 as NetworkIcon
 } from 'lucide-react';
 import { interactionService, InteractionStats } from '../../api/interactionService';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 import BooklistHeader from './components/BooklistHeader';
 import BooklistTimeline from './components/BooklistTimeline';
-import ReadingDrawer from './components/ReadingDrawer';
+import BooklistGraph from './components/BooklistGraph';
+import { ReadingDrawer } from '../../components/Booklist';
 import { useBooklistProgress } from '../../hooks/useBooklistProgress';
+import { useNavigationStackStore } from '../../stores/useNavigationStackStore';
 import { useBooklist, useUpdateBooklist, useDeleteBooklist, useUpdateBooklistItem, useRemoveFromBooklist, useAddToBooklist } from '../../hooks/useBooklists';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -57,6 +59,7 @@ const BooklistDetailPage: React.FC = () => {
   });
 
   // ── UI State ──
+  const [viewMode, setViewMode] = useState<'timeline' | 'graph'>('timeline');
   const [isEditMode, setIsEditMode] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -97,14 +100,14 @@ const BooklistDetailPage: React.FC = () => {
   });
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reading drawer
-  const [isReadingDrawerOpen, setIsReadingDrawerOpen] = useState(false);
-  const [drawerStartIndex, setDrawerStartIndex] = useState(0);
+  // Reading drawer (stack-based)
+  const { openDrawer } = useNavigationStackStore();
 
   // Reading progress
   const {
     isCompleted, continueReading, setCurrentItem,
     markCompleted, completionPercentage, completedCount, totalItems,
+    saveProgressOnUnload,
   } = useBooklistProgress({
     booklistId: id || '',
     totalItems: booklist?.items?.length || 0,
@@ -278,32 +281,70 @@ const BooklistDetailPage: React.FC = () => {
         onToggleLike={handleToggleLike}
         onShare={() => setIsShareModalOpen(true)}
         onStartJourney={() => {
-          setDrawerStartIndex(continueReading() || 0);
-          setIsReadingDrawerOpen(true);
+          const startIndex = continueReading() || 0;
+          const targetItem = b.items?.[startIndex];
+          if (targetItem) {
+            openDrawer(
+              { path: '/read/' + targetItem.chapterId, title: targetItem.chapter?.title || '阅读' },
+              { booklistId: id!, initialIndex: startIndex, items: b.items || [] },
+            );
+          }
         }}
         onEdit={() => { setIsEditModalOpen(true); }}
         onDelete={() => { setIsDeleteModalOpen(true); }}
       />
 
-      <BooklistTimeline
-        items={b.items || []}
-        booklistId={id!}
-        isCreator={isCreator}
-        onAddChapter={openAddChapterModal}
-        onRemoveItem={handleRemoveItem}
-        onEditNotes={(item: any) => { setEditingItem(item); setItemNotes(item.notes || ''); }}
-        onMoveItem={handleMoveItem}
-        onRead={(item: any, index: number) => {
-          setDrawerStartIndex(index);
-          setIsReadingDrawerOpen(true);
-        }}
-        onReorder={async (newItems: any[]) => {
-          for (let i = 0; i < newItems.length; i++) {
-            await booklistService.updateItem(id!, newItems[i].id, { sortOrder: i } as any);
-          }
-          refetchBooklist();
-        }}
-      />
+      {/* View toggle */}
+      <div className="flex items-center gap-2 bg-white dark:bg-ink-700 border border-ink-100 dark:border-ink-600 rounded-2xl p-1 w-fit">
+        <button
+          onClick={() => setViewMode('timeline')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+            viewMode === 'timeline'
+              ? 'bg-indigo-500 text-white shadow-sm'
+              : 'text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-600'
+          }`}
+        >
+          <LayoutList size={16} />
+          时间线
+        </button>
+        <button
+          onClick={() => setViewMode('graph')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
+            viewMode === 'graph'
+              ? 'bg-indigo-500 text-white shadow-sm'
+              : 'text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-600'
+          }`}
+        >
+          <NetworkIcon size={16} />
+          关系图
+        </button>
+      </div>
+
+      {viewMode === 'timeline' ? (
+        <BooklistTimeline
+          items={b.items || []}
+          booklistId={id!}
+          isCreator={isCreator}
+          onAddChapter={openAddChapterModal}
+          onRemoveItem={handleRemoveItem}
+          onEditNotes={(item: any) => { setEditingItem(item); setItemNotes(item.notes || ''); }}
+          onMoveItem={handleMoveItem}
+          onRead={(item: any, index: number) => {
+            openDrawer(
+              { path: '/read/' + item.chapterId, title: item.chapter?.title || '阅读' },
+              { booklistId: id!, initialIndex: index, items: b.items || [] },
+            );
+          }}
+          onReorder={async (newItems: any[]) => {
+            for (let i = 0; i < newItems.length; i++) {
+              await booklistService.updateItem(id!, newItems[i].id, { sortOrder: i } as any);
+            }
+            refetchBooklist();
+          }}
+        />
+      ) : (
+        <BooklistGraph booklistId={id!} />
+      )}
 
       {/* Share Modal */}
       <Modal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} title="分享书单">
@@ -422,18 +463,8 @@ const BooklistDetailPage: React.FC = () => {
         </div>
       </Modal>
 
-      {/* Reading Drawer */}
-      <ReadingDrawer
-        isOpen={isReadingDrawerOpen}
-        onClose={() => setIsReadingDrawerOpen(false)}
-        items={b.items || []}
-        initialIndex={drawerStartIndex}
-        booklistTitle={b.title || ''}
-        onProgressUpdate={(index: number, completed: boolean) => {
-          const item = b.items?.[index];
-          if (item && completed) markCompleted(item.chapterId);
-        }}
-      />
+      {/* Reading Drawer (stack-based) */}
+      <ReadingDrawer />
     </div>
   );
 };

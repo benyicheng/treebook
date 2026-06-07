@@ -58,8 +58,8 @@ export const queryKeys = {
 
   search: {
     all: ['search'] as const,
-    results: (query: string, type?: string | null) =>
-      ['search', 'results', query, type ?? 'all'] as const,
+    results: (query: string, type?: string | null, limit?: number, offset?: number, sort?: string) =>
+      ['search', 'results', query, type ?? 'all', limit ?? 20, offset ?? 0, sort ?? 'relevance'] as const,
   },
 
   follow: {
@@ -98,7 +98,26 @@ export const queryKeys = {
     profile: (id: string) => ['users', 'profile', id] as const,
   },
 
+  subBranches: {
+    byBranch: (branchId: string) => ['branches', branchId, 'subBranches'] as const,
+  },
+
+  wiki: {
+    all: ['wiki'] as const,
+    lists: () => [...queryKeys.wiki.all, 'list'] as const,
+    list: (params?: Record<string, unknown>) =>
+      [...queryKeys.wiki.lists(), params ?? {}] as const,
+    detail: (id: string) => [...queryKeys.wiki.all, 'detail', id] as const,
+  },
+
   cms: {
     config: ['cms', 'config'] as const,
+  },
+
+  readingProgress: {
+    all: ['readingProgress'] as const,
+    progress: (chapterIds?: string[]) =>
+      ['readingProgress', 'progress', chapterIds ?? 'all'] as const,
+    stats: ['readingProgress', 'stats'] as const,
   },
 } as const;

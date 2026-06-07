@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { Shield, Plus, Edit3, Trash2, Check, X } from 'lucide-react';
-import PermissionGate from '../../components/PermissionGate';
+import { PermissionGate } from '../../components/auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 import roleService, { Permission, RoleItem } from '../../api/roleService';
 
 const RoleManagement: React.FC = () => {

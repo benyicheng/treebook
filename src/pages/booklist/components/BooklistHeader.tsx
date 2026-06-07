@@ -11,7 +11,7 @@ import {
   User,
   Calendar,
 } from 'lucide-react';
-import FollowButton from '../../../components/FollowButton';
+import { FollowButton } from '../../../components/Interaction';
 
 interface BooklistData {
   id: string;

@@ -103,6 +103,7 @@ model User {
   activities     Activity[]
   readingPaths   ReadingPath[]
   readingTrails  ReadingTrail[]
+  readingProgress ReadingProgress[]
   wikiPages      WikiPage[]    // 创建的百科页面
 
   @@map("users")
@@ -323,6 +324,7 @@ model Chapter {
   updatedAt      DateTime  @updatedAt
   readingHistory ReadingHistory[]
   savepoints     ReadingSavepoint[]
+  readingProgress ReadingProgress[]
   comments       Comment[]
 
   @@index([branchId])
@@ -853,4 +855,24 @@ model ReadingTrail {
   @@index([pathId])
   @@index([currentNodeId])
   @@map("reading_trails")
+}
+
+/// 统一阅读进度 — 跨书单/阅读路径/Wiki 共享，以 chapterId 为唯一键
+model ReadingProgress {
+  id             String    @id @default(uuid())
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId         String
+  chapter        Chapter   @relation(fields: [chapterId], references: [id], onDelete: Cascade)
+  chapterId      String
+  source         String?   // 'booklist' | 'readingpath' | 'wiki' — 辅助上下文，记录最后一次来自哪里
+  sourceId       String?   // 对应的 booklist/readingpath/wiki ID
+  status         String    @default("reading") // 'reading' | 'completed'
+  progress       Float     @default(0)         // 0-100 百分比
+  currentPage    Int?      // 分页内容的当前页
+  updatedAt      DateTime  @updatedAt
+
+  @@unique([userId, chapterId])
+  @@index([userId, status])
+  @@index([chapterId])
+  @@map("reading_progress")
 }

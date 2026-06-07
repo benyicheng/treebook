@@ -2,12 +2,13 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 import analytics from '../../lib/analytics';
 import { useChapter, useChaptersByStory } from '../../hooks/useChapters';
 import { useBooklist, useMyBooklists, useAddToBooklist } from '../../hooks/useBooklists';
 import { useCreateBranch } from '../../hooks/useBranches';
 import { useSavepoints, useCreateSavepoint, useDeleteSavepoint } from '../../hooks/useSavepoints';
+import { useNavigationStackStore } from '../../stores/useNavigationStackStore';
 import {
   ArrowLeft,
   ArrowRight,
@@ -27,11 +28,11 @@ import {
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react';
-import Modal from '../../components/Modal';
+import { Modal } from '../../components/ui';
 import CommentSection from './CommentSection';
 import { InteractionBar, ShareButton } from '../../components/Interaction';
-import FollowButton from '../../components/FollowButton';
-import { ReadingSettings, loadInitial } from '../../components/reading/ReadingSettings';
+import { FollowButton } from '../../components/Interaction';
+import { ReadingSettings, loadInitial } from '../../components/reading';
 
 const ReadPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -39,6 +40,7 @@ const ReadPage: React.FC = () => {
   const navigate = useNavigate();
   const { isAuthenticated } = useAuthStore();
   const { addToast } = useToast();
+  const { isDrawerOpen } = useNavigationStackStore();
 
   const queryParams = new URLSearchParams(location.search);
   const referralId = queryParams.get('referralId') || undefined;
@@ -108,9 +110,11 @@ const ReadPage: React.FC = () => {
   useEffect(() => {
     if (chapter) {
       analytics.trackReadingProgress(chapter.id, chapter.storyId, 100);
-      window.scrollTo(0, 0);
+      if (!isDrawerOpen) {
+        window.scrollTo(0, 0);
+      }
     }
-  }, [chapter?.id]);
+  }, [chapter?.id, isDrawerOpen]);
 
   // ─── Navigation helpers ───
   const navigateBooklist = (direction: 'prev' | 'next') => {

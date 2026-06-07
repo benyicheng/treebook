@@ -7,7 +7,7 @@ import { useNewBranches } from '../hooks/useBranches';
 import { useHotReadingPaths } from '../hooks/useDiscover';
 import { useSiteStats } from '../hooks/useSiteStats';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Megaphone, Sparkles, Infinity, BookOpen, Users, GitBranch } from 'lucide-react';
+import { Megaphone, Sparkles, Infinity } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { Story } from '../api/storyService';
 
@@ -19,7 +19,7 @@ import ActiveBranches from '../components/home/ActiveBranches';
 import HomeSidebar from '../components/home/HomeSidebar';
 import ExploreSection from '../components/home/ExploreSection';
 import HomeFooter from '../components/home/HomeFooter';
-import ActivityFeed from '../components/ActivityFeed';
+import { ActivityFeed } from '../components/notifications';
 import SectionTitle from '../components/home/SectionTitle';
 import { stagger } from '../components/home/shared';
 
@@ -123,7 +123,7 @@ const Home: React.FC = () => {
         )}
 
         {/* HERO BANNER */}
-        <HeroBanner slides={slides} bannerIndex={bannerIndex} goBanner={goBanner} fullWidth stats={siteStats} siteName={config.siteName} />
+        <HeroBanner slides={slides} bannerIndex={bannerIndex} goBanner={goBanner} fullWidth />
       </div>
 
       {/* MAIN LAYOUT */}

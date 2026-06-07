@@ -2,11 +2,10 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import MainLayout from './layouts/MainLayout';
-import LazyPage from './components/LazyPage';
-import AppErrorBoundary from './components/AppErrorBoundary';
-import PermissionGate from './components/PermissionGate';
-import AnalyticsTracker from './components/AnalyticsTracker';
-import { ToastProvider } from './components/Toast';
+import { LazyPage, AppErrorBoundary } from './components/ui';
+import { PermissionGate } from './components/auth';
+import { AnalyticsTracker } from './components/analytics';
+import { ToastProvider } from './components/notifications';
 import NotFound from './pages/NotFound';
 import { useAuthStore } from './stores/useAuthStore';
 
@@ -54,6 +53,9 @@ const ReviewCasesPage = React.lazy(() => import('./pages/admin/ReviewCasesPage')
 const EditorialChangesPage = React.lazy(() => import('./pages/admin/EditorialChangesPage'));
 const SearchResultsPage = React.lazy(() => import('./pages/search/SearchResultsPage'));
 const FollowPage = React.lazy(() => import('./pages/follow/FollowPage'));
+const WikiListPage = React.lazy(() => import('./pages/wiki/WikiListPage'));
+const WikiDetailPage = React.lazy(() => import('./pages/wiki/WikiDetailPage'));
+const WikiEditorPage = React.lazy(() => import('./pages/wiki/WikiEditorPage'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -112,6 +114,11 @@ const App: React.FC = () => {
               <Route path="reading-path/trail/:trailId" element={<AppErrorBoundary><LazyPage component={ReadingTrailPage} /></AppErrorBoundary>} />
               <Route path="reading-path/:id" element={<AppErrorBoundary><LazyPage component={ReadingPathDetailPage} /></AppErrorBoundary>} />
               <Route path="revenue" element={<AppErrorBoundary><LazyPage component={RevenuePage} /></AppErrorBoundary>} />
+
+              <Route path="wiki" element={<AppErrorBoundary><LazyPage component={WikiListPage} /></AppErrorBoundary>} />
+              <Route path="wiki/new" element={<AppErrorBoundary><LazyPage component={WikiEditorPage} /></AppErrorBoundary>} />
+              <Route path="wiki/:id" element={<AppErrorBoundary><LazyPage component={WikiDetailPage} /></AppErrorBoundary>} />
+              <Route path="wiki/:id/edit" element={<AppErrorBoundary><LazyPage component={WikiEditorPage} /></AppErrorBoundary>} />
 
               <Route path="about" element={<LazyPage component={AboutPage} />} />
               <Route path="contact" element={<LazyPage component={ContactPage} />} />

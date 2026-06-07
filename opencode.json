@@ -2,7 +2,7 @@
   "$schema": "https://opencode.ai/config.json",
   "agent": {
     "executor": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/big-pickle",
       "description": "Executes plans with batch-first parallelism. Groups independent tasks, spawns all in parallel, and verifies each micro-task.",
       "mode": "subagent",
       "permission": {
@@ -24,7 +24,7 @@
       }
     },
     "planner": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/big-pickle",
       "description": "Creates micro-task plans optimized for parallel execution. Analyzes design docs, identifies independent work units, and produces one file per task with dependency ordering.",
       "mode": "subagent",
       "permission": {
@@ -38,7 +38,7 @@
       }
     },
     "reviewer": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/big-pickle",
       "description": "Reviews ONE micro-task: verifies file + test match plan, test passes.",
       "mode": "subagent",
       "permission": {
@@ -52,7 +52,7 @@
       }
     },
     "implementer": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/big-pickle",
       "description": "Executes ONE micro-task: creates one file + its test, runs verification.",
       "mode": "subagent",
       "permission": {
@@ -66,7 +66,7 @@
       }
     },
     "librarian": {
-      "model": "opencode/deepseek-v4-flash-free",
+      "model": "opencode/big-pickle",
       "description": "Expert manager for project memory — storing and retrieving conventions, decisions, context, and session progress.",
       "mode": "subagent",
       "permission": {

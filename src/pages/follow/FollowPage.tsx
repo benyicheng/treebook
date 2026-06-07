@@ -18,7 +18,7 @@ import {
   MessageSquare,
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { followService } from '../../api/followService';
 import client from '../../api/client';

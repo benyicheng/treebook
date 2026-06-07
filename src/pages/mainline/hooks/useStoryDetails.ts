@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuthStore } from '../../../stores/useAuthStore';
-import { useToast } from '../../../components/Toast';
+import { useToast } from '../../../components/notifications';
 import { useStory, useUpdateStory } from '../../../hooks/useStories';
 import { useCreateChapter, useUpdateChapter } from '../../../hooks/useChapters';
 import { useCreateBranch } from '../../../hooks/useBranches';
@@ -11,7 +11,7 @@ import { revenueService } from '../../../api/revenueService';
 export const useStoryDetails = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user, isAuthenticated } = useAuthStore();
   const { addToast } = useToast();
   
@@ -30,6 +30,20 @@ export const useStoryDetails = () => {
   const [activeTab, setActiveTab] = useState<'overview' | 'tree' | 'chapters' | 'characters'>(initialTab);
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // ─── Chapter selection state (from URL) ───
+  const selectedChapterId = searchParams.get('chapter') || null;
+  const onSelectChapter = useCallback((chapterId: string | null) => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (chapterId) {
+        next.set('chapter', chapterId);
+      } else {
+        next.delete('chapter');
+      }
+      return next;
+    });
+  }, [setSearchParams]);
   const [isSettling, setIsSettling] = useState(false);
   
   // Modal States
@@ -161,6 +175,8 @@ export const useStoryDetails = () => {
     isAuthor,
     activeTab,
     setActiveTab,
+    selectedChapterId,
+    onSelectChapter,
     editingChapterId,
     setEditingChapterId,
     isSubmitting,

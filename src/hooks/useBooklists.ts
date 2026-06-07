@@ -129,3 +129,59 @@ export function useUpdateBooklistItem() {
     },
   });
 }
+
+// ── Graph: Relations ────────────────────────────────
+
+export function useBooklistGraph(booklistId: string) {
+  return useQuery({
+    queryKey: [...queryKeys.booklists.detail(booklistId), 'graph'],
+    queryFn: () => booklistService.getGraph(booklistId),
+    enabled: !!booklistId,
+  });
+}
+
+export function useCreateRelation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      booklistId,
+      data,
+    }: {
+      booklistId: string;
+      data: { sourceItemId: string; targetItemId: string; relationType: string; label?: string | null };
+    }) => booklistService.createRelation(booklistId, data),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: [...queryKeys.booklists.detail(vars.booklistId), 'graph'] });
+      qc.invalidateQueries({ queryKey: queryKeys.booklists.detail(vars.booklistId) });
+    },
+  });
+}
+
+export function useDeleteRelation() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ booklistId, relationId }: { booklistId: string; relationId: string }) =>
+      booklistService.deleteRelation(booklistId, relationId),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: [...queryKeys.booklists.detail(vars.booklistId), 'graph'] });
+    },
+  });
+}
+
+export function useBooklistStoryLinks(booklistId: string) {
+  return useQuery({
+    queryKey: [...queryKeys.booklists.detail(booklistId), 'story-links'],
+    queryFn: () => booklistService.getStoryLinks(booklistId),
+    enabled: !!booklistId,
+  });
+}
+
+export function useSyncStoryLinks() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (booklistId: string) => booklistService.syncStoryLinks(booklistId),
+    onSuccess: (_data, booklistId) => {
+      qc.invalidateQueries({ queryKey: [...queryKeys.booklists.detail(booklistId), 'story-links'] });
+    },
+  });
+}

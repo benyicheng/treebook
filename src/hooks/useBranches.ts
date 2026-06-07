@@ -78,3 +78,16 @@ export function useCertifyBranch() {
     },
   });
 }
+
+export function useCreateSubBranch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ parentBranchId, data }: { parentBranchId: string; data: Parameters<typeof branchService.createSubBranch>[1] }) =>
+      branchService.createSubBranch(parentBranchId, data),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.branches.detail(vars.parentBranchId) });
+      qc.invalidateQueries({ queryKey: queryKeys.branches.lists() });
+      qc.invalidateQueries({ queryKey: queryKeys.subBranches.byBranch(vars.parentBranchId) });
+    },
+  });
+}

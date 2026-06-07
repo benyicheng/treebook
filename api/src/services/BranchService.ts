@@ -160,6 +160,60 @@ export class BranchService {
     return paginatedResponse(items, total, page, limit);
   }
 
+  /**
+   * Create a sub-branch under an existing branch.
+   * Auto-calculates treeDepth = parent.treeDepth + 1.
+   * Max depth: 5 layers.
+   */
+  static async createSubBranch(authorId: string, userRole: string, data: any) {
+    const { parentBranchId, parentChapterId, title, description, branchType, conditions } = data;
+
+    // Validate parent branch
+    const parentBranch = await prisma.branch.findUnique({
+      where: { id: parentBranchId },
+      include: { parentStory: true },
+    });
+    if (!parentBranch) throw new AppError(404, 'NOT_FOUND', '父分支不存在');
+
+    // Permission: branch author, story author, or admin
+    const hasPermission =
+      parentBranch.authorId === authorId ||
+      parentBranch.parentStory.authorId === authorId ||
+      userRole === 'admin';
+    if (!hasPermission) {
+      throw new AppError(403, 'FORBIDDEN', '无权在此分支下创建子分支');
+    }
+
+    // Depth cap
+    const treeDepth = parentBranch.treeDepth + 1;
+    if (treeDepth > 5) {
+      throw new AppError(400, 'DEPTH_EXCEEDED', '分支嵌套深度不能超过5层');
+    }
+
+    const subBranch = await prisma.branch.create({
+      data: {
+        parentStoryId: parentBranch.parentStoryId,
+        parentChapterId,
+        parentBranchId,
+        authorId,
+        title,
+        description,
+        branchType: branchType || 'parallel',
+        treeDepth,
+        isOfficial: parentBranch.isOfficial,
+        conditions: conditions ? JSON.stringify(conditions) : null,
+      },
+    });
+
+    // Increment branchCount in the parent story
+    await prisma.story.update({
+      where: { id: parentBranch.parentStoryId },
+      data: { branchCount: { increment: 1 } },
+    });
+
+    return subBranch;
+  }
+
   static async deleteBranch(id: string, authorId: string, userRole: string) {
     const branch = await prisma.branch.findUnique({
       where: { id },

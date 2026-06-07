@@ -3,7 +3,8 @@ import type { TargetType } from './types';
 export type InteractionEventType =
   | 'like' | 'unlike' | 'rating' | 'share'
   | 'page_view' | 'session_start' | 'reading_progress'
-  | 'content_created' | 'search_performed';
+  | 'content_created' | 'search_performed'
+  | 'node_hover' | 'node_click';
 
 export type InteractionEvent = {
   type: InteractionEventType;

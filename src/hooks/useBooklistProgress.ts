@@ -169,6 +169,48 @@ export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgr
     ? Math.round((progress.completedItemIds.length / totalItems) * 100)
     : 0;
 
+  const saveProgressOnUnload = useCallback(() => {
+    if (!booklistId) return;
+    try {
+      localStorage.setItem(STORAGE_PREFIX + booklistId, JSON.stringify(progress));
+    } catch {
+      // localStorage full
+    }
+    if (user && booklistId) {
+      booklistService.updateProgress(booklistId, {
+        currentItemIndex: progress.currentItemIndex,
+        completedItemIds: progress.completedItemIds,
+      }).catch(() => {});
+    }
+  }, [progress, booklistId, user]);
+
+  const scrollPositionRef = useRef<number>(0);
+
+  const setScrollPosition = useCallback((pos: number) => {
+    scrollPositionRef.current = pos;
+  }, []);
+
+  const getScrollPosition = useCallback((): number => {
+    return scrollPositionRef.current;
+  }, []);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      saveProgressOnUnload();
+    };
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        saveProgressOnUnload();
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [saveProgressOnUnload]);
+
   return {
     progress,
     markCompleted,
@@ -181,5 +223,9 @@ export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgr
     currentItemIndex: progress.currentItemIndex,
     completedCount: progress.completedItemIds.length,
     totalItems,
+    saveProgressOnUnload,
+    scrollPositionRef,
+    setScrollPosition,
+    getScrollPosition,
   };
 }

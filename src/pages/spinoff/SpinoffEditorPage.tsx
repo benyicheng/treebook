@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { spinoffService, storyService, Story, Character, Spinoff, branchService } from '../../api/storyService';
+import { spinoffService, storyService, Story, Character, Spinoff, branchService, chapterService } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 import { 
   Save, ArrowLeft, Book, Users, Info, 
   Layout, Type, ChevronRight, AlertCircle, 
   Sparkles, ShieldCheck, History, Search, GitBranch
 } from 'lucide-react';
-import ChapterEditor from '../../components/Editor/ChapterEditor';
+import { ChapterEditor } from '../../components/Editor';
 
 const SpinoffEditorPage: React.FC = () => {
   const { id } = useParams(); // Spinoff ID (if editing)
@@ -24,11 +24,13 @@ const SpinoffEditorPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   
   // Step State
-  const [currentStep, setCurrentStep] = useState<'select-story' | 'edit'>('edit');
+  const [currentStep, setCurrentStep] = useState<'select-story' | 'select-chapter' | 'edit'>('edit');
   
   // Selection State
   const [availableStories, setAvailableStories] = useState<Story[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [availableChapters, setAvailableChapters] = useState<any[]>([]);
+  const [chapterSearchQuery, setChapterSearchQuery] = useState('');
 
   // Form State
   const [spinoff, setSpinoff] = useState<Partial<Spinoff>>({
@@ -83,8 +85,14 @@ const SpinoffEditorPage: React.FC = () => {
           if (branchIdFromQuery) {
             const branchData = await branchService.getById(branchIdFromQuery);
             setOriginalBranch(branchData);
+            setSpinoff(prev => ({ ...prev, originalChapterId: branchData.parentChapterId }));
+            setCurrentStep('edit');
+          } else {
+            // No branch — let user pick a chapter
+            const chapters = await chapterService.getByStory(storyIdFromQuery);
+            setAvailableChapters(Array.isArray(chapters) ? chapters : chapters?.data || []);
+            setCurrentStep('select-chapter');
           }
-          setCurrentStep('edit');
         } else {
           // NEW: Select Story Step
           setCurrentStep('select-story');
@@ -108,12 +116,20 @@ const SpinoffEditorPage: React.FC = () => {
       setSpinoff(prev => ({ ...prev, originalStoryId: story.id }));
       const chars = await storyService.getCharacters(story.id);
       setCharacters(chars);
-      setCurrentStep('edit');
+      // Load chapters for chapter selection step
+      const chapters = await chapterService.getByStory(story.id);
+      setAvailableChapters(Array.isArray(chapters) ? chapters : chapters?.data || []);
+      setCurrentStep('select-chapter');
     } catch (err) {
       console.error('Failed to load story context');
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSelectChapter = (chapter: any) => {
+    setSpinoff(prev => ({ ...prev, originalChapterId: chapter.id }));
+    setCurrentStep('edit');
   };
 
   const handleSave = async (content?: string) => {
@@ -212,7 +228,71 @@ const SpinoffEditorPage: React.FC = () => {
     );
   }
 
-  // --- STEP 2: EDITOR ---
+  // --- STEP 2: SELECT CHAPTER ---
+  if (currentStep === 'select-chapter') {
+    const filteredChapters = (availableChapters || []).filter((c: any) => 
+      (c.title || '').toLowerCase().includes(chapterSearchQuery.toLowerCase())
+    );
+
+    return (
+      <div className="min-h-screen bg-ink-50 dark:bg-ink-800 p-8">
+        <div className="max-w-4xl mx-auto space-y-8">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-black text-ink-800 dark:text-white">选择关联章节</h1>
+              <p className="text-ink-500 mt-2 font-medium">
+                番外将关联到 <span className="font-black text-accent-600">{originalStory?.title}</span> 的哪个章节？
+              </p>
+            </div>
+            <button onClick={() => setCurrentStep('select-story')} className="p-3 bg-ink-50 dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 text-ink-400 hover:text-ink-800 transition-all">
+              <ArrowLeft size={20} />
+            </button>
+          </div>
+
+          <div className="relative">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-ink-400" size={20} />
+            <input 
+              type="text" 
+              placeholder="搜索章节标题..."
+              value={chapterSearchQuery}
+              onChange={e => setChapterSearchQuery(e.target.value)}
+              className="w-full pl-16 pr-6 py-5 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-700 rounded-[2rem] shadow-sm outline-none focus:ring-2 focus:ring-accent-500 transition-all font-medium"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {filteredChapters.map((chapter: any) => (
+              <div 
+                key={chapter.id} 
+                onClick={() => handleSelectChapter(chapter)}
+                className="group bg-ink-50 dark:bg-ink-800 p-6 rounded-[2.5rem] border border-ink-100 dark:border-ink-700 hover:border-indigo-400 transition-all cursor-pointer flex gap-4 items-center"
+              >
+                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center shrink-0">
+                  <Book className="text-accent-600" size={24} />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-black text-lg text-ink-800 dark:text-white truncate group-hover:text-accent-600 transition-colors">
+                    第 {chapter.orderIndex} 章：{chapter.title}
+                  </h3>
+                  <p className="text-xs text-ink-400 mt-1 line-clamp-2 leading-relaxed">{chapter.summary || chapter.content?.slice(0, 120)}</p>
+                </div>
+                <ChevronRight className="text-ink-300 group-hover:text-accent-600 transition-colors" />
+              </div>
+            ))}
+          </div>
+
+          {filteredChapters.length === 0 && (
+            <div className="text-center py-20">
+              <Book className="mx-auto text-ink-200 mb-4" size={64} />
+              <p className="text-ink-400 font-bold">该故事暂无可用章节</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // --- STEP 3: EDITOR ---
   return (
     <div className="min-h-screen bg-ink-50 dark:bg-ink-800 flex flex-col">
       {/* Header */}

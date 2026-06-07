@@ -259,3 +259,159 @@ export const batchCharacterAppearancesRequest = z.object({
     appearances: z.array(characterAppearanceSchema),
   }),
 });
+
+// ── Booklist Relations ────────────────────────────────
+
+export const booklistRelationType = z.enum([
+  'SAME_CHARACTER',
+  'ALTERNATE_INTERPRETATION',
+  'SHARED_UNIVERSE',
+  'TIMELINE_FORK',
+  'PARALLEL_EVENT',
+  'PRECEDING_EVENT',
+  'CHARACTER_CAMEO',
+  'BACKGROUND_REFERENCE',
+]);
+
+export const booklistRelationSchema = z.object({
+  sourceItemId: z.string().uuid('无效的源条目ID'),
+  targetItemId: z.string().uuid('无效的目标条目ID'),
+  relationType: booklistRelationType,
+  label: z.string().max(200).optional().nullable(),
+});
+
+export const createBooklistRelationRequest = z.object({
+  params: z.object({ id: z.string().uuid('无效的书单ID') }),
+  body: booklistRelationSchema,
+});
+
+export const deleteBooklistRelationRequest = z.object({
+  params: z.object({
+    id: z.string().uuid('无效的书单ID'),
+    relationId: z.string().uuid('无效的关系ID'),
+  }),
+});
+
+export const getBooklistGraphRequest = z.object({
+  params: z.object({ id: z.string().uuid('无效的书单ID') }),
+});
+
+// ── Reading Path (Cross-Story) ────────────────────────
+
+export const readingPathNodeSchema = z.object({
+  sortOrder: z.number().int().min(0),
+  nodeCategory: z.string().min(1),
+  contentId: z.string().min(1),
+  storyId: z.string().uuid().optional().nullable(),
+  storyTitle: z.string().max(200).optional().nullable(),
+  note: z.string().max(500).optional().nullable(),
+});
+
+export const createReadingPathSchema = z.object({
+  storyId: z.string().uuid('无效的故事ID').optional().nullable(),
+  booklistId: z.string().uuid('无效的书单ID').optional().nullable(),
+  title: z.string().min(1, '标题不能为空').max(200),
+  description: z.string().max(1000).optional().nullable(),
+  origin: z.string().max(50).optional(),
+  nodes: z.array(readingPathNodeSchema).min(1, '至少需要一个节点'),
+});
+
+export const createReadingPathRequest = z.object({
+  body: createReadingPathSchema,
+});
+
+export const updateReadingPathRequest = z.object({
+  params: z.object({ id: z.string().uuid('无效的阅读路径ID') }),
+  body: z.object({
+    title: z.string().min(1).max(200).optional(),
+    description: z.string().max(1000).optional().nullable(),
+    nodes: z.array(readingPathNodeSchema).optional(),
+  }),
+});
+
+// ── Wiki ──────────────────────────────────────────────
+
+export const wikiPageContentType = z.enum(['character', 'setting', 'event', 'concept', 'faction', 'item']);
+
+export const wikiPageSchema = z.object({
+  storyId: z.string().uuid('无效的故事ID').optional().nullable(),
+  title: z.string().min(1, '标题不能为空').max(200),
+  slug: z.string().min(1, '别名不能为空').max(200).regex(/^[a-z0-9_-]+$/, '别名只能包含小写字母、数字、下划线和连字符').optional(),
+  contentType: wikiPageContentType,
+  content: z.string().min(1, '内容不能为空'),
+  summary: z.string().max(500).optional().nullable(),
+  attributes: z.record(z.string(), z.any()).optional().nullable(),
+  status: z.enum(['draft', 'published', 'archived']).optional(),
+});
+
+export const createWikiPageRequest = z.object({
+  body: wikiPageSchema,
+});
+
+export const updateWikiPageRequest = z.object({
+  params: z.object({
+    id: z.string().uuid('无效的百科页面ID'),
+  }),
+  body: wikiPageSchema.partial(),
+});
+
+export const getWikiPageRequest = z.object({
+  params: z.object({
+    id: z.string().uuid('无效的百科页面ID'),
+  }),
+});
+
+export const listWikiPagesRequest = z.object({
+  query: z.object({
+    storyId: z.string().uuid().optional(),
+    contentType: wikiPageContentType.optional(),
+    search: z.string().max(100).optional(),
+    status: z.enum(['draft', 'published', 'archived']).optional(),
+    page: z.string().optional(),
+    limit: z.string().optional(),
+  }),
+});
+
+// ── Wiki Alias ────────────────────────────────────────
+
+export const wikiAliasSchema = z.object({
+  alias: z.string().min(1, '别名不能为空').max(100),
+  language: z.string().max(10).optional().nullable(),
+});
+
+export const createWikiAliasRequest = z.object({
+  params: z.object({
+    id: z.string().uuid('无效的百科页面ID'),
+  }),
+  body: wikiAliasSchema,
+});
+
+export const deleteWikiAliasRequest = z.object({
+  params: z.object({
+    id: z.string().uuid('无效的百科页面ID'),
+    aliasId: z.string().uuid('无效的别名ID'),
+  }),
+});
+
+// ── Wiki Link ─────────────────────────────────────────
+
+export const wikiLinkType = z.enum(['reference', 'see_also', 'parent', 'child', 'related']);
+
+export const wikiLinkSchema = z.object({
+  targetPageId: z.string().uuid('无效的目标页面ID'),
+  linkType: wikiLinkType,
+});
+
+export const createWikiLinkRequest = z.object({
+  params: z.object({
+    id: z.string().uuid('无效的百科页面ID'),
+  }),
+  body: wikiLinkSchema,
+});
+
+export const deleteWikiLinkRequest = z.object({
+  params: z.object({
+    id: z.string().uuid('无效的百科页面ID'),
+    linkId: z.string().uuid('无效的链接ID'),
+  }),
+});

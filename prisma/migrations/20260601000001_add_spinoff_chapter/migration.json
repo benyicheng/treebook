@@ -1,0 +1,11 @@
+{
+  "version": "5.22.0",
+  "steps": [
+    {
+      "tag": "CreateIndex",
+      "index": "spinoffs_originalChapterId_idx",
+      "table": "spinoffs",
+      "columns": ["originalChapterId"]
+    }
+  ]
+}

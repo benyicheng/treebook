@@ -13,8 +13,8 @@ import {
   Check,
   LayoutList
 } from 'lucide-react';
-import Modal from '../../components/Modal';
-import { useToast } from '../../components/Toast';
+import { Modal } from '../../components/ui';
+import { useToast } from '../../components/notifications';
 import BooklistCard from '../../components/Booklist/BooklistCard';
 
 const BooklistPage: React.FC = () => {
@@ -67,38 +67,21 @@ const BooklistPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-20">
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-slate-900 rounded-[3rem] p-12 md:p-20 text-white shadow-2xl">
-        <div className="absolute top-0 right-0 w-1/2 h-full bg-gradient-to-l from-accent-400/20 to-transparent"></div>
-        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-accent-400/10 rounded-full blur-3xl"></div>
-        
-        <div className="relative z-10 max-w-2xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-accent-400/20 border border-accent-400/30 rounded-full text-emerald-400 font-black text-xs uppercase tracking-widest">
-            <Sparkles size={14} />
-            Multiverse Curation
-          </div>
-          <h1 className="text-5xl md:text-7xl font-black tracking-tight leading-tight">
-            世界线导览 <br/>
-            <span className="text-emerald-400">发现平行宇宙</span>
-          </h1>
-          <p className="text-slate-400 text-xl font-light leading-relaxed">
-            在这里，每一份书单都是一条独特的时空路径。跟随着资深策展人的指引，在无数个“如果”中穿梭，领略时空分叉的魅力。
-          </p>
-          <div className="flex flex-wrap gap-4 pt-4">
-            {isAuthenticated && (
-              <button 
-                onClick={() => setIsModalOpen(true)}
-                className="flex items-center gap-3 px-8 py-4 bg-accent-500 text-white rounded-2xl font-black text-lg hover:bg-accent-600 transition-all shadow-xl shadow-emerald-900/40 active:scale-95 group"
-              >
-                <PlusCircle size={24} className="group-hover:rotate-90 transition-transform duration-300" />
-                开启策展计划
-              </button>
-            )}
-            <button className="flex items-center gap-3 px-8 py-4 bg-slate-800 text-slate-300 rounded-2xl font-black text-lg hover:bg-slate-700 transition-all active:scale-95">
-              了解策展分成
-            </button>
-          </div>
-        </div>
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <h1 className="text-3xl font-black text-ink-800 dark:text-white tracking-tight flex items-center gap-2">
+          <Sparkles size={24} className="text-accent-500" />
+          世界线导览
+        </h1>
+        {isAuthenticated && (
+          <button 
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-2 px-5 py-2.5 bg-accent-500 text-white rounded-xl font-bold text-sm hover:bg-accent-600 transition-all shadow-lg active:scale-95"
+          >
+            <PlusCircle size={18} />
+            开启策展计划
+          </button>
+        )}
       </div>
 
       {/* Filter & Sort Bar */}

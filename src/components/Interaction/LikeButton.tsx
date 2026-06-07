@@ -3,7 +3,7 @@ import { Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { interactionService, TargetType } from '../../api/interactionService';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { useToast } from '../Toast';
+import { useToast } from '../notifications/Toast';
 
 interface LikeButtonProps {
   targetType: TargetType;

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import StoryBranchTree from '../../components/StoryTree/StoryBranchTree';
+import { StoryBranchTree } from '../../components/StoryTree';
 import CharacterManager from './CharacterManager';
 import AppearanceManager from './components/AppearanceManager';
 import { useStoryDetails } from './hooks/useStoryDetails';
@@ -48,6 +48,8 @@ const MainlinePage: React.FC = () => {
     handleCreateChapter,
     handleUpdateStory,
     handleSettleRevenue,
+    selectedChapterId,
+    onSelectChapter,
   } = useStoryDetails();
 
   if (isLoading || !currentStory) {
@@ -96,6 +98,9 @@ const MainlinePage: React.FC = () => {
             setActiveTab={setActiveTab}
             handleCreateSpinoff={handleCreateSpinoff}
             setIsBranchModalOpen={setIsBranchModalOpen}
+            selectedChapterId={selectedChapterId}
+            onSelectChapter={onSelectChapter}
+            storyId={id}
           />
         )}
 
@@ -129,6 +134,8 @@ const MainlinePage: React.FC = () => {
                 spinoffs={currentStory.spinoffs || []}
                 savepoints={savepoints}
                 readingHistory={readingHistory}
+                selectedChapterId={selectedChapterId}
+                storyId={id}
                 onNodeClick={(id, type) => {
                   if (type === 'chapter') {
                     if (isAuthor) {

@@ -2,6 +2,13 @@ import React, { memo, useCallback } from 'react';
 import { Handle, Position, NodeProps } from 'reactflow';
 import { GitBranch, BookOpen, Star, ShieldCheck, User, Crown, Save, Sparkles, Layers, ChevronUp } from 'lucide-react';
 
+const viewModeClass = (modifier?: string) => {
+  if (modifier === 'focus') return '!scale-110 !z-20 ring-2 ring-accent-500 ring-offset-2 shadow-accent-200/50 dark:shadow-accent-500/20';
+  if (modifier === 'highlighted') return 'ring-2 ring-accent-400 ring-offset-1 !border-accent-400 shadow-accent-200/30';
+  if (modifier === 'dimmed') return 'opacity-30 grayscale-[30%] pointer-events-none';
+  return '';
+};
+
 const ChapterNode = ({ data, id }: NodeProps) => {
   const isRead = data.isRead;
   const hasSavepoint = data.hasSavepoint;
@@ -19,7 +26,7 @@ const ChapterNode = ({ data, id }: NodeProps) => {
       role="button"
       aria-label={`第 ${data.orderIndex} 章：${data.label}${isRead ? ' (已读)' : ''}`}
       onKeyDown={handleKeyDown}
-      className={`px-4 py-3 shadow-xl rounded-2xl bg-ink-50 dark:bg-ink-800 border-2 ${isRead ? 'border-accent-400' : 'border-blue-400'} min-w-[190px] max-w-[220px] group transition-all hover:scale-105 hover:shadow-accent-200 dark:hover:shadow-accent-500/15 hover:border-accent-500 cursor-pointer relative`}>
+      className={`px-4 py-3 shadow-xl rounded-2xl bg-ink-50 dark:bg-ink-800 border-2 ${isRead ? 'border-accent-400' : 'border-blue-400'} ${viewModeClass(data.viewModeModifier)} min-w-[190px] max-w-[220px] group transition-all hover:scale-105 hover:shadow-accent-200 dark:hover:shadow-accent-500/15 hover:border-accent-500 cursor-pointer relative`}>
       {hasSavepoint && (
         <div className="absolute -top-2 -right-2 w-6 h-6 bg-amber-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white dark:border-ink-800 z-10 animate-pulse">
           <Save size={12} />
@@ -69,7 +76,7 @@ const BranchNode = ({ data, id }: NodeProps) => {
       role="button"
       aria-label={`分支：${data.label}${isRead ? ' (已读)' : ''}`}
       onKeyDown={handleKeyDown}
-      className={`px-4 py-3 shadow-xl rounded-2xl bg-ink-50 dark:bg-ink-800 border-2 ${colorClass} min-w-[190px] max-w-[220px] group transition-all hover:scale-105 cursor-pointer relative`}>
+      className={`px-4 py-3 shadow-xl rounded-2xl bg-ink-50 dark:bg-ink-800 border-2 ${colorClass} ${viewModeClass(data.viewModeModifier)} min-w-[190px] max-w-[220px] group transition-all hover:scale-105 cursor-pointer relative`}>
       {isCertified && (
         <div className="absolute -top-3 -left-3 w-8 h-8 bg-gradient-to-br from-amber-400 to-amber-600 text-white rounded-xl flex items-center justify-center shadow-xl border-2 border-white dark:border-ink-800 z-10 rotate-[-12deg]">
           <Crown size={18} className="drop-shadow-sm" />
@@ -136,7 +143,7 @@ const SpinoffNode = ({ data, id }: NodeProps) => {
       role="button"
       aria-label={`番外：${data.label || '无标题'}`}
       onKeyDown={handleKeyDown}
-      className={`px-4 py-3 shadow-xl rounded-2xl bg-ink-50 dark:bg-ink-800 border-2 ${borderColor} min-w-[190px] max-w-[220px] group transition-all hover:scale-105 hover:shadow-indigo-200 dark:hover:shadow-indigo-900/40 hover:border-accent-600 cursor-pointer relative`}>
+      className={`px-4 py-3 shadow-xl rounded-2xl bg-ink-50 dark:bg-ink-800 border-2 ${borderColor} ${viewModeClass(data.viewModeModifier)} min-w-[190px] max-w-[220px] group transition-all hover:scale-105 hover:shadow-indigo-200 dark:hover:shadow-indigo-900/40 hover:border-accent-600 cursor-pointer relative`}>
       <Handle type="target" position={Position.Top} className={`w-2.5 h-2.5 ${isOfficial ? 'bg-amber-500' : 'bg-accent-500'} border-2 border-white dark:border-ink-800`} />
       <div className="flex items-start gap-2.5">
         <div className={`p-1.5 ${iconBg} rounded-xl shrink-0 mt-0.5`}>

@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Bell, CheckCheck, Loader2, MessageSquare, GitBranch, GitPullRequest, CheckCircle, XCircle, BookOpen } from 'lucide-react';
-import { useNotificationStore } from '../stores/useNotificationStore';
-import { useAuthStore } from '../stores/useAuthStore';
+import { useNotificationStore } from '../../stores/useNotificationStore';
+import { useAuthStore } from '../../stores/useAuthStore';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 

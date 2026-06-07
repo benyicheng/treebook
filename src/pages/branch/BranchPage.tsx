@@ -1,14 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { BookOpen, GitBranch, MessageSquare, Edit3, Share2, PlusCircle, ArrowLeft, Bookmark, GitMerge, ChevronRight, Star, Sparkles, Crown, GitPullRequest } from 'lucide-react';
-import ChapterEditor from '../../components/Editor/ChapterEditor';
-import Modal from '../../components/Modal';
-import AddToBooklistModal from '../../components/AddToBooklistModal';
+import { BookOpen, GitBranch, MessageSquare, Edit3, Share2, PlusCircle, ArrowLeft, Bookmark, GitMerge, ChevronRight, Star, Sparkles, Crown, GitPullRequest, GitFork, Layers } from 'lucide-react';
+import { ChapterEditor } from '../../components/Editor';
+import { Modal } from '../../components/ui';
+import { AddToBooklistModal } from '../../components/Booklist';
 import MergeRequestModal from '../../components/Merge/MergeRequestModal';
-import { useToast } from '../../components/Toast';
-import FollowButton from '../../components/FollowButton';
-import { useBranch, useCertifyBranch } from '../../hooks/useBranches';
+import { useToast } from '../../components/notifications';
+import { FollowButton } from '../../components/Interaction';
+import { useBranch, useCertifyBranch, useCreateSubBranch } from '../../hooks/useBranches';
 import { useCreateChapter, useUpdateChapter } from '../../hooks/useChapters';
 import { useCreateSpinoff } from '../../hooks/useSpinoffs';
 import { useQueryClient } from '@tanstack/react-query';
@@ -28,6 +28,7 @@ const BranchPage: React.FC = () => {
   const updateChapter = useUpdateChapter();
   const createChapter = useCreateChapter();
   const certifyBranch = useCertifyBranch();
+  const createSubBranch = useCreateSubBranch();
 
   // ─── Local UI state ───
   const [activeTab, setActiveTab] = useState<'chapters' | 'editor'>('chapters');
@@ -46,6 +47,13 @@ const BranchPage: React.FC = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
+  const [isSubBranchModalOpen, setIsSubBranchModalOpen] = useState(false);
+  const [newSubBranchData, setNewSubBranchData] = useState({
+    parentChapterId: '',
+    title: '',
+    description: '',
+    branchType: 'alternate',
+  });
 
   // 加入书单
   const [booklistTargetChapter, setBooklistTargetChapter] = useState<{ id: string; title: string } | null>(null);
@@ -119,6 +127,35 @@ const BranchPage: React.FC = () => {
       setNewChapterData({ title: '', orderIndex: (currentBranch.chapters.length || 0) + 2 });
     } catch (err) {
       addToast('error', '添加章节失败');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCreateSubBranch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id || !newSubBranchData.parentChapterId) return;
+    setIsSubmitting(true);
+    try {
+      await createSubBranch.mutateAsync({
+        parentBranchId: id,
+        data: {
+          parentChapterId: newSubBranchData.parentChapterId,
+          title: newSubBranchData.title,
+          description: newSubBranchData.description || undefined,
+          branchType: newSubBranchData.branchType,
+        },
+      });
+      setIsSubBranchModalOpen(false);
+      setNewSubBranchData({
+        parentChapterId: '',
+        title: '',
+        description: '',
+        branchType: 'alternate',
+      });
+      addToast('success', '子分支已创建');
+    } catch (err) {
+      addToast('error', '创建子分支失败');
     } finally {
       setIsSubmitting(false);
     }
@@ -211,6 +248,21 @@ const BranchPage: React.FC = () => {
               </button>
               {isAuthor && (
                 <button
+                  onClick={() => {
+                    setNewSubBranchData(prev => ({
+                      ...prev,
+                      parentChapterId: currentBranch.chapters[0]?.id || '',
+                    }));
+                    setIsSubBranchModalOpen(true);
+                  }}
+                  className="flex items-center gap-2 px-6 py-3 bg-indigo-500 text-white rounded-2xl font-bold hover:bg-indigo-600 transition-all shadow-lg active:scale-95"
+                >
+                  <GitFork size={18} />
+                  创建子分支
+                </button>
+              )}
+              {isAuthor && (
+                <button
                   onClick={() => setIsChapterModalOpen(true)}
                   className="flex items-center gap-2 px-6 py-3 bg-accent-500 text-white rounded-2xl font-bold hover:bg-purple-700 transition-all shadow-lg active:scale-95"
                 >
@@ -278,6 +330,48 @@ const BranchPage: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* 子分支展示 */}
+        {currentBranch.subBranches && currentBranch.subBranches.length > 0 && (
+          <div className="px-8 py-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-t border-ink-100 dark:border-ink-600">
+            <div className="flex items-center gap-2 mb-4">
+              <Layers size={18} className="text-indigo-500" />
+              <span className="text-sm font-bold text-ink-600 dark:text-ink-300">
+                子分支
+                <span className="ml-1 px-2 py-0.5 bg-indigo-500 text-white text-[10px] font-black rounded-full">
+                  {currentBranch.subBranches.length}
+                </span>
+              </span>
+            </div>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {currentBranch.subBranches.map((sub: any) => (
+                <Link
+                  key={sub.id}
+                  to={`/branch/${sub.id}`}
+                  className="flex-shrink-0 w-64 p-4 bg-white dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-lg transition-all group"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                      <GitFork size={14} />
+                    </div>
+                    {sub.isOfficial && (
+                      <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[8px] font-black rounded-full uppercase">官方</span>
+                    )}
+                  </div>
+                  <h4 className="font-bold text-ink-800 dark:text-white text-sm line-clamp-2 group-hover:text-indigo-600 transition-colors">{sub.title}</h4>
+                  {sub.description && (
+                    <p className="text-xs text-ink-400 mt-1 line-clamp-2">{sub.description}</p>
+                  )}
+                  <div className="flex items-center gap-1.5 mt-2 text-[10px] text-ink-400">
+                    <span>{sub.author?.username}</span>
+                    <span className="w-1 h-1 bg-ink-300 rounded-full"></span>
+                    <span>{sub._count?.chapters || 0} 章节</span>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex px-8 border-t border-ink-100 dark:border-ink-600">
@@ -481,6 +575,85 @@ const BranchPage: React.FC = () => {
         chapterId={booklistTargetChapter?.id || ''}
         chapterTitle={booklistTargetChapter?.title}
       />
+
+      {/* 创建子分支弹窗 */}
+      <Modal
+        isOpen={isSubBranchModalOpen}
+        onClose={() => setIsSubBranchModalOpen(false)}
+        title="创建子分支"
+      >
+        <form onSubmit={handleCreateSubBranch} className="space-y-4">
+          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex gap-3 text-indigo-700 dark:text-indigo-300 text-sm">
+            <GitFork size={20} className="shrink-0" />
+            <p>子分支是在现有分支基础上进一步分叉的平行分支，探索更深层次的可能性。</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-ink-500">子分支标题</label>
+            <input
+              type="text"
+              required
+              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+              placeholder="例如：如果选择了另一条路..."
+              value={newSubBranchData.title}
+              onChange={e => setNewSubBranchData(prev => ({ ...prev, title: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-ink-500">描述（可选）</label>
+            <textarea
+              rows={3}
+              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all resize-none"
+              placeholder="描述这个子分支的故事方向..."
+              value={newSubBranchData.description}
+              onChange={e => setNewSubBranchData(prev => ({ ...prev, description: e.target.value }))}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-ink-500">起始章节</label>
+            <select
+              required
+              value={newSubBranchData.parentChapterId}
+              onChange={e => setNewSubBranchData(prev => ({ ...prev, parentChapterId: e.target.value }))}
+              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+            >
+              <option value="">请选择起始章节</option>
+              {(currentBranch.chapters || []).map((ch: any) => (
+                <option key={ch.id} value={ch.id}>第 {ch.orderIndex} 章：{ch.title}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-bold text-ink-500">分支类型</label>
+            <div className="flex gap-2">
+              {[
+                { value: 'alternate', label: 'IF线' },
+                { value: 'expansion', label: '世界扩展' },
+                { value: 'biography', label: '人物传记' },
+              ].map(opt => (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => setNewSubBranchData(prev => ({ ...prev, branchType: opt.value }))}
+                  className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition-all ${
+                    newSubBranchData.branchType === opt.value
+                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                      : 'border-ink-200 dark:border-ink-600 text-ink-500 hover:border-ink-300'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={isSubmitting || !newSubBranchData.title.trim() || !newSubBranchData.parentChapterId}
+            className="w-full py-4 bg-indigo-500 text-white rounded-2xl font-black hover:bg-indigo-600 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+          >
+            {isSubmitting ? '创建中...' : '确认创建'}
+          </button>
+        </form>
+      </Modal>
 
       {/* 合并请求弹窗 */}
       <MergeRequestModal

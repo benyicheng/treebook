@@ -148,6 +148,9 @@ export class StoryService {
             author: {
               select: { id: true, username: true },
             },
+            originalChapter: {
+              select: { id: true, title: true, orderIndex: true },
+            },
           },
           orderBy: { createdAt: 'desc' },
         },

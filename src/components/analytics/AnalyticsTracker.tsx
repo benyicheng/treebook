@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import analytics from '../lib/analytics';
+import analytics from '../../lib/analytics';
 
 /**
  * 自动追踪 page_view 和 session_start

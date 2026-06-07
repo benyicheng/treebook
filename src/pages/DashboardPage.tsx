@@ -15,7 +15,7 @@ import {
   LayoutDashboard,
   Zap
 } from 'lucide-react';
-import { Skeleton } from '../components/ui/Skeleton';
+import { Skeleton } from '../components/ui';
 
 const DashboardPage: React.FC = () => {
   const navigate = useNavigate();

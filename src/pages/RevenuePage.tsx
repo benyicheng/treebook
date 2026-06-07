@@ -1,5 +1,5 @@
 import React from 'react';
-import WalletDashboard from '../components/Revenue/WalletDashboard';
+import { WalletDashboard } from '../components/Revenue';
 
 const RevenuePage: React.FC = () => {
   return (

@@ -36,6 +36,19 @@ export function useTrail(trailId: string) {
   });
 }
 
+export function useStoryReadingPaths(storyId: string | undefined, limit: number = 5) {
+  return useQuery({
+    queryKey: ['reading-paths', 'story', storyId],
+    queryFn: async () => {
+      if (!storyId) return [];
+      const { data } = await client.get(`/reading-paths/universes/${storyId}`, { params: { limit } });
+      return data.items || data.data || [];
+    },
+    enabled: !!storyId,
+    staleTime: 60_000,
+  });
+}
+
 export function useAdvanceTrail() {
   const qc = useQueryClient();
   return useMutation({

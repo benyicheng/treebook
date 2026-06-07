@@ -17,7 +17,7 @@ import {
   getStoryCharacterAppearances
 } from '../controllers/storyController';
 import { getUniverseMap } from '../controllers/mapController';
-import { authenticate } from '../middleware/auth';
+import { authenticate, optionalAuthenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
 import { 
   createStoryRequest, 
@@ -32,7 +32,7 @@ const router = Router();
 router.get('/', getAllStories);
 router.get('/tags', getTags);
 router.get('/my', authenticate, getMyStories);
-router.get('/recent', authenticate, getRecentReads);
+router.get('/recent', optionalAuthenticate, getRecentReads);
 router.get('/:id', getStoryById);
 router.get('/:id/map', getUniverseMap);
 

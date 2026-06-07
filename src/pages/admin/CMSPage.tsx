@@ -8,7 +8,7 @@ import {
   Star, Search, X, GripVertical, BookOpen, FileText, Edit3
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 
 type TabKey = 'basic' | 'banner' | 'announcement' | 'editor-picks' | 'footer' | 'seo' | 'pages';
 

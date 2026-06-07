@@ -3,7 +3,7 @@ import { Comment } from '../../api/storyService';
 import { useChapterComments, useCreateComment } from '../../hooks/useChapters';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { MessageSquare, Send, Clock } from 'lucide-react';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 import { useNavigate } from 'react-router-dom';
 
 interface CommentSectionProps {

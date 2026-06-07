@@ -6,13 +6,18 @@ import { ensure } from '../utils/entity';
 
 export class SpinoffService {
   static async createSpinoff(authorId: string, data: any) {
-    const { originalStoryId, originalBranchId, title, summary, content, type, isOfficial, revenueShareRate } = data;
+    const { originalStoryId, originalBranchId, originalChapterId, title, summary, content, type, isOfficial, revenueShareRate } = data;
 
     const originalStory: any = await ensure.exists(prisma.story, originalStoryId, 'Original story');
     await ensure.exists(prisma.user, authorId, 'Author');
 
-    if (originalBranchId) {
-      await ensure.exists(prisma.branch, originalBranchId, 'Original branch');
+    // Derive originalChapterId if not provided but branchId is given
+    let resolvedChapterId = originalChapterId || null;
+    if (originalBranchId && !resolvedChapterId) {
+      const branch: any = await ensure.exists(prisma.branch, originalBranchId, 'Original branch');
+      resolvedChapterId = branch.parentChapterId;
+    } else if (originalChapterId) {
+      await ensure.exists(prisma.chapter, originalChapterId, 'Original chapter');
     }
 
     // Official status check: 只有原作者能标记为官方
@@ -22,6 +27,7 @@ export class SpinoffService {
       data: {
         originalStoryId,
         originalBranchId: originalBranchId || null,
+        originalChapterId: resolvedChapterId,
         authorId,
         title,
         summary,
@@ -102,6 +108,7 @@ export class SpinoffService {
           },
         },
         originalBranch: { select: { title: true, description: true } },
+        originalChapter: { select: { id: true, title: true, orderIndex: true } },
       },
     });
 

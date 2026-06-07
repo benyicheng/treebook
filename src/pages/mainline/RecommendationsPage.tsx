@@ -64,21 +64,10 @@ const RecommendationsPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2 text-accent-500 font-black text-xs uppercase tracking-widest mb-2">
-            <Star size={14} className="fill-accent-500" />
-            {recItems.length > 0 ? '为你推荐' : "Editor's Choice"}
-          </div>
-          <h1 className="text-4xl font-black text-ink-800 dark:text-white tracking-tight">
-            {recItems.length > 0 ? '个性化推荐' : '编辑推荐'}
-          </h1>
-          <p className="mt-2 text-ink-500 dark:text-ink-400 text-lg font-light max-w-2xl">
-            {recItems.length > 0
-              ? '基于你的阅读历史和关注网络，为你精选的内容'
-              : '由资深编辑团队深度阅读并认证的精品佳作，包含卓越的世界观设定与叙事逻辑。'}
-          </p>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <h1 className="text-3xl font-black text-ink-800 dark:text-white tracking-tight">
+          {recItems.length > 0 ? '个性化推荐' : '编辑推荐'}
+        </h1>
       </div>
 
       {isLoading ? (

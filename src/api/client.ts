@@ -43,6 +43,10 @@ client.interceptors.response.use(
   (error) => {
     // 处理 HTTP 错误
     const message = error.response?.data?.error?.message || error.response?.data?.message || error.message;
+    // 未登录时的 "No token provided" 是预期行为，不在控制台输出
+    if (error.response?.status === 401 && message === 'No token provided') {
+      return Promise.reject(error);
+    }
     console.error('API Error:', message);
     return Promise.reject(error);
   }

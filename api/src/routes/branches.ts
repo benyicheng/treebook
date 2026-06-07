@@ -5,7 +5,8 @@ import {
   getBranchById, 
   updateBranch, 
   deleteBranch, 
-  getMyBranches 
+  getMyBranches,
+  createSubBranch,
 } from '../controllers/branchController';
 import { certifyBranch } from '../controllers/storyController';
 import { authenticate } from '../middleware/auth';
@@ -35,5 +36,8 @@ router.put('/:id',
 
 router.delete('/:id', authenticate, deleteBranch);
 router.post('/:branchId/certify', authenticate, certifyBranch);
+
+// Sub-branch: POST /api/branches/:id/sub-branches
+router.post('/:id/sub-branches', authenticate, createSubBranch);
 
 export default router;

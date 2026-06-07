@@ -1,12 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { savepointService } from '../api/storyService';
+import { useAuthStore } from '../stores/useAuthStore';
 import { queryKeys } from '../lib/queryKeys';
 
 export function useSavepoints(storyId: string, enabled = true) {
+  const { user } = useAuthStore();
+
   return useQuery({
     queryKey: ['savepoints', { storyId }],
     queryFn: () => savepointService.getAll({ storyId }),
-    enabled: enabled && !!storyId,
+    enabled: enabled && !!storyId && !!user,
   });
 }
 

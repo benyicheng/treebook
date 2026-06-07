@@ -1,7 +1,7 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
-import Modal from '../../../components/Modal';
-import AddToBooklistModal from '../../../components/AddToBooklistModal';
+import { Modal } from '../../../components/ui';
+import { AddToBooklistModal } from '../../../components/Booklist';
 import MergeManagementModal from '../../../components/Merge/MergeManagementModal';
 
 interface StoryModalsProps {

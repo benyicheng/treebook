@@ -12,10 +12,20 @@ import {
   upsertProgress,
   toggleProgress,
   getProgress,
+  createRelation,
+  deleteRelation,
+  getGraph,
+  syncStoryLinks,
+  getStoryLinks,
 } from '../controllers/booklistController';
 import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
-import { updateBooklistItemNotesRequest } from '../utils/validation';
+import {
+  updateBooklistItemNotesRequest,
+  createBooklistRelationRequest,
+  deleteBooklistRelationRequest,
+  getBooklistGraphRequest,
+} from '../utils/validation';
 
 const router = Router();
 
@@ -33,5 +43,14 @@ router.delete('/:id/items/:itemId', authenticate, removeItemFromBooklist);
 router.get('/:id/progress', authenticate, getProgress);
 router.patch('/:id/progress', authenticate, upsertProgress);
 router.post('/:id/progress/toggle', authenticate, toggleProgress);
+
+// Graph: Relations
+router.get('/:id/graph', validateRequest(getBooklistGraphRequest), getGraph);
+router.post('/:id/relations', authenticate, validateRequest(createBooklistRelationRequest), createRelation);
+router.delete('/:id/relations/:relationId', authenticate, validateRequest(deleteBooklistRelationRequest), deleteRelation);
+
+// Graph: Story Links
+router.get('/:id/story-links', getStoryLinks);
+router.post('/:id/sync-story-links', authenticate, syncStoryLinks);
 
 export default router;

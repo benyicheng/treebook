@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { PlusCircle, BookOpen, Edit3, BookMarked, Share2 } from 'lucide-react';
-import ChapterEditor from '../../../components/Editor/ChapterEditor';
+import { ChapterEditor } from '../../../components/Editor';
 
 interface StoryChapterListProps {
   currentStory: any;

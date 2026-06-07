@@ -13,13 +13,13 @@ import {
   Loader2,
   Settings2,
 } from 'lucide-react';
-import AddToBooklistModal from '../../../components/AddToBooklistModal';
+import { AddToBooklistModal } from '../../../components/Booklist';
 import {
   ReadingSettings,
   loadInitial,
   type ReadingSettingsState,
   type FontMode,
-} from '../../../components/reading/ReadingSettings';
+} from '../../../components/reading';
 
 interface ChapterItem {
   id: string;

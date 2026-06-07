@@ -4,11 +4,11 @@ import { spinoffService, Spinoff, storyService, Character } from '../../api/stor
 import { mergeService, MergeRequest } from '../../api/mergeService';
 import { ArrowLeft, BookOpen, Star, Users, History, Sparkles, Layout, Info, Edit3, ShieldCheck, Send, GitBranch } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 import ReactMarkdown from 'react-markdown';
-import Modal from '../../components/Modal';
-import FollowButton from '../../components/FollowButton';
-import { ShareButton } from '../../components/Interaction/ShareButton';
+import { Modal } from '../../components/ui';
+import { FollowButton } from '../../components/Interaction';
+import { ShareButton } from '../../components/Interaction';
 import { useSpinoff } from '../../hooks/useSpinoffs';
 import { useCharacters } from '../../hooks/useCharacters';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';

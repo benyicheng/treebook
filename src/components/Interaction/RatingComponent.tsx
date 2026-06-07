@@ -3,8 +3,8 @@ import { Star, X, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { interactionService, RATING_REASON_TAGS, TargetType } from '../../api/interactionService';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { useToast } from '../Toast';
-import Modal from '../Modal';
+import { useToast } from '../notifications/Toast';
+import Modal from '../ui/Modal';
 
 interface RatingComponentProps {
   targetType: TargetType;

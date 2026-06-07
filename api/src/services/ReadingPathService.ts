@@ -4,12 +4,20 @@ import { parsePagination, paginatedResponse, PaginatedResponse } from '../utils/
 import { ReadingPathResolver } from './ReadingPathResolver';
 
 interface CreateReadingPathInput {
-  storyId: string;
+  storyId?: string | null;
+  booklistId?: string | null;
   creatorId: string;
   title: string;
   description?: string;
   origin?: string;
-  nodes: { sortOrder: number; nodeCategory: string; contentId: string; note?: string }[];
+  nodes: {
+    sortOrder: number;
+    nodeCategory: string;
+    contentId: string;
+    storyId?: string | null;
+    storyTitle?: string | null;
+    note?: string;
+  }[];
 }
 
 interface ReadingPathListItem {
@@ -26,7 +34,7 @@ interface ReadingPathListItem {
 }
 
 interface ReadingPathDetail extends ReadingPathListItem {
-  storyId: string;
+  storyId: string | null;
   nodes: {
     id: string;
     sortOrder: number;
@@ -178,16 +186,25 @@ export class ReadingPathService {
   }
 
   /**
-   * 创建阅读路径
+   * 创建阅读路径（支持单故事或跨故事）
    */
   static async createPath(input: CreateReadingPathInput) {
-    // Verify story exists
-    const story = await prisma.story.findUnique({ where: { id: input.storyId } });
-    if (!story) throw new AppError(404, 'NOT_FOUND', 'Story not found');
+    // Verify story exists if provided
+    if (input.storyId) {
+      const story = await prisma.story.findUnique({ where: { id: input.storyId } });
+      if (!story) throw new AppError(404, 'NOT_FOUND', '关联故事不存在');
+    }
+
+    // Verify booklist exists if provided
+    if (input.booklistId) {
+      const booklist = await prisma.booklist.findUnique({ where: { id: input.booklistId } });
+      if (!booklist) throw new AppError(404, 'NOT_FOUND', '关联书单不存在');
+    }
 
     const path = await prisma.readingPath.create({
       data: {
-        storyId: input.storyId,
+        storyId: input.storyId || null,
+        booklistId: input.booklistId || null,
         creatorId: input.creatorId,
         title: input.title,
         description: input.description,
@@ -197,6 +214,8 @@ export class ReadingPathService {
             sortOrder: n.sortOrder,
             nodeCategory: n.nodeCategory,
             contentId: n.contentId,
+            storyId: n.storyId || null,
+            storyTitle: n.storyTitle || null,
             note: n.note,
           })),
         },

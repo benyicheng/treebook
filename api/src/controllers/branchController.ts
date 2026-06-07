@@ -71,3 +71,15 @@ export const deleteBranch = catchAsync(async (req: AuthRequest, res: Response) =
   const result = await BranchService.deleteBranch(req.params.id, authorId, userRole);
   res.json({ success: true, data: result });
 });
+
+export const createSubBranch = catchAsync(async (req: AuthRequest, res: Response) => {
+  const authorId = req.user?.id;
+  const userRole = req.user?.role;
+  if (!authorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+
+  const branch = await BranchService.createSubBranch(authorId, userRole, {
+    ...req.body,
+    parentBranchId: req.params.id,
+  });
+  res.status(201).json({ success: true, data: branch });
+});

@@ -4,7 +4,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { useBranches } from '../../hooks/useBranches';
 import { GitBranch, ShieldCheck, Clock, User, ArrowRight, MessageSquare } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Skeleton } from '../../components/ui/Skeleton';
+import { Skeleton } from '../../components/ui';
 
 const BranchesPage: React.FC = () => {
   const navigate = useNavigate();
@@ -14,16 +14,11 @@ const BranchesPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-black text-ink-800 dark:text-white tracking-tight flex items-center gap-3">
-            <GitBranch size={36} className="text-accent-500" />
-            活跃分支
-          </h1>
-          <p className="mt-2 text-ink-500 dark:text-ink-400 text-lg font-light">
-            探索无限可能：从任何章节分叉出的平行宇宙故事线。
-          </p>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <h1 className="text-3xl font-black text-ink-800 dark:text-white tracking-tight flex items-center gap-3">
+          <GitBranch size={28} className="text-accent-500" />
+          活跃分支
+        </h1>
       </div>
 
       {isLoading ? (

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { useSearch } from '../../hooks/useSearch';
 import {
@@ -9,6 +9,8 @@ import {
   User,
   Loader2,
   Sparkles,
+  ArrowUpDown,
+  Clock,
 } from 'lucide-react';
 import analytics from '../../lib/analytics';
 import { SearchResultItem } from '../../api/searchService';
@@ -36,6 +38,8 @@ const TYPE_COLORS: Record<string, string> = {
   spinoff: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400',
   author: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
 };
+
+const LIMIT = 20;
 
 function highlightText(text: string, query: string): React.ReactNode {
   if (!query.trim()) return text;
@@ -86,18 +90,43 @@ const SearchResultsPage: React.FC = () => {
   const navigate = useNavigate();
   const query = searchParams.get('q') || '';
   const activeType = searchParams.get('type') || 'all';
+  const urlSort = (searchParams.get('sort') as 'relevance' | 'newest') || 'relevance';
 
   const [searchInput, setSearchInput] = useState(query);
+  const [offset, setOffset] = useState(0);
+  const [accumulatedResults, setAccumulatedResults] = useState<SearchResultItem[]>([]);
   const prevTotalRef = useRef(0);
+  const [sortBy, setSortBy] = useState<'relevance' | 'newest'>(urlSort);
 
-  const { data, isLoading: loading, error: queryError } = useSearch(
+  // Sync searchInput with URL query changes
+  useEffect(() => {
+    setSearchInput(query);
+  }, [query]);
+
+  // Reset pagination when query or type changes
+  useEffect(() => {
+    setOffset(0);
+    setAccumulatedResults([]);
+  }, [query, activeType, sortBy]);
+
+  const { data, isFetching, error: queryError } = useSearch(
     query,
     activeType === 'all' ? null : activeType,
+    LIMIT,
+    offset,
+    sortBy,
   );
 
-  const results = data?.results || [];
+  // Accumulate results across pages
+  useEffect(() => {
+    if (data?.results) {
+      setAccumulatedResults(prev => offset === 0 ? data.results : [...prev, ...data.results]);
+    }
+  }, [data?.results, offset]);
+
   const total = data?.total || 0;
   const error = queryError ? '搜索服务暂时不可用，请稍后重试' : null;
+  const hasMore = accumulatedResults.length > 0 && accumulatedResults.length < total;
 
   // Track analytics when search results change
   useEffect(() => {
@@ -110,13 +139,35 @@ const SearchResultsPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const trimmed = searchInput.trim();
+    const params: Record<string, string> = {};
     if (trimmed) {
-      setSearchParams({ q: trimmed, type: activeType });
+      params.q = trimmed;
+      if (activeType !== 'all') params.type = activeType;
+      params.sort = sortBy;
+      setSearchParams(params);
     }
   };
 
   const handleTabChange = (tabKey: string) => {
-    setSearchParams({ q: query, type: tabKey });
+    const params: Record<string, string> = { q: query };
+    if (tabKey !== 'all') params.type = tabKey;
+    params.sort = sortBy;
+    setSearchParams(params);
+  };
+
+  const handleSortChange = (sort: 'relevance' | 'newest') => {
+    setSortBy(sort);
+    const params: Record<string, string> = { q: query, sort };
+    if (activeType !== 'all') params.type = activeType;
+    setSearchParams(params);
+  };
+
+  const handleLoadMore = () => {
+    setOffset(prev => prev + LIMIT);
+  };
+
+  const handleClearSearch = () => {
+    setSearchParams({ q: '' });
   };
 
   return (
@@ -146,43 +197,66 @@ const SearchResultsPage: React.FC = () => {
         </form>
       </div>
 
-      {/* Type Tabs */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-1">
-        {TYPE_TABS.map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeType === tab.key;
-          return (
+      {/* Type Tabs + Sort Toggle */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1">
+          {TYPE_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeType === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => handleTabChange(tab.key)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
+                  isActive
+                    ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 shadow-sm'
+                    : 'text-ink-500 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-700'
+                }`}
+              >
+                <Icon size={15} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+
+        {query && (
+          <div className="flex items-center gap-1 shrink-0 ml-4">
             <button
-              key={tab.key}
-              onClick={() => handleTabChange(tab.key)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all ${
-                isActive
-                  ? 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400 shadow-sm'
-                  : 'text-ink-500 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-700'
+              onClick={() => handleSortChange('relevance')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                sortBy === 'relevance'
+                  ? 'bg-ink-100 dark:bg-ink-700 text-ink-700 dark:text-ink-200'
+                  : 'text-ink-400 hover:text-ink-600 dark:hover:text-ink-300'
               }`}
             >
-              <Icon size={15} />
-              {tab.label}
+              <ArrowUpDown size={12} />
+              相关度
             </button>
-          );
-        })}
+            <button
+              onClick={() => handleSortChange('newest')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                sortBy === 'newest'
+                  ? 'bg-ink-100 dark:bg-ink-700 text-ink-700 dark:text-ink-200'
+                  : 'text-ink-400 hover:text-ink-600 dark:hover:text-ink-300'
+              }`}
+            >
+              <Clock size={12} />
+              最新
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Results Count */}
-      {query && !loading && (
+      {query && !isFetching && (
         <p className="text-sm text-ink-500 dark:text-ink-400 mb-4">
           {total > 0 ? `找到 ${total} 个结果` : '未找到匹配结果'}
         </p>
       )}
-      {!query && !loading && results.length > 0 && (
-        <p className="text-sm text-ink-500 dark:text-ink-400 mb-4">
-          <Sparkles size={14} className="inline mr-1 text-amber-500" />
-          热门推荐
-        </p>
-      )}
 
-      {/* Loading */}
-      {loading && (
+      {/* Loading skeleton for first page */}
+      {isFetching && offset === 0 && (
         <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => (
             <div
@@ -201,16 +275,15 @@ const SearchResultsPage: React.FC = () => {
       )}
 
       {/* Results List */}
-      {!loading && !error && (
+      {!error && (accumulatedResults.length > 0 || (!isFetching && query)) && (
         <div className="space-y-3">
-          {results.map((item) => (
+          {accumulatedResults.map((item) => (
             <Link
               key={`${item.type}-${item.sourceId}`}
               to={getItemLink(item)}
               className="block p-5 bg-ink-50 dark:bg-ink-800 border border-ink-200 dark:border-ink-700 rounded-xl hover:border-violet-300 dark:hover:border-violet-700 hover:shadow-md transition-all group"
             >
               <div className="flex items-start gap-4">
-                {/* Icon */}
                 <div className="shrink-0 w-10 h-10 rounded-xl bg-ink-100 dark:bg-ink-700 flex items-center justify-center mt-0.5">
                   {item.type === 'story' && <BookOpen size={18} className="text-accent-400" />}
                   {item.type === 'chapter' && <FileText size={18} className="text-accent-400" />}
@@ -220,7 +293,6 @@ const SearchResultsPage: React.FC = () => {
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  {/* Title + Type Badge */}
                   <div className="flex items-center gap-2 mb-1">
                     <h3 className="text-base font-bold text-ink-800 dark:text-white group-hover:text-accent-600 dark:group-hover:text-violet-400 transition-colors truncate">
                       {highlightText(item.title, query)}
@@ -232,7 +304,6 @@ const SearchResultsPage: React.FC = () => {
                     </span>
                   </div>
 
-                  {/* Highlight snippet */}
                   {item.highlight && (
                     <p className="text-sm text-ink-500 dark:text-ink-400 line-clamp-2">
                       {highlightText(item.highlight, query)}
@@ -240,7 +311,6 @@ const SearchResultsPage: React.FC = () => {
                   )}
                 </div>
 
-                {/* Arrow */}
                 <div className="shrink-0 text-ink-300 dark:text-ink-600 group-hover:text-violet-400 transition-colors mt-1">
                   <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
                     <path d="M5.5 3.5L10.5 8L5.5 12.5" stroke="currentColor" strokeWidth="2" fill="none" strokeLinecap="round" />
@@ -251,7 +321,7 @@ const SearchResultsPage: React.FC = () => {
           ))}
 
           {/* Empty State */}
-          {results.length === 0 && query && (
+          {accumulatedResults.length === 0 && query && !isFetching && (
             <div className="py-16 text-center">
               <Search size={48} className="mx-auto text-ink-300 dark:text-ink-500 mb-4" />
               <p className="text-ink-500 dark:text-ink-400 font-medium">没有找到相关内容</p>
@@ -259,12 +329,55 @@ const SearchResultsPage: React.FC = () => {
                 试试其他关键词或浏览热门推荐
               </p>
               <button
-                onClick={() => {
-                  setSearchParams({ q: '', type: 'all' });
-                }}
+                onClick={handleClearSearch}
                 className="mt-4 px-5 py-2 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 rounded-full text-sm font-bold hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
               >
                 查看热门推荐
+              </button>
+            </div>
+          )}
+
+          {/* Welcome state when no query */}
+          {!query && !isFetching && accumulatedResults.length === 0 && (
+            <div className="py-16 text-center">
+              <Sparkles size={48} className="mx-auto text-amber-400 dark:text-amber-500 mb-4" />
+              <p className="text-ink-800 dark:text-ink-200 font-black text-lg">搜索你感兴趣的内容</p>
+              <p className="text-sm text-ink-400 dark:text-ink-500 mt-1 max-w-md mx-auto">
+                输入关键词搜索故事、分支、番外、作者，或按类型筛选
+              </p>
+              <div className="flex items-center justify-center gap-3 mt-6 flex-wrap">
+                {['科幻', '奇幻', '恋爱', '悬疑'].map((tag) => (
+                  <button
+                    key={tag}
+                    onClick={() => setSearchParams({ q: tag })}
+                    className="px-5 py-2 bg-ink-100 dark:bg-ink-700 text-ink-600 dark:text-ink-300 rounded-full text-sm font-bold hover:bg-accent-100 dark:hover:bg-accent-500/15 hover:text-accent-600 dark:hover:text-accent-400 transition-all"
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Load More */}
+          {hasMore && (
+            <div className="flex justify-center py-6">
+              <button
+                onClick={handleLoadMore}
+                disabled={isFetching}
+                className="px-8 py-3 bg-ink-100 dark:bg-ink-700 text-ink-700 dark:text-ink-200 rounded-full text-sm font-bold hover:bg-ink-200 dark:hover:bg-ink-600 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {isFetching ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    加载中...
+                  </>
+                ) : (
+                  <>
+                    <Search size={16} />
+                    加载更多 ({accumulatedResults.length}/{total})
+                  </>
+                )}
               </button>
             </div>
           )}

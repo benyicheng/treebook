@@ -3,10 +3,10 @@ import { Spinoff } from '../../api/storyService';
 import { useSpinoffs } from '../../hooks/useSpinoffs';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { BookOpen, PlusCircle, Star, MessageSquare, Users } from 'lucide-react';
-import Modal from '../../components/Modal';
+import { Modal } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
-import { Skeleton } from '../../components/ui/Skeleton';
-import { ShareButton } from '../../components/Interaction/ShareButton';
+import { Skeleton } from '../../components/ui';
+import { ShareButton } from '../../components/Interaction';
 
 const SpinoffPage: React.FC = () => {
   const navigate = useNavigate();
@@ -16,13 +16,8 @@ const SpinoffPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <h1 className="text-4xl font-black text-ink-800 dark:text-white tracking-tight">精彩番外</h1>
-          <p className="mt-2 text-ink-500 dark:text-ink-400 text-lg font-light">
-            基于现有世界观的独立短篇，探索角色的另一面。
-          </p>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <h1 className="text-3xl font-black text-ink-800 dark:text-white tracking-tight">精彩番外</h1>
         {isAuthenticated && (
           <button 
             onClick={() => navigate('/spinoff/create')}

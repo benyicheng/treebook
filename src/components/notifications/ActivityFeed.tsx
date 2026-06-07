@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { activityService, ActivityItem } from '../api/activityService';
-import { useAuthStore } from '../stores/useAuthStore';
-import { timeAgo } from '../lib/utils';
+import { activityService, ActivityItem } from '../../api/activityService';
+import { useAuthStore } from '../../stores/useAuthStore';
+import { timeAgo } from '../../lib/utils';
 import {
   Loader2,
   BookOpen,

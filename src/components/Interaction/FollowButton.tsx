@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { followService } from '../api/followService';
-import { useAuthStore } from '../stores/useAuthStore';
+import { followService } from '../../api/followService';
+import { useAuthStore } from '../../stores/useAuthStore';
 import { UserPlus, UserCheck, Loader2, LogIn } from 'lucide-react';
 
 interface FollowButtonProps {

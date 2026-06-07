@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Users, Plus, X, Search, Shield } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 import roleService, { UserWithRoles } from '../../api/roleService';
 
 const UserManagement: React.FC = () => {

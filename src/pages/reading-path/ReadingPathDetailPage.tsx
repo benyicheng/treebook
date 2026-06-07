@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import client from '../../api/client';
 import { useAuthStore } from '../../stores/useAuthStore';
-import { useToast } from '../../components/Toast';
+import { useToast } from '../../components/notifications';
 
 interface ReadingPathNode {
   id: string;

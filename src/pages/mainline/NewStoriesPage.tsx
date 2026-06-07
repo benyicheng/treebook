@@ -3,7 +3,7 @@ import { Story } from '../../api/storyService';
 import { useStories } from '../../hooks/useStories';
 import { Clock, Zap, BookOpen, ChevronRight, LayoutGrid, LayoutList } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Skeleton } from '../../components/ui/Skeleton';
+import { Skeleton } from '../../components/ui';
 
 const NewStoriesPage: React.FC = () => {
   const { data: storiesData, isLoading } = useStories();
@@ -12,17 +12,8 @@ const NewStoriesPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto space-y-10 pb-20 px-4">
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-        <div>
-          <div className="flex items-center gap-2 text-accent-500 font-black text-xs uppercase tracking-widest mb-2">
-            <Zap size={14} className="fill-accent-500" />
-            New Arrivals
-          </div>
-          <h1 className="text-4xl font-black text-ink-800 dark:text-white tracking-tight">新书速递</h1>
-          <p className="mt-2 text-ink-500 dark:text-ink-400 text-lg font-light max-w-2xl">
-            最新的平行宇宙作品，开启第一视角探索无限可能的起点。
-          </p>
-        </div>
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <h1 className="text-3xl font-black text-ink-800 dark:text-white tracking-tight">新书速递</h1>
         
         <div className="flex items-center gap-2 bg-ink-100 dark:bg-ink-700 p-1.5 rounded-2xl border border-ink-100 dark:border-ink-600">
           <button 

@@ -57,7 +57,7 @@ export const deleteStory = catchAsync(async (req: AuthRequest, res: Response) =>
 
 export const getRecentReads = catchAsync(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  if (!userId) return res.json({ success: true, data: [] });
 
   const recentReads = await StoryService.getRecentReads(userId);
   res.json({ success: true, data: recentReads });

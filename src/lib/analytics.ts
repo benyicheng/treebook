@@ -1,12 +1,14 @@
 /**
  * 前端埋点 SDK
  *
- * 5 个核心事件：
+ * 7 个核心事件：
  * - page_view        页面浏览（自动追踪）
  * - session_start    会话开始（自动追踪）
  * - reading_progress 阅读进度（需手动调用）
  * - content_created  内容创作（需手动调用）
  * - search_performed 搜索执行（需手动调用）
+ * - node_hover       宇宙树节点悬停（自动追踪）
+ * - node_click       宇宙树节点点击（自动追踪）
  */
 
 const ENDPOINT = '/api/analytics/events';
@@ -144,6 +146,26 @@ export const analytics = {
       targetType: 'search',
       targetId: query.slice(0, 100),
       properties: { resultCount, filters },
+    });
+  },
+
+  /** 节点悬停 — 宇宙树节点 hover 时调用 */
+  trackNodeHover(nodeType: 'chapter' | 'branch' | 'spinoff', nodeId: string, storyId: string) {
+    enqueue({
+      type: 'node_hover',
+      targetType: nodeType,
+      targetId: nodeId,
+      properties: { storyId },
+    });
+  },
+
+  /** 节点点击 — 宇宙树节点点击时调用 */
+  trackNodeClick(nodeType: 'chapter' | 'branch' | 'spinoff', nodeId: string, storyId: string) {
+    enqueue({
+      type: 'node_click',
+      targetType: nodeType,
+      targetId: nodeId,
+      properties: { storyId },
     });
   },
 };

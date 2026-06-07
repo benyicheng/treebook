@@ -40,13 +40,14 @@ export const createReadingPath = catchAsync(async (req: AuthRequest, res: Respon
   const userId = req.user?.id;
   if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
 
-  const { storyId, title, description, origin, nodes } = req.body;
-  if (!storyId || !title || !nodes?.length) {
-    throw new AppError(400, 'VALIDATION_ERROR', 'storyId, title, and nodes are required');
+  const { storyId, booklistId, title, description, origin, nodes } = req.body;
+  if (!title || !nodes?.length) {
+    throw new AppError(400, 'VALIDATION_ERROR', 'title and nodes are required');
   }
 
   const data = await ReadingPathService.createPath({
-    storyId,
+    storyId: storyId || null,
+    booklistId: booklistId || null,
     creatorId: userId,
     title,
     description,
@@ -55,6 +56,8 @@ export const createReadingPath = catchAsync(async (req: AuthRequest, res: Respon
       sortOrder: n.sortOrder ?? i,
       nodeCategory: n.nodeCategory,
       contentId: n.contentId,
+      storyId: n.storyId || null,
+      storyTitle: n.storyTitle || null,
       note: n.note,
     })),
   });
