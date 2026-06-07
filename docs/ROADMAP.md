@@ -43,7 +43,7 @@
 | S2.1 SQLite → PostgreSQL 迁移 | P1 | ⬜ |
 | S2.2 JSON-as-String → JSON 字段 | P2 | ⬜ |
 | S2.3 JWT refresh token 机制 | P2 | ⬜ |
-| S2.4 API 响应格式全面统一 | P1 | ⬜ |
+| S2.4 API 响应格式全面统一 | P1 | ✅ |
 
 ### 📋 Epic 3: 功能补全（v0.6.0 — 规划中）
 
