@@ -82,7 +82,7 @@ model User {
   role          String          @default("reader")
   followerCount Int             @default(0)
   followingCount Int            @default(0)
-  roles         UserRole[]
+  roles         UserRoleAssignment[]
   stories       Story[]
   branches      Branch[]
   spinoffs      Spinoff[]
@@ -228,6 +228,7 @@ model Story {
   wikiPages    WikiPage[]           // 该故事的百科页面
   booklistStoryLinks BooklistStoryLink[] // 该故事被哪些书单引用
   readingTrails ReadingTrail[]      // 该故事的阅读轨迹
+  storyEvents   StoryEvent[]        // 该故事的大事件
 
   @@map("stories")
 }
@@ -277,6 +278,8 @@ model WikiPage {
   id            String     @id @default(uuid())
   storyId       String?
   story         Story?     @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  booklistId    String?
+  booklist      Booklist?  @relation("DirectBooklistWiki", fields: [booklistId], references: [id], onDelete: SetNull)
   title         String
   slug          String
   contentType   String     // 'character' | 'setting' | 'event' | 'concept' | 'faction' | 'item'
@@ -292,6 +295,10 @@ model WikiPage {
   aliases       WikiAlias[]
   outgoingLinks WikiLink[] @relation("OutgoingLinks")
   incomingLinks WikiLink[] @relation("IncomingLinks")
+  booklistWikiRefs BooklistWikiRef[]  // 该书签被哪些书单引用
+  pathWikiRefs     PathWikiRef[]      // 该书签被哪些路径引用
+  /// Phase 3：本百科条目在哪些事件中被提及（用于事件卡 📍 地点连接器）
+  entityMentions   WikiEntityMention[] @relation("WikiPageMention")
 
   @@unique([storyId, slug])
   @@map("wiki_pages")
@@ -374,12 +381,16 @@ model Branch {
   parentBranch    Branch?           @relation("SubBranch", fields: [parentBranchId], references: [id])
   subBranches     Branch[]          @relation("SubBranch")
   treeDepth       Int               @default(0)  // 0=直接来自主线, 1=子分支, 2=子子分支...
+  // 精确分支起点（事件级别）—— Phase 3 引入；为 null 时退化到 parentChapterId 粒度。
+  parentEventId   String?
+  parentEvent     StoryEvent?       @relation("BranchOriginEvent", fields: [parentEventId], references: [id], onDelete: SetNull)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @default(now()) @updatedAt
 
   @@index([authorId])
   @@index([parentStoryId])
   @@index([parentChapterId])
+  @@index([parentEventId])
   @@map("branches")
 }
 
@@ -393,6 +404,9 @@ model Spinoff {
   originalBranchId     String?
   originalChapter      Chapter?  @relation(fields: [originalChapterId], references: [id], onDelete: SetNull)
   originalChapterId    String?
+  // 精确番外起点（事件级别）—— Phase 3 引入；为 null 时退化到 originalChapterId / originalBranchId 粒度。
+  originalEventId      String?
+  originalEvent        StoryEvent? @relation("SpinoffOriginEvent", fields: [originalEventId], references: [id], onDelete: SetNull)
   title                String
   summary              String?   // 短简介
   content              String
@@ -411,6 +425,7 @@ model Spinoff {
   @@index([authorId])
   @@index([originalBranchId])
   @@index([originalChapterId])
+  @@index([originalEventId])
   @@map("spinoffs")
 }
 
@@ -420,8 +435,9 @@ model Booklist {
   creatorId          String
   title              String
   description        String?
+  content            String?          // Markdown 导读正文
   coverImage         String?          @default("https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&q=80&w=800")
-  type               String           @default("COLLECTION") // COLLECTION or TIMELINE
+  type               String           @default("COLLECTION") // STORY_GUIDE | CROSS_STORY | CHARACTER_PERSPECTIVE | THEMATIC (legacy: COLLECTION | TIMELINE)
   tags               String?          @default("") // Comma separated tags
   isPublic           Boolean          @default(true)
   isIncentiveEnabled Boolean          @default(true)
@@ -431,8 +447,10 @@ model Booklist {
   items              BooklistItem[]
   progress           BooklistProgress[]
   referralHistories  ReadingHistory[] @relation("BooklistReferral")
-  linkedStories      BooklistStoryLink[] // 书单涉及的故事（反向索引）
-  paths              ReadingPath[]       // 基于本书单的阅读路径
+  linkedStories      BooklistStoryLink[]
+  paths              ReadingPath[]
+  wikiRefs           BooklistWikiRef[]   // 书单引用的百科书签
+  directWikiPages    WikiPage[] @relation("DirectBooklistWiki") // wiki_pages.booklistId 直接关联（legacy）
   createdAt          DateTime         @default(now())
   updatedAt          DateTime         @default(now()) @updatedAt
 
@@ -455,24 +473,97 @@ model BooklistProgress {
 }
 
 model BooklistItem {
-  id         String    @id @default(uuid())
-  booklist   Booklist  @relation(fields: [booklistId], references: [id], onDelete: Cascade)
-  booklistId String
-  targetType String?   // 'story' | 'branch' | 'spinoff' | 'chapter' | 'character' | 'wiki_page'
-  targetId   String?
-  chapter    Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
-  chapterId  String?
-  orderIndex Int
-  notes      String?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @default(now()) @updatedAt
+  id           String    @id @default(uuid())
+  booklist     Booklist  @relation(fields: [booklistId], references: [id], onDelete: Cascade)
+  booklistId   String
+  targetType   String?   // 'story' | 'branch' | 'spinoff' | 'chapter' | 'character' | 'wiki_page' | 'event'
+  targetId     String?
+  storyId      String?   // 所属故事ID（对 story/chapter/event 条目自动填充）
+  parentItemId String?   // 上级条目ID：event→chapter, story→chapter
+  parentItem   BooklistItem? @relation("BooklistItemChildren", fields: [parentItemId], references: [id], onDelete: SetNull)
+  children     BooklistItem[] @relation("BooklistItemChildren")
+  chapter      Chapter?  @relation(fields: [chapterId], references: [id], onDelete: SetNull)
+  chapterId    String?
+  section      String    @default("general") // mainline | branch | spinoff | wiki | general
+  orderIndex   Int       // 结构展示排序（非阅读顺序）
+  notes        String?   // 策展人点评
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
 
   outgoingEdges BooklistItemRelation[] @relation("OutgoingEdges")
   incomingEdges BooklistItemRelation[] @relation("IncomingEdges")
 
   @@index([booklistId])
   @@index([targetType, targetId])
+  @@index([storyId])
   @@map("booklist_items")
+}
+
+/// 故事大事件 — 跨章节/分支/番外的叙事单元
+model StoryEvent {
+  id          String           @id @default(uuid())
+  storyId     String
+  story       Story            @relation(fields: [storyId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  type        String           @default("main_arc") // main_arc | branch_arc | crossover
+  importance  Int              @default(1)
+  color       String?
+  sortOrder   Int              @default(0)
+  /// 故事内时间序号（in-universe 编年史）。null 表示未标注，UI 退化到 sortOrder 排序。
+  storyTime   Int?
+  nodes       StoryEventNode[]
+  pathNodes   ReadingPathNode[] // 阅读路径节点引用此事件
+  /// Phase 3：从此事件分叉的分支（精确分支起点）
+  branchesOriginatedHere Branch[]  @relation("BranchOriginEvent")
+  /// Phase 3：从此事件衍生的番外
+  spinoffsOriginatedHere Spinoff[] @relation("SpinoffOriginEvent")
+  /// Phase 3：本事件中提及的百科条目
+  wikiMentions WikiEntityMention[] @relation("EventWikiMention")
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  @@index([storyId])
+  @@index([storyTime])
+  @@map("story_events")
+}
+
+/// 事件节点 — 大事件涵盖的具体内容单元
+model StoryEventNode {
+  id         String      @id @default(uuid())
+  eventId    String
+  event      StoryEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  targetType String      // 'chapter' | 'branch' | 'spinoff'
+  targetId   String
+  sortOrder  Int         @default(0)
+  note       String?
+
+  @@unique([eventId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@map("story_event_nodes")
+}
+
+/// 百科实体在内容中的提及 — Phase 3 引入
+/// 用于事件卡 📍 地点连接器：通过扫描 event.description / chapter.content 的
+/// [[wiki:slug]] 或 @百科 引用，落表后批量反查"本事件提到了哪些百科条目"。
+model WikiEntityMention {
+  id          String   @id @default(uuid())
+  wikiPageId  String
+  wikiPage    WikiPage @relation("WikiPageMention", fields: [wikiPageId], references: [id], onDelete: Cascade)
+  /// 'event' | 'chapter' | 'branch' | 'spinoff'
+  targetType  String
+  targetId    String
+  /// 'primary' | 'secondary' | 'reference' —— 排序优先级
+  mentionType String   @default("reference")
+  /// Phase 3 起：targetType='event' 时直接绑 eventId 便于 JOIN（冗余但提速）
+  eventId     String?
+  event       StoryEvent? @relation("EventWikiMention", fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+
+  @@unique([wikiPageId, targetType, targetId])
+  @@index([targetType, targetId])
+  @@index([eventId])
+  @@map("wiki_entity_mentions")
 }
 
 /// 书单关系边 — 将书单从列表升格为关系图
@@ -504,6 +595,21 @@ model BooklistStoryLink {
   @@map("booklist_story_links")
 }
 
+/// 书单引用的百科书签 — 联接书单导读正文中的 [[百科条目]]
+model BooklistWikiRef {
+  id          String   @id @default(uuid())
+  booklistId  String
+  booklist    Booklist @relation(fields: [booklistId], references: [id], onDelete: Cascade)
+  wikiPageId  String
+  wikiPage    WikiPage @relation(fields: [wikiPageId], references: [id], onDelete: Cascade)
+  section     String?  // 在书单正文的哪个锚点引用
+  createdAt   DateTime @default(now())
+
+  @@unique([booklistId, wikiPageId])
+  @@index([wikiPageId])
+  @@map("booklist_wiki_refs")
+}
+
 model Collaboration {
   id          String   @id @default(uuid())
   story       Story    @relation(fields: [storyId], references: [id], onDelete: Cascade)
@@ -523,7 +629,7 @@ model Role {
   id          String           @id @default(uuid())
   name        String           @unique
   description String?
-  users       UserRole[]
+  users       UserRoleAssignment[]
   permissions RolePermission[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
@@ -542,7 +648,8 @@ model Permission {
   @@map("permissions")
 }
 
-model UserRole {
+/// 用户-角色关联 (避免与 enum UserRole 冲突)
+model UserRoleAssignment {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId    String
   role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
@@ -808,25 +915,27 @@ model MediaRiskLog {
 
 /// 阅读路径 — 用户创建的阅读顺序导航
 model ReadingPath {
-  id              String      @id @default(uuid())
-  storyId         String?     // 可选：跨作品路径不需要绑定单一故事
-  story           Story?      @relation(fields: [storyId], references: [id], onDelete: SetNull)
+  id              String            @id @default(uuid())
+  storyId         String?           // 可选：跨作品路径不需要绑定单一故事
+  story           Story?            @relation(fields: [storyId], references: [id], onDelete: SetNull)
   creatorId       String
-  creator         User        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  creator         User              @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   title           String
   description     String?
-  origin          String      @default("community")  // 'author' | 'community' | 'system'
-  booklistId      String?     // 所属书单（路径是对书单关系的阅读实现）
-  booklist        Booklist?   @relation(fields: [booklistId], references: [id], onDelete: SetNull)
-  status          String      @default("published")  // 'draft' | 'published'
-  viewCount       Int         @default(0)
-  startCount      Int         @default(0)
-  completionCount Int         @default(0)
+  guideType       String?           // chronological | character_focus | theme_exploration | completionist
+  origin          String            @default("community")  // 'author' | 'community' | 'system'
+  booklistId      String?           // 所属书单（可为 null，路径可独立创建）
+  booklist        Booklist?         @relation(fields: [booklistId], references: [id], onDelete: SetNull)
+  status          String            @default("published")  // 'draft' | 'published'
+  viewCount       Int               @default(0)
+  startCount      Int               @default(0)
+  completionCount Int               @default(0)
   avgDurationMin  Int?
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
   nodes           ReadingPathNode[]
   trails          ReadingTrail[]
+  wikiRefs        PathWikiRef[]
 
   @@index([storyId, viewCount])
   @@index([creatorId])
@@ -839,16 +948,41 @@ model ReadingPathNode {
   path          ReadingPath   @relation(fields: [pathId], references: [id], onDelete: Cascade)
   pathId        String
   sortOrder     Int
-  nodeCategory  String        // 'chapter' | 'branch' | 'spinoff'
+  nodeCategory  String        // 'chapter' | 'branch' | 'spinoff' | 'event'
   contentId     String
   storyId       String?       // 内容所属故事ID（支持跨作品，可选以兼容存量数据）
   storyTitle    String?       // 显示用冗余
   contentTitle  String?
+  introduction  String?       // 节点导读：为什么读这一站
   note          String?
   estimatedMin  Int?
+  eventId       String?
+  event         StoryEvent?   @relation(fields: [eventId], references: [id], onDelete: SetNull)
+  /// Phase 4：叉路分组 ID。同一 forkGroupId 的多个节点构成一个"选择点"，
+  /// 阅读器在该处弹窗让用户选 A/B/C 路。null 表示普通线性节点。
+  forkGroupId   String?
+  /// Phase 4：叉路组内是否为主选（默认推荐的分支）。同组内最多一个 primary。
+  isForkPrimary Boolean        @default(false)
+  pathWikiRefs  PathWikiRef[]
 
   @@index([pathId, sortOrder])
+  @@index([forkGroupId])
   @@map("reading_path_nodes")
+}
+
+/// 路径引用的百科书签 — 路径节点中关联的 [[百科条目]]
+model PathWikiRef {
+  id          String          @id @default(uuid())
+  pathId      String
+  path        ReadingPath     @relation(fields: [pathId], references: [id], onDelete: Cascade)
+  wikiPageId  String
+  wikiPage    WikiPage        @relation(fields: [wikiPageId], references: [id], onDelete: Cascade)
+  nodeId      String?         // 可选：绑定到具体节点
+  node        ReadingPathNode? @relation(fields: [nodeId], references: [id], onDelete: SetNull)
+  createdAt   DateTime        @default(now())
+
+  @@index([wikiPageId])
+  @@map("path_wiki_refs")
 }
 
 /// 阅读轨迹 — 用户在某路径上的进度
@@ -891,4 +1025,29 @@ model ReadingProgress {
   @@index([userId, status])
   @@index([chapterId])
   @@map("reading_progress")
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  type      String   @default("other")
+  content   String
+  contact   String?
+  userId    String?
+  createdAt DateTime @default(now())
+
+  @@map("feedbacks")
+}
+
+model Report {
+  id          String   @id @default(uuid())
+  type        String
+  targetType  String?
+  targetUrl   String?
+  reason      String?
+  description String
+  contact     String?
+  userId      String?
+  createdAt   DateTime @default(now())
+
+  @@map("reports")
 }
