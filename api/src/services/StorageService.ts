@@ -4,9 +4,15 @@ import { v4 as uuidv4 } from 'uuid';
 import { AppError } from '../utils/http';
 
 export interface UploadResult {
+  /**蓄
+   * 访问 URL — 统一走 /api/media/assets/:id 路由（需认证 + 审批检查），
+   * 不再返回 /uploads/ 直链（安全审计 P2-12）。
+   */
   url: string;
   provider: 'local' | 'oss' | 'ipfs';
-  metadata?: any;
+  /** 文件在磁盘上的相对存储路径（非公开 URL） */
+  storagePath: string;
+  metadata?: { originalName: string; mimetype: string; size: number };
 }
 
 export class StorageService {
@@ -26,6 +32,9 @@ export class StorageService {
   /**
    * 上传文件 (默认本地存储)
    * 未来可扩展为上传到 OSS/S3 或 IPFS
+   *
+   * 注意：返回的 url 走 /api/media/assets/:id 路由，不暴露文件系统直链。
+   * 调用方需要将返回的 storagePath 存入 MediaAsset 表以便后续访问。
    */
   static async upload(file: Buffer, fileName: string, mimetype: string): Promise<UploadResult> {
     await this.init();
@@ -37,19 +46,18 @@ export class StorageService {
 
     try {
       await fs.writeFile(filePath, file);
-      
-      // 注意：在实际生产中，这里的 URL 应该是 CDN 地址或代理地址
-      // 这里暂时使用相对路径
-      const url = `/uploads/${safeFileName}`;
+
+      const storagePath = `uploads/${safeFileName}`;
 
       return {
-        url,
+        url: `/api/media/assets/${id}`,
         provider: 'local',
+        storagePath,
         metadata: {
           originalName: fileName,
           mimetype,
-          size: file.length
-        }
+          size: file.length,
+        },
       };
     } catch (error) {
       console.error('File upload failed:', error);

@@ -3,29 +3,54 @@ import { sendErr } from '../utils/http';
 import { ZodError } from 'zod';
 import { logger } from '../utils/logger';
 
-export const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
-  const traceId = (req as any).traceId;
+declare global {
+  namespace Express {
+    interface Request {
+      traceId?: string;
+    }
+  }
+}
 
-  // Always log full error internally (with traceId for correlation)
-  logger.error('Unhandled error', {
-    traceId,
-    method: req.method,
-    path: req.path,
-    err: err instanceof Error ? { message: err.message, stack: err.stack, code: (err as any).code } : err,
-  });
+/**
+ * Global error handling middleware.
+ *
+ * - 4xx (client errors) → warn level (expected, not a bug)
+ * - 5xx (server errors) → error level + stack in logs; message sanitized in production
+ * - Prisma errors → detected via code prefix; DB details hidden in production
+ * - ZodError → 400 VALIDATION_ERROR with per-field messages
+ */
+export const errorHandler = (
+  err: Error & { statusCode?: number; code?: string; status?: number },
+  req: Request,
+  res: Response,
+  _next: NextFunction, // eslint-disable-line @typescript-eslint/no-unused-vars
+) => {
+  const traceId = req.traceId;
+  const ctx = { traceId, method: req.method, path: req.path };
 
   if (err instanceof ZodError) {
+    // Validation errors are expected client errors — warn, not error
+    logger.warn('Validation failed', {
+      ...ctx,
+      issues: err.issues.map(e => `${e.path.join('.')}: ${e.message}`),
+    });
     return sendErr(
-      res, 
-      'VALIDATION_ERROR', 
-      '输入验证失败: ' + err.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', '), 
-      traceId, 
-      400
+      res,
+      'VALIDATION_ERROR',
+      '输入验证失败: ' + err.issues.map(e => `${e.path.join('.')}: ${e.message}`).join(', '),
+      traceId,
+      400,
     );
   }
 
-  // Handle Prisma errors — 生产环境脱敏，避免泄露表名/字段名
+  // Prisma database errors — hide internals in production
   if (err.code && err.code.startsWith('P')) {
+    logger.error('Database error', {
+      ...ctx,
+      prismaCode: err.code,
+      message: err.message,
+      stack: err.stack,
+    });
     const isProduction = process.env.NODE_ENV === 'production';
     const message = isProduction
       ? '服务暂时不可用，请稍后重试'
@@ -34,8 +59,25 @@ export const errorHandler = (err: any, req: Request, res: Response, next: NextFu
   }
 
   const status = err.statusCode || err.status || 500;
-  const message = err.message || 'Internal Server Error';
-  const code = err.code || 'INTERNAL_ERROR';
+  const isServerError = status >= 500;
+  const isProduction = process.env.NODE_ENV === 'production';
 
+  if (isServerError) {
+    // 5xx → error level with full stack for debugging
+    logger.error('Unhandled server error', {
+      ...ctx,
+      err: { message: err.message, stack: err.stack, code: err.code },
+    });
+  } else {
+    // 4xx → warn level (client-caused, not a bug; no stack needed)
+    logger.warn('Client error', { ...ctx, status, code: err.code, message: err.message });
+  }
+
+  // Sanitize: in production, 5xx messages must not leak internal details
+  const message = isServerError && isProduction
+    ? 'Internal Server Error'
+    : err.message || 'Internal Server Error';
+
+  const code = err.code || 'INTERNAL_ERROR';
   sendErr(res, code, message, traceId, status);
 };

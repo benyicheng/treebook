@@ -3,9 +3,10 @@ import { AppError } from '../utils/http';
 import { parsePagination, paginatedResponse, PaginatedResponse } from '../utils/pagination';
 import { Prisma } from '@prisma/client';
 import { ensure } from '../utils/entity';
+import type { CreateSpinoffDTO, UpdateSpinoffDTO } from '../utils/validation';
 
 export class SpinoffService {
-  static async createSpinoff(authorId: string, data: any) {
+  static async createSpinoff(authorId: string, data: CreateSpinoffDTO) {
     const { originalStoryId, originalBranchId, originalChapterId, title, summary, content, type, isOfficial, revenueShareRate } = data;
 
     const originalStory: any = await ensure.exists(prisma.story, originalStoryId, 'Original story');
@@ -30,8 +31,8 @@ export class SpinoffService {
         originalChapterId: resolvedChapterId,
         authorId,
         title,
-        summary,
-        content,
+        summary: summary ?? null,
+        content: content ?? '',
         type: type || 'if_timeline',
         isOfficial: finalIsOfficial,
         revenueShareRate: revenueShareRate !== undefined ? revenueShareRate : 0.1,
@@ -40,12 +41,18 @@ export class SpinoffService {
   }
 
   static async getAllSpinoffs(query?: any): Promise<PaginatedResponse<any>> {
-    const { storyId, branchId } = query || {};
+    const { storyId, branchId, q } = query || {};
     const { page, limit } = parsePagination(query || {});
 
     const where: Prisma.SpinoffWhereInput = {};
     if (storyId) where.originalStoryId = storyId as string;
     if (branchId) where.originalBranchId = branchId as string;
+    if (q) {
+      where.OR = [
+        { title: { contains: q } },
+        { summary: { contains: q } },
+      ];
+    }
 
     const [items, total] = await Promise.all([
       prisma.spinoff.findMany({
@@ -123,7 +130,7 @@ export class SpinoffService {
     return spinoff;
   }
 
-  static async updateSpinoff(id: string, authorId: string, userRole: string, data: any) {
+  static async updateSpinoff(id: string, authorId: string, userRole: string, data: UpdateSpinoffDTO) {
     const spinoff: any = await ensure.exists(prisma.spinoff, id, 'Spinoff', { originalStory: true });
 
     // 权限校验：作者、原作者、或管理员

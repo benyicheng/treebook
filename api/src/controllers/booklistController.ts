@@ -9,12 +9,13 @@ import {
   BooklistLinksService,
 } from '../services/booklist';
 import { AppError } from '../utils/http';
+import { getCurrentUser } from '../utils/authHelpers';
+import { qsFlat } from '../utils/pagination';
 import { moderateText, moderateMedia, reviewContent } from '../utils/contentModeration';
 import { ModerationVisibilityService } from '../domains/moderation/ModerationVisibilityService';
 
 export const createBooklist = catchAsync(async (req: AuthRequest, res: Response) => {
-  const creatorId = req.user?.id;
-  if (!creatorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: creatorId } = getCurrentUser(req);
 
   const booklist = await BooklistCrudService.createBooklist(creatorId, req.body);
   moderateText(req, 'booklists', 'booklist', booklist.id, 'title', booklist.title, creatorId);
@@ -31,17 +32,16 @@ export const getBooklists = catchAsync(async (req: Request, res: Response) => {
     limit: limit ? parseInt(limit as string) : undefined,
     type: type as string,
     tag: tag as string,
-    sortBy: sortBy as any,
+    sortBy: sortBy as 'hot' | 'earning' | 'newest' | undefined,
     page: page as string,
   });
   res.json({ success: true, ...result });
 });
 
 export const getMyBooklists = catchAsync(async (req: AuthRequest, res: Response) => {
-  const creatorId = req.user?.id;
-  if (!creatorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: creatorId } = getCurrentUser(req);
 
-  const result = await BooklistCrudService.getMyBooklists(creatorId, req.query as any);
+  const result = await BooklistCrudService.getMyBooklists(creatorId, qsFlat(req.query));
   res.json({ success: true, ...result });
 });
 
@@ -55,9 +55,7 @@ export const getBooklistById = catchAsync(async (req: Request, res: Response) =>
 });
 
 export const updateBooklist = catchAsync(async (req: AuthRequest, res: Response) => {
-  const creatorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!creatorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: creatorId, role: userRole } = getCurrentUser(req);
 
   const booklist = await BooklistCrudService.updateBooklist(req.params.id, creatorId, userRole, req.body);
   reviewContent(creatorId, 'booklists', 'booklist', booklist.id, 'text', 'title', { text: booklist.title, field: 'title' });
@@ -70,29 +68,24 @@ export const updateBooklist = catchAsync(async (req: AuthRequest, res: Response)
 });
 
 export const deleteBooklist = catchAsync(async (req: AuthRequest, res: Response) => {
-  const creatorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!creatorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: creatorId, role: userRole } = getCurrentUser(req);
 
   const result = await BooklistCrudService.deleteBooklist(req.params.id, creatorId, userRole);
   res.json({ success: true, data: result });
 });
 
 export const addItemToBooklist = catchAsync(async (req: AuthRequest, res: Response) => {
-  const creatorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!creatorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: creatorId, role: userRole } = getCurrentUser(req);
 
   const item = await BooklistItemService.addItemToBooklist(req.params.id, creatorId, userRole, req.body);
+  if (!item) throw new AppError(500, 'INTERNAL_ERROR', '添加书单条目失败');
   reviewContent(creatorId, 'booklists', 'booklist_item', item.id, 'text', 'notes', { text: item.notes, field: 'notes' });
   moderateText(req, 'booklists', 'booklist_item', item.id, 'notes', item.notes, creatorId);
   res.status(201).json({ success: true, data: item });
 });
 
 export const updateBooklistItemNotes = catchAsync(async (req: AuthRequest, res: Response) => {
-  const creatorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!creatorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: creatorId, role: userRole } = getCurrentUser(req);
 
   const item = await BooklistItemService.updateBooklistItemNotes(req.params.itemId, creatorId, userRole, req.body);
   reviewContent(creatorId, 'booklists', 'booklist_item', item.id, 'text', 'notes', { text: item.notes, field: 'notes' });
@@ -101,16 +94,14 @@ export const updateBooklistItemNotes = catchAsync(async (req: AuthRequest, res: 
 });
 
 export const upsertProgress = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const progress = await BooklistProgressService.upsertProgress(req.params.id, userId, req.body);
   res.json({ success: true, data: progress });
 });
 
 export const toggleProgress = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { itemId } = req.body;
   if (!itemId) throw new AppError(400, 'BAD_REQUEST', '缺少 itemId');
@@ -120,17 +111,14 @@ export const toggleProgress = catchAsync(async (req: AuthRequest, res: Response)
 });
 
 export const getProgress = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const progress = await BooklistProgressService.getProgress(req.params.id, userId);
   res.json({ success: true, data: progress });
 });
 
 export const removeItemFromBooklist = catchAsync(async (req: AuthRequest, res: Response) => {
-  const creatorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!creatorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: creatorId, role: userRole } = getCurrentUser(req);
 
   const result = await BooklistItemService.removeItemFromBooklist(req.params.itemId, creatorId, userRole);
   res.json({ success: true, data: result });
@@ -139,18 +127,14 @@ export const removeItemFromBooklist = catchAsync(async (req: AuthRequest, res: R
 // ── Graph: Relations ──────────────────────────────────
 
 export const createRelation = catchAsync(async (req: AuthRequest, res: Response) => {
-  const creatorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!creatorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: creatorId, role: userRole } = getCurrentUser(req);
 
   const relation = await BooklistGraphService.createRelation(req.params.id, creatorId, userRole, req.body);
   res.status(201).json({ success: true, data: relation });
 });
 
 export const deleteRelation = catchAsync(async (req: AuthRequest, res: Response) => {
-  const creatorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!creatorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: creatorId, role: userRole } = getCurrentUser(req);
 
   const result = await BooklistGraphService.deleteRelation(req.params.id, req.params.relationId, creatorId, userRole);
   res.json({ success: true, data: result });
@@ -169,4 +153,9 @@ export const syncStoryLinks = catchAsync(async (req: AuthRequest, res: Response)
 export const getStoryLinks = catchAsync(async (req: Request, res: Response) => {
   const links = await BooklistLinksService.getStoryLinks(req.params.id);
   res.json({ success: true, data: links });
+});
+
+export const getBooklistWikiPages = catchAsync(async (req: Request, res: Response) => {
+  const pages = await BooklistCrudService.getBooklistWikiPages(req.params.id);
+  res.json({ success: true, data: pages });
 });

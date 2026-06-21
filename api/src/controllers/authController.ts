@@ -6,13 +6,31 @@ import { prisma } from '../prisma';
 import { registerSchema, loginSchema, profileSchema } from '../utils/validation';
 import { catchAsync } from '../utils/catchAsync';
 import { AppError } from '../utils/http';
-import { JWT_SECRET } from '../config/jwt';
+import { getCurrentUser } from '../utils/authHelpers';
+import { type AuthRequest } from '../middleware/auth';
+import { JWT_SECRET, JwtPayload } from '../config/jwt';
 import { extractPermissions, USER_WITH_ROLES_INCLUDE } from '../services/UserService';
 
 // --- Constants ---
 const ACCESS_TOKEN_EXPIRY = '15m';
 const REFRESH_TOKEN_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
 const REFRESH_TOKEN_BYTES = 40;
+const REFRESH_COOKIE_NAME = 'refresh_token';
+const REFRESH_COOKIE_PATH = '/api/auth';
+
+function setRefreshCookie(res: Response, token: string): void {
+  res.cookie(REFRESH_COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: REFRESH_TOKEN_EXPIRY_MS,
+    path: REFRESH_COOKIE_PATH,
+  });
+}
+
+function clearRefreshCookie(res: Response): void {
+  res.clearCookie(REFRESH_COOKIE_NAME, { path: REFRESH_COOKIE_PATH });
+}
 
 // --- Helpers ---
 
@@ -43,10 +61,13 @@ async function generateRefreshToken(userId: string): Promise<string> {
  * - Looks up the token hash in the DB
  * - Checks it is not revoked or expired
  * - Revokes the old token (one-time use / rotation)
- * - Issues a new refresh token
- * - Returns both the new access token and new refresh token
+ * - Returns the owning user id so callers never have to trust an unsigned JWT.
+ *
+ * The user identity is sourced solely from the DB record — the refresh token's
+ * hash is the trust root. We do NOT rely on jwt.decode() of the access token,
+ * because that path is not signature-verified and could be forged.
  */
-async function rotateRefreshToken(rawToken: string, userId: string) {
+async function rotateRefreshToken(rawToken: string): Promise<{ userId: string }> {
   const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
 
   const stored = await prisma.refreshToken.findUnique({ where: { tokenHash } });
@@ -60,22 +81,21 @@ async function rotateRefreshToken(rawToken: string, userId: string) {
   if (stored.expiresAt < new Date()) {
     throw new AppError(401, 'REFRESH_TOKEN_EXPIRED', 'Refresh token has expired');
   }
-  if (stored.userId !== userId) {
-    throw new AppError(401, 'REFRESH_TOKEN_MISMATCH', 'Refresh token does not match user');
-  }
 
   // Revoke old token (rotation)
   await prisma.refreshToken.update({
     where: { id: stored.id },
     data: { revokedAt: new Date() },
   });
+
+  return { userId: stored.userId };
 }
 
 /** Issue a short-lived JWT access token */
 function issueAccessToken(user: { id: string; email: string; role: string }, permissions?: string[]) {
   const payload: Record<string, any> = { id: user.id, email: user.email, role: user.role };
   if (permissions) payload.permissions = permissions;
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: ACCESS_TOKEN_EXPIRY });
+  return jwt.sign(payload, JWT_SECRET(), { expiresIn: ACCESS_TOKEN_EXPIRY });
 }
 
 // --- Endpoints ---
@@ -106,13 +126,14 @@ export const register = catchAsync(async (req: Request, res: Response) => {
   // Assign default 'reader' RBAC role to new user
   const readerRole = await prisma.role.findUnique({ where: { name: 'reader' } });
   if (readerRole) {
-    await prisma.userRole.create({
+    await prisma.userRoleAssignment.create({
       data: { userId: user.id, roleId: readerRole.id },
     });
   }
 
   const token = issueAccessToken(user);
   const refreshToken = await generateRefreshToken(user.id);
+  setRefreshCookie(res, refreshToken);
 
   res.status(201).json({
     success: true,
@@ -144,6 +165,7 @@ export const login = catchAsync(async (req: Request, res: Response) => {
   const permissions = extractPermissions(user.roles);
   const token = issueAccessToken(user, permissions);
   const refreshToken = await generateRefreshToken(user.id);
+  setRefreshCookie(res, refreshToken);
 
   res.json({
     success: true,
@@ -165,32 +187,33 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 // --- Refresh & Logout ---
 
 export const refresh = catchAsync(async (req: Request, res: Response) => {
-  const { refreshToken: rawToken } = req.body;
+  const rawToken = req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
   if (!rawToken || typeof rawToken !== 'string') {
     throw new AppError(400, 'MISSING_REFRESH_TOKEN', 'refreshToken is required');
   }
 
-  // Decode the current access token (may be expired) to get user identity
+  // The refresh token's DB record is the trust root for user identity here.
+  // Rotating it validates validity (not revoked / not expired) AND returns the
+  // owning userId. We deliberately do NOT use jwt.decode() to derive identity,
+  // since an unsigned decode cannot be trusted and would allow forging identity.
+  const { userId } = await rotateRefreshToken(rawToken);
+
+  // Defense-in-depth: if a (signature-verified) access token is still present
+  // and still valid, require it to belong to the same user as the refresh token.
+  // An expired/absent access token is acceptable (that's the normal refresh path).
   const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    throw new AppError(401, 'UNAUTHORIZED', 'Access token is required alongside refresh token');
-  }
-
-  let userId: string;
-  try {
-    const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET) as any;
-    userId = decoded.id;
-  } catch {
-    // Access token may be expired — try decoding without verification
-    const payload = jwt.decode(authHeader.split(' ')[1]) as any;
-    if (!payload?.id) {
-      throw new AppError(401, 'INVALID_TOKEN', 'Invalid access token');
+  if (authHeader) {
+    try {
+      const decoded = jwt.verify(authHeader.split(' ')[1], JWT_SECRET()) as JwtPayload;
+      if (decoded.id !== userId) {
+        throw new AppError(401, 'REFRESH_TOKEN_MISMATCH', 'Refresh token does not match user');
+      }
+    } catch (err) {
+      // Re-throw the explicit mismatch above; any other verify error (expired,
+      // malformed) is fine for a refresh flow — swallow it.
+      if (err instanceof AppError) throw err;
     }
-    userId = payload.id;
   }
-
-  // Verify and rotate the refresh token
-  await rotateRefreshToken(rawToken, userId);
 
   // Fetch current user data for fresh JWT claims
   const user = await prisma.user.findUnique({
@@ -205,6 +228,7 @@ export const refresh = catchAsync(async (req: Request, res: Response) => {
   const permissions = extractPermissions(user.roles);
   const newAccessToken = issueAccessToken(user, permissions);
   const newRefreshToken = await generateRefreshToken(user.id);
+  setRefreshCookie(res, newRefreshToken);
 
   res.json({
     success: true,
@@ -215,13 +239,9 @@ export const refresh = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const logout = catchAsync(async (req: any, res: Response) => {
+export const logout = catchAsync(async (req: AuthRequest, res: Response) => {
   const { refreshToken: rawToken } = req.body;
-  const userId = req.user?.id;
-
-  if (!userId) {
-    throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
-  }
+  const { id: userId } = getCurrentUser(req);
 
   if (rawToken && typeof rawToken === 'string') {
     // Revoke the specific refresh token
@@ -238,12 +258,14 @@ export const logout = catchAsync(async (req: any, res: Response) => {
     });
   }
 
+  clearRefreshCookie(res);
   res.json({ success: true, data: null });
 });
 
-export const getMe = catchAsync(async (req: any, res: Response) => {
+export const getMe = catchAsync(async (req: AuthRequest, res: Response) => {
+  const { id } = getCurrentUser(req);
   const user = await prisma.user.findUnique({
-    where: { id: req.user.id },
+    where: { id },
     include: USER_WITH_ROLES_INCLUDE,
   });
 
@@ -269,7 +291,7 @@ export const getMe = catchAsync(async (req: any, res: Response) => {
   });
 });
 
-export const getPublicProfile = catchAsync(async (req: any, res: Response) => {
+export const getPublicProfile = catchAsync(async (req: Request, res: Response) => {
   const { userId } = req.params;
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -302,9 +324,8 @@ export const getPublicProfile = catchAsync(async (req: any, res: Response) => {
   });
 });
 
-export const updateMe = catchAsync(async (req: any, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+export const updateMe = catchAsync(async (req: AuthRequest, res: Response) => {
+  const { id: userId } = getCurrentUser(req);
 
   const { username, avatarUrl, profile } = req.body || {};
 

@@ -1,11 +1,12 @@
 import { prisma } from '../prisma';
 import { AppError } from '../utils/http';
 import { parsePagination, paginatedResponse, PaginatedResponse } from '../utils/pagination';
+import type { CreateWikiPageDTO, UpdateWikiPageDTO } from '../utils/validation';
 
 export class WikiService {
   // ── WikiPage CRUD ─────────────────────────────────
 
-  static async createWikiPage(authorId: string, data: any) {
+  static async createWikiPage(authorId: string, data: CreateWikiPageDTO) {
     const { storyId, title, slug: rawSlug, contentType, content, summary, attributes, status } = data;
 
     // Auto-generate slug from title if not provided
@@ -119,7 +120,7 @@ export class WikiService {
     return paginatedResponse(items, total, page, limit);
   }
 
-  static async updateWikiPage(id: string, authorId: string, userRole: string, data: any) {
+  static async updateWikiPage(id: string, authorId: string, userRole: string, data: UpdateWikiPageDTO) {
     const page = await prisma.wikiPage.findUnique({ where: { id } });
     if (!page) throw new AppError(404, 'NOT_FOUND', '百科页面不存在');
 
@@ -283,6 +284,7 @@ export class WikiService {
         OR: [
           { id: trimmed },
           { title: { contains: trimmed } },
+          { content: { contains: trimmed } },
           { aliases: { some: { alias: { contains: trimmed } } } },
         ],
       },
@@ -293,13 +295,62 @@ export class WikiService {
         summary: true,
         contentType: true,
         storyId: true,
+        content: true,
         _count: { select: { outgoingLinks: true, incomingLinks: true } },
       },
       orderBy: { updatedAt: 'desc' },
       take: limit,
     });
 
-    return pages;
+    return pages.map((page) => {
+      let matchedTerm: 'id' | 'title' | 'content' | 'alias';
+      if (page.id === trimmed) {
+        matchedTerm = 'id';
+      } else if (page.title.includes(trimmed)) {
+        matchedTerm = 'title';
+      } else if (page.content.includes(trimmed)) {
+        matchedTerm = 'content';
+      } else {
+        matchedTerm = 'alias';
+      }
+      const { content, ...rest } = page;
+      return { ...rest, matchedTerm };
+    });
+  }
+
+  // ── Cross-Reference Queries ────────────────────────
+
+  static async getWikiReferences(wikiPageId: string) {
+    const booklistItems = await prisma.booklistItem.findMany({
+      where: {
+        targetType: 'wiki',
+        targetId: wikiPageId,
+      },
+      include: {
+        booklist: { select: { id: true, title: true } },
+      },
+    });
+
+    const booklists = booklistItems
+      .filter(item => item.booklist)
+      .map(item => ({ id: item.booklist.id, title: item.booklist.title }))
+      .filter((item, index, self) => self.findIndex(i => i.id === item.id) === index);
+
+    const wikiPage = await prisma.wikiPage.findUnique({
+      where: { id: wikiPageId },
+      select: { storyId: true, title: true },
+    });
+
+    let readingPaths: Array<{ id: string; title: string }> = [];
+    if (wikiPage?.storyId) {
+      const paths = await prisma.readingPath.findMany({
+        where: { storyId: wikiPage.storyId },
+        select: { id: true, title: true },
+      });
+      readingPaths = paths;
+    }
+
+    return { booklists, readingPaths };
   }
 
   // ── Helpers ────────────────────────────────────────

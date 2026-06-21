@@ -1,5 +1,7 @@
 import { prisma } from '../prisma';
+import type { Prisma } from '@prisma/client';
 import { AppError } from '../utils/http';
+import { cursorPaginate } from '../utils/pagination';
 
 export class FollowService {
   /**
@@ -26,21 +28,34 @@ export class FollowService {
       throw new AppError(400, 'DUPLICATE', '已经关注了该用户');
     }
 
-    // Create follow record; counters are maintained by DB triggers (follow_after_insert)
-    const follow = await prisma.follow.create({
-      data: { followerId, followingId },
-    });
-    // No manual counter update needed - trigger handles it
+    // 创建关注记录 + 同步 followerCount/followingCount + 写 Activity，全部在同一事务内完成。
+    // 历史注释曾依赖不存在的 follow_after_insert 触发器，导致计数恒为 0；现改为显式更新。
+    const follow = await prisma.$transaction(async (tx) => {
+      const created = await tx.follow.create({
+        data: { followerId, followingId },
+      });
 
-    // Create activity event
-    await prisma.activity.create({
-      data: {
-        actorId: followerId,
-        type: 'follow',
-        targetType: 'user',
-        targetId: followingId,
-        metadata: JSON.stringify({ username: targetUser.username }),
-      },
+      // 被关注者的粉丝数 +1，关注者的关注数 +1
+      await tx.user.update({
+        where: { id: followingId },
+        data: { followerCount: { increment: 1 } },
+      });
+      await tx.user.update({
+        where: { id: followerId },
+        data: { followingCount: { increment: 1 } },
+      });
+
+      await tx.activity.create({
+        data: {
+          actorId: followerId,
+          type: 'follow',
+          targetType: 'user',
+          targetId: followingId,
+          metadata: JSON.stringify({ username: targetUser.username }),
+        },
+      });
+
+      return created;
     });
 
     return follow;
@@ -58,11 +73,21 @@ export class FollowService {
       throw new AppError(404, 'NOT_FOUND', '未关注该用户');
     }
 
-    // Delete follow record; counters are maintained by DB triggers (follow_after_delete)
-    await prisma.follow.delete({
-      where: { id: existing.id },
+    // 删除关注记录 + 同步递减计数，全部在同一事务内完成。
+    // 用 updateMany({ where: { ... } }) 而非 update，避免并发取消时唯一记录已删的边界。
+    await prisma.$transaction(async (tx) => {
+      await tx.follow.delete({ where: { id: existing.id } });
+
+      // 用 updateMany 保证即便 follower/following 已被级联删除也不会抛 P2025
+      await tx.user.updateMany({
+        where: { id: followingId },
+        data: { followerCount: { decrement: 1 } },
+      });
+      await tx.user.updateMany({
+        where: { id: followerId },
+        data: { followingCount: { decrement: 1 } },
+      });
     });
-    // No manual counter update needed - trigger handles it
 
     return { success: true, message: '已取消关注' };
   }
@@ -71,7 +96,7 @@ export class FollowService {
    * Get paginated followers of a user.
    */
   static async getFollowers(userId: string, cursor?: string, limit: number = 20) {
-    const query: any = {
+    const args: Prisma.FollowFindManyArgs = {
       where: { followingId: userId },
       include: {
         follower: {
@@ -83,17 +108,22 @@ export class FollowService {
     };
 
     if (cursor) {
-      query.cursor = { id: cursor };
-      query.skip = 1;
+      args.cursor = { id: cursor };
+      args.skip = 1;
     }
 
-    const follows = (await prisma.follow.findMany(query)) as any[];
-    const hasMore = follows.length > limit;
-    const items = hasMore ? follows.slice(0, limit) : follows;
+    type FollowWithFollower = Prisma.FollowGetPayload<{
+      include: { follower: { select: { id: true; username: true; avatarUrl: true; followerCount: true } } }
+    }>;
+    const follows = await prisma.follow.findMany({
+      ...args,
+      include: { follower: { select: { id: true, username: true, avatarUrl: true, followerCount: true } } },
+    }) as unknown as FollowWithFollower[];
+    const { data, nextCursor } = cursorPaginate(follows, limit);
 
     return {
-      data: items.map((f) => f.follower),
-      nextCursor: hasMore ? items[items.length - 1].id : null,
+      data: data.map((f) => f.follower),
+      nextCursor,
     };
   }
 
@@ -101,7 +131,7 @@ export class FollowService {
    * Get paginated users that a user is following.
    */
   static async getFollowing(userId: string, cursor?: string, limit: number = 20) {
-    const query: any = {
+    const args: Prisma.FollowFindManyArgs = {
       where: { followerId: userId },
       include: {
         following: {
@@ -113,17 +143,22 @@ export class FollowService {
     };
 
     if (cursor) {
-      query.cursor = { id: cursor };
-      query.skip = 1;
+      args.cursor = { id: cursor };
+      args.skip = 1;
     }
 
-    const follows = (await prisma.follow.findMany(query)) as any[];
-    const hasMore = follows.length > limit;
-    const items = hasMore ? follows.slice(0, limit) : follows;
+    type FollowWithFollowing = Prisma.FollowGetPayload<{
+      include: { following: { select: { id: true; username: true; avatarUrl: true; followerCount: true } } }
+    }>;
+    const follows = await prisma.follow.findMany({
+      ...args,
+      include: { following: { select: { id: true, username: true, avatarUrl: true, followerCount: true } } },
+    }) as unknown as FollowWithFollowing[];
+    const { data, nextCursor } = cursorPaginate(follows, limit);
 
     return {
-      data: items.map((f) => f.following),
-      nextCursor: hasMore ? items[items.length - 1].id : null,
+      data: data.map((f) => f.following),
+      nextCursor,
     };
   }
 
@@ -158,7 +193,12 @@ export class FollowService {
 
   /**
    * Get activity feed: recent content from followed users.
-   * Merges stories, branches, spinoffs ordered by createdAt desc.
+   * Merges stories, branches, spinoffs ordered by (createdAt desc, id desc).
+   *
+   * Uses "over-fetch from each table, merge, then slice" pattern.
+   * To compensate for items that are filtered out per-page, we fetch
+   * `limit * 3` from each source table (capped). Cursor-based pagination
+   * uses createdAt as a time-based offset to avoid duplicates across pages.
    */
   static async getFollowActivity(
     userId: string,
@@ -174,24 +214,33 @@ export class FollowService {
     if (followedIds.length === 0) return { data: [], nextCursor: null };
 
     const safeLimit = Math.min(limit, 50);
+    // Over-fetch to ensure enough items after merging from 3 tables
+    const fetchPerTable = Math.min(safeLimit * 3, 150);
 
-    // HACK: fetch more from each table, merge in app code, take top N
+    // Parse cursor → timestamp for "older than this" filter
+    const cursorDate = cursor ? new Date(cursor) : null;
+
+    // Build a shared "older than cursor" condition for Prisma
+    const olderThanCursor = cursorDate
+      ? { createdAt: { lt: cursorDate } }
+      : {};
+
     const [stories, branches, spinoffs] = await Promise.all([
       prisma.story.findMany({
-        where: { authorId: { in: followedIds }, status: 'published' },
-        take: safeLimit,
+        where: { authorId: { in: followedIds }, status: 'published', ...olderThanCursor },
+        take: fetchPerTable,
         orderBy: { createdAt: 'desc' },
         select: { id: true, title: true, description: true, authorId: true, createdAt: true },
       }),
       prisma.branch.findMany({
-        where: { authorId: { in: followedIds }, status: 'published' },
-        take: safeLimit,
+        where: { authorId: { in: followedIds }, status: 'published', ...olderThanCursor },
+        take: fetchPerTable,
         orderBy: { createdAt: 'desc' },
         select: { id: true, title: true, description: true, authorId: true, parentStoryId: true, createdAt: true },
       }),
       prisma.spinoff.findMany({
-        where: { authorId: { in: followedIds }, status: { in: ['ongoing', 'completed'] } },
-        take: safeLimit,
+        where: { authorId: { in: followedIds }, status: { in: ['ongoing', 'completed'] }, ...olderThanCursor },
+        take: fetchPerTable,
         orderBy: { createdAt: 'desc' },
         select: { id: true, title: true, summary: true, authorId: true, originalStoryId: true, createdAt: true },
       }),
@@ -213,7 +262,13 @@ export class FollowService {
       ...spinoffs.map((s) => ({ id: s.id, type: 'spinoff' as const, title: s.title, description: s.summary || '', authorId: s.authorId, storyId: s.originalStoryId, createdAt: s.createdAt })),
     ];
 
-    items.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    // Stable sort: primary by createdAt desc, secondary by id desc (prevents tie-break ambiguity)
+    items.sort((a, b) => {
+      const timeDiff = b.createdAt.getTime() - a.createdAt.getTime();
+      if (timeDiff !== 0) return timeDiff;
+      return b.id > a.id ? 1 : b.id < a.id ? -1 : 0;
+    });
+
     const sliced = items.slice(0, safeLimit);
 
     // Fetch author usernames in batch
@@ -224,6 +279,8 @@ export class FollowService {
     });
     const authorMap = new Map(authors.map((a) => [a.id, a]));
 
+    // Cursor is the createdAt of the last returned item
+    const lastItem = sliced[sliced.length - 1];
     return {
       data: sliced.map((item) => ({
         id: item.id,
@@ -234,7 +291,7 @@ export class FollowService {
         author: authorMap.get(item.authorId) || null,
         createdAt: item.createdAt,
       })),
-      nextCursor: sliced.length >= safeLimit ? sliced[sliced.length - 1].createdAt.toISOString() : null,
+      nextCursor: lastItem ? lastItem.createdAt.toISOString() : null,
     };
   }
 }

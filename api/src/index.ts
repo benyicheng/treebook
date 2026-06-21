@@ -6,11 +6,15 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
-import { Server } from 'socket.io';
 import http from 'http';
-import jwt from 'jsonwebtoken';
-import { prisma } from './prisma';
-import { JWT_SECRET } from './config/jwt';
+import { prisma, ensureFts5Table } from './prisma';
+import { Prisma } from '@prisma/client';
+import { createSocketIOServer } from './socket';
+import { serializeBigInt } from './utils/bigint';
+
+// Apply BigInt JSON serialization polyfill safely (only once)
+serializeBigInt();
+
 import authRoutes from './routes/auth';
 import storyRoutes from './routes/stories';
 import chapterRoutes from './routes/chapters';
@@ -42,6 +46,8 @@ import recommendationRoutes from './routes/recommendations';
 import userRoutes from './routes/users';
 import characterRoutes from './routes/characters';
 import readingProgressRoutes from './routes/readingProgress';
+import storyEventRoutes from './routes/events';
+import cookieParser from 'cookie-parser';
 import { trace } from './middleware/trace';
 import { encodingCheck } from './middleware/encodingCheck';
 import { errorHandler } from './middleware/errorHandler';
@@ -57,7 +63,7 @@ const server = http.createServer(app);
 const corsOrigins = (() => {
   const raw = process.env.CORS_ORIGINS || '';
   const origins = raw.split(',').map(s => s.trim()).filter(Boolean);
-  
+
   if (process.env.NODE_ENV === 'production') {
     if (origins.length === 0) {
       logger.warn('[CORS] CORS_ORIGINS not set in production environment. All cross-origin requests will be blocked.');
@@ -85,20 +91,10 @@ const corsOriginCallback: cors.CorsOptions['origin'] = (origin, callback) => {
   callback(new Error(`Origin ${origin} not allowed by CORS`));
 };
 
-// 初始化 Socket.IO
-const io = new Server(server, {
-  cors: {
-    origin: corsOriginCallback,
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-});
+// 初始化 Socket.IO（提取到 socket.ts 模块）
+const io = createSocketIOServer(server, corsOriginCallback);
 
 const PORT = process.env.PORT || 3001;
-
-// 协作编辑锁管理 (Collaboration Locks)
-// chapterId -> { userId, username, socketId }
-const editLocks = new Map<string, { userId: string, username: string, socketId: string }>();
 
 // Helmet CSP configuration (environment-aware)
 const isProduction = process.env.NODE_ENV === 'production';
@@ -162,16 +158,23 @@ app.use(cors({
   optionsSuccessStatus: 200
 }));
 
-app.use(express.json());
+app.use(cookieParser());
+// 限制请求体大小，防止超大 JSON/form 造成内存压力（DoS 缓解）。
+// 文件上传走 /api/media/uploads（multer 自带 50MB 限制），不受此处影响。
+app.use(express.json({ limit: '2mb' }));
 
 // Encoding check: reject body strings containing U+FFFD (�)
 // Guards against Git Bash curl mangling Chinese characters (codepage conversion loss)
 app.use(encodingCheck);
 
-app.use(express.urlencoded({ extended: true }));
+// SPA 不需要复杂嵌套对象解析，关闭 extended 避免 qs 的原型污染面
+app.use(express.urlencoded({ extended: false, limit: '2mb' }));
 
-// 静态文件服务：提供上传的多媒体文件访问
-app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+// NOTE: /uploads 静态路由已移除（安全审计 P2-12）。
+// 原 /uploads/* 无需认证即可访问任何上传文件，绕过了 mediaController 的审批/鉴权逻辑。
+// 所有媒体访问统一走 /api/media/assets/:id（optionalAuthenticate + 审批状态检查）。
+// 若需迁移旧 StorageService 产生的 /uploads/ URL，参见 MediaStorageService.readAbsolute()。
+// 如确需开放无需认证的公共资源目录，应单独设 /public 路径且仅放非敏感文件。
 
 // 静态文件服务：提供前端编译后的资源
 const distPath = path.join(process.cwd(), 'dist');
@@ -197,100 +200,10 @@ app.use((req, res, next) => {
       path: req.path,
       status: res.statusCode,
       durationMs: duration,
-      traceId: (req as any).traceId,
+      traceId: req.traceId,
     });
   });
   next();
-});
-
-// Socket.IO JWT 认证中间件
-io.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
-  if (!token) {
-    return next(new Error('Socket authentication required'));
-  }
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { id: string; email: string; role: string };
-    socket.data.user = decoded;
-    next();
-  } catch (err) {
-    const e = err as Error;
-    console.error('[Socket Auth] JWT verify failed:', e.message, e.name);
-    next(new Error('Invalid socket token'));
-  }
-});
-
-// Socket.IO connection
-io.on('connection', (socket) => {
-  logger.debug('Socket connected', { socketId: socket.id, userId: socket.data.user?.id });
-
-  socket.on('join-room', (roomId) => {
-    socket.join(roomId);
-    logger.debug('Socket joined room', { socketId: socket.id, roomId });
-    
-    // 发送当前该房间的所有锁状态
-    const roomLocks: any = {};
-    editLocks.forEach((lock, chapterId) => {
-      roomLocks[chapterId] = { userId: lock.userId, username: lock.username };
-    });
-    socket.emit('locks-update', roomLocks);
-  });
-
-  // 请求编辑锁
-  socket.on('request-lock', (data: { chapterId: string, roomId: string }) => {
-    const userId = socket.data.user.id;
-    const username = socket.data.user.email;
-    const existingLock = editLocks.get(data.chapterId);
-    
-    if (!existingLock || existingLock.userId === userId) {
-      // 获得锁或已经是持锁者
-      editLocks.set(data.chapterId, { 
-        userId, 
-        username, 
-        socketId: socket.id 
-      });
-      
-      // 广播给房间内所有人
-      io.to(data.roomId).emit('lock-acquired', {
-        chapterId: data.chapterId,
-        userId,
-        username
-      });
-    } else {
-      // 锁已被占用
-      socket.emit('lock-denied', {
-        chapterId: data.chapterId,
-        lockedBy: existingLock.username
-      });
-    }
-  });
-
-  // 释放编辑锁
-  socket.on('release-lock', (data: { chapterId: string, roomId: string }) => {
-    const lock = editLocks.get(data.chapterId);
-    if (lock && lock.socketId === socket.id) {
-      editLocks.delete(data.chapterId);
-      io.to(data.roomId).emit('lock-released', { chapterId: data.chapterId });
-    }
-  });
-
-  socket.on('content-change', (data) => {
-    // Broadcast to all clients in the room except sender
-    socket.to(data.roomId).emit('content-update', data);
-  });
-
-  socket.on('disconnect', () => {
-    logger.debug('Socket disconnected', { socketId: socket.id });
-    
-    // 自动释放该用户持有的所有锁
-    editLocks.forEach((lock, chapterId) => {
-      if (lock.socketId === socket.id) {
-        editLocks.delete(chapterId);
-        // 由于断开连接时可能不知道 roomId，可以全局广播或按需处理
-        io.emit('lock-released', { chapterId });
-      }
-    });
-  });
 });
 
 // Routes
@@ -325,13 +238,14 @@ app.use('/api/users', userRoutes);
 app.use('/api/characters', characterRoutes);
 app.use('/api/reading-progress', readingProgressRoutes);
 app.use('/api/init', initRoutes);
+app.use('/api/events', storyEventRoutes);
 
-// Health check
+// Health check — 执行真实查询验证数据库可用
 app.get('/api/health', async (req: Request, res: Response) => {
   try {
-    await prisma.$connect();
+    await prisma.$queryRaw(Prisma.raw('SELECT 1 as alive'));
     res.json({ status: 'ok', database: 'connected' });
-  } catch (error) {
+  } catch (_error) {
     res.status(500).json({ status: 'error', message: 'Database connection failed' });
   }
 });
@@ -357,6 +271,11 @@ process.on('SIGINT', async () => {
     logger.info('Server closed');
     process.exit(0);
   });
+});
+
+// Initialize FTS5 search index (non-blocking, will use LIKE fallback if fails)
+ensureFts5Table().catch((err) => {
+  logger.warn('[FTS5] Initialization failed, search will use LIKE fallback', { error: err?.message });
 });
 
 // Start server
