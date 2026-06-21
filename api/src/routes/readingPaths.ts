@@ -10,6 +10,7 @@ import {
   getTrail,
   advanceTrail,
   getPathCharacters,
+  forkReadingPath,
 } from '../controllers/readingPathController';
 import { authenticate } from '../middleware/auth';
 
@@ -27,6 +28,8 @@ router.get('/:id/characters', getPathCharacters);
 router.post('/', authenticate, createReadingPath);
 router.put('/:id', authenticate, updateReadingPath);
 router.post('/:id/view', recordPathView);
+// Phase 4：路径叉路 —— 在指定事件处插入分支选择点
+router.post('/:id/fork', authenticate, forkReadingPath);
 
 // Trail — 阅读进度追踪
 router.post('/:id/start', authenticate, startReading);

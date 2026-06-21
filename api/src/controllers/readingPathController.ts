@@ -3,13 +3,15 @@ import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { ReadingPathService } from '../services/ReadingPathService';
 import { AppError } from '../utils/http';
+import { getCurrentUser } from '../utils/authHelpers';
+import { qsFlat } from '../utils/pagination';
 
 /**
  * GET /api/reading-paths
  */
 export const getAllReadingPaths = catchAsync(async (req: Request, res: Response) => {
   const sortBy = (req.query.sortBy as string) === 'new' ? 'new' : 'hot';
-  const result = await ReadingPathService.getAllPaths(sortBy, req.query as any);
+  const result = await ReadingPathService.getAllPaths(sortBy, qsFlat(req.query));
   res.json({ success: true, data: result });
 });
 
@@ -19,7 +21,7 @@ export const getAllReadingPaths = catchAsync(async (req: Request, res: Response)
 export const getReadingPaths = catchAsync(async (req: Request, res: Response) => {
   const { id } = req.params;
   if (!id) throw new AppError(400, 'VALIDATION_ERROR', 'Universe ID is required');
-  const result = await ReadingPathService.getPathsByStory(id, req.query as any);
+  const result = await ReadingPathService.getPathsByStory(id, qsFlat(req.query));
   res.json({ success: true, data: result });
 });
 
@@ -37,10 +39,9 @@ export const getReadingPathById = catchAsync(async (req: Request, res: Response)
  * POST /api/reading-paths
  */
 export const createReadingPath = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
-  const { storyId, booklistId, title, description, origin, nodes } = req.body;
+  const { storyId, booklistId, title, description, guideType, origin, nodes } = req.body;
   if (!title || !nodes?.length) {
     throw new AppError(400, 'VALIDATION_ERROR', 'title and nodes are required');
   }
@@ -51,6 +52,7 @@ export const createReadingPath = catchAsync(async (req: AuthRequest, res: Respon
     creatorId: userId,
     title,
     description,
+    guideType,
     origin,
     nodes: nodes.map((n: any, i: number) => ({
       sortOrder: n.sortOrder ?? i,
@@ -58,6 +60,7 @@ export const createReadingPath = catchAsync(async (req: AuthRequest, res: Respon
       contentId: n.contentId,
       storyId: n.storyId || null,
       storyTitle: n.storyTitle || null,
+      introduction: n.introduction,
       note: n.note,
     })),
   });
@@ -69,22 +72,23 @@ export const createReadingPath = catchAsync(async (req: AuthRequest, res: Respon
  * PUT /api/reading-paths/:id
  */
 export const updateReadingPath = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { id } = req.params;
   if (!id) throw new AppError(400, 'VALIDATION_ERROR', 'Reading path ID is required');
 
-  const { title, description, nodes } = req.body;
+  const { title, description, guideType, nodes } = req.body;
 
   const data = await ReadingPathService.updatePath(id, userId, {
     title,
     description: description !== undefined ? description : undefined,
+    guideType,
     nodes: nodes
       ? nodes.map((n: any, i: number) => ({
           sortOrder: n.sortOrder ?? i,
           nodeCategory: n.nodeCategory,
           contentId: n.contentId,
+          introduction: n.introduction,
           note: n.note,
         }))
       : undefined,
@@ -107,8 +111,7 @@ export const recordPathView = catchAsync(async (req: Request, res: Response) => 
  * POST /api/reading-paths/:id/start
  */
 export const startReading = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { id } = req.params;
   if (!id) throw new AppError(400, 'VALIDATION_ERROR', 'Reading path ID is required');
@@ -121,8 +124,7 @@ export const startReading = catchAsync(async (req: AuthRequest, res: Response) =
  * GET /api/reading-paths/trails/:trailId
  */
 export const getTrail = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { trailId } = req.params;
   if (!trailId) throw new AppError(400, 'VALIDATION_ERROR', 'Trail ID is required');
@@ -146,12 +148,28 @@ export const getPathCharacters = catchAsync(async (req: Request, res: Response) 
 });
 
 export const advanceTrail = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { trailId } = req.params;
   if (!trailId) throw new AppError(400, 'VALIDATION_ERROR', 'Trail ID is required');
 
   const result = await ReadingPathService.advanceTrail(trailId, userId);
   res.json({ success: true, data: result });
+});
+
+/**
+ * Phase 4：在路径指定事件处插入叉路选择点
+ * POST /api/reading-paths/:pathId/fork
+ */
+export const forkReadingPath = catchAsync(async (req: AuthRequest, res: Response) => {
+  const { id: userId } = getCurrentUser(req);
+  const { pathId } = req.params;
+  const { atEventId, branchOptions, primary } = req.body;
+
+  const result = await ReadingPathService.forkPath(pathId, userId, {
+    atEventId,
+    branchOptions,
+    primary,
+  });
+  res.status(201).json({ success: true, data: result });
 });
