@@ -1,5 +1,10 @@
 import { z } from 'zod';
 import { SHARE_PLATFORMS } from './interaction';
+import {
+  CHARACTER_ROLES, STORY_STATUSES,
+  WIKI_CONTENT_TYPES, WIKI_PAGE_STATUSES,
+  BOOKLIST_ITEM_RELATION_TYPES, WIKI_LINK_TYPES,
+} from './enums';
 
 const passwordSchema = z
   .string()
@@ -39,7 +44,8 @@ export const storySchema = z.object({
   coverImage: z.string().url('无效的封面图片链接').optional().or(z.literal('')),
   category: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  status: z.enum(['draft', 'published', 'finished']).optional(),
+  status: z.enum(STORY_STATUSES).optional(),
+  metadata: z.string().optional(),
 });
 
 export const chapterSchema = z.object({
@@ -56,7 +62,7 @@ export const characterSchema = z.object({
   name: z.string().min(1, '角色名称不能为空').max(50),
   description: z.string().max(500).optional(),
   avatarUrl: z.string().url().optional().or(z.literal('')),
-  role: z.enum(['protagonist', 'antagonist', 'supporting', 'extra']).optional(),
+  role: z.enum(CHARACTER_ROLES).optional(),
   attributes: z.record(z.string(), z.any()).optional(),
 });
 
@@ -68,6 +74,35 @@ export const branchSchema = z.object({
   branchType: z.enum(['parallel', 'alternative', 'if_timeline']).optional(),
   conditions: z.any().optional(),
   isOfficial: z.boolean().optional(),
+});
+
+/** Spinoff update body — 白名单仅含可由作者/原作者修改的字段 */
+export const updateSpinoffBody = z.object({
+  title: z.string().min(1).max(200).optional(),
+  summary: z.string().max(2000).optional(),
+  content: z.string().optional(),
+  status: z.string().optional(),
+  isOfficial: z.boolean().optional(),
+});
+export type UpdateSpinoffDTO = z.infer<typeof updateSpinoffBody>;
+
+/** Spinoff create body — 创建番外的字段白名单 */
+export const createSpinoffBody = z.object({
+  originalStoryId: z.string().uuid('无效的原作故事ID'),
+  originalBranchId: z.string().uuid('无效的原作分支ID').optional().nullable(),
+  originalChapterId: z.string().uuid('无效的原作章节ID').optional().nullable(),
+  title: z.string().min(1, '标题不能为空').max(200),
+  summary: z.string().max(2000).optional().nullable(),
+  content: z.string().optional().nullable(),
+  type: z.string().optional(),
+  status: z.string().optional(),
+  isOfficial: z.boolean().optional(),
+  revenueShareRate: z.number().min(0).max(1).optional(),
+});
+export type CreateSpinoffDTO = z.infer<typeof createSpinoffBody>;
+
+export const createSpinoffRequest = z.object({
+  body: createSpinoffBody,
 });
 
 export const commentSchema = z.object({
@@ -85,22 +120,33 @@ export const createStoryRequest = z.object({
   body: storySchema
 });
 
+/**
+ * Story update body — 严格白名单，仅允许客户端可修改的字段。
+ * 故意不包含 authorId / isOfficial / viewCount / branchCount 等敏感字段，
+ * 防止越权篡改。服务层应直接消费此 DTO，而不再接收 Prisma.StoryUpdateInput。
+ */
+export const updateStoryBody = storySchema.partial();
+export type UpdateStoryDTO = z.infer<typeof updateStoryBody>;
+
 export const updateStoryRequest = z.object({
   params: z.object({
     id: z.string().uuid('无效的故事ID')
   }),
-  body: storySchema.partial()
+  body: updateStoryBody,
 });
 
 export const createChapterRequest = z.object({
   body: chapterSchema
 });
 
+export const updateChapterBody = chapterSchema.partial();
+export type UpdateChapterDTO = z.infer<typeof updateChapterBody>;
+
 export const updateChapterRequest = z.object({
   params: z.object({
     id: z.string().uuid('无效的章节ID')
   }),
-  body: chapterSchema.partial()
+  body: updateChapterBody,
 });
 
 export const createBranchRequest = z.object({
@@ -282,16 +328,7 @@ export const batchCharacterAppearancesRequest = z.object({
 
 // ── Booklist Relations ────────────────────────────────
 
-export const booklistRelationType = z.enum([
-  'SAME_CHARACTER',
-  'ALTERNATE_INTERPRETATION',
-  'SHARED_UNIVERSE',
-  'TIMELINE_FORK',
-  'PARALLEL_EVENT',
-  'PRECEDING_EVENT',
-  'CHARACTER_CAMEO',
-  'BACKGROUND_REFERENCE',
-]);
+export const booklistRelationType = z.enum(BOOKLIST_ITEM_RELATION_TYPES);
 
 export const booklistRelationSchema = z.object({
   sourceItemId: z.string().uuid('无效的源条目ID'),
@@ -349,9 +386,17 @@ export const updateReadingPathRequest = z.object({
   }),
 });
 
+export type CreateReadingPathDTO = z.infer<typeof createReadingPathSchema>;
+export const updateReadingPathBody = z.object({
+  title: z.string().min(1).max(200).optional(),
+  description: z.string().max(1000).optional().nullable(),
+  nodes: z.array(readingPathNodeSchema).optional(),
+});
+export type UpdateReadingPathDTO = z.infer<typeof updateReadingPathBody>;
+
 // ── Wiki ──────────────────────────────────────────────
 
-export const wikiPageContentType = z.enum(['character', 'setting', 'event', 'concept', 'faction', 'item']);
+export const wikiPageContentType = z.enum(WIKI_CONTENT_TYPES);
 
 export const wikiPageSchema = z.object({
   storyId: z.string().uuid('无效的故事ID').optional().nullable(),
@@ -361,7 +406,7 @@ export const wikiPageSchema = z.object({
   content: z.string().min(1, '内容不能为空'),
   summary: z.string().max(500).optional().nullable(),
   attributes: z.record(z.string(), z.any()).optional().nullable(),
-  status: z.enum(['draft', 'published', 'archived']).optional(),
+  status: z.enum(WIKI_PAGE_STATUSES).optional(),
 });
 
 export const createWikiPageRequest = z.object({
@@ -375,6 +420,10 @@ export const updateWikiPageRequest = z.object({
   body: wikiPageSchema.partial(),
 });
 
+export type CreateWikiPageDTO = z.infer<typeof wikiPageSchema>;
+export const updateWikiPageBody = wikiPageSchema.partial();
+export type UpdateWikiPageDTO = z.infer<typeof updateWikiPageBody>;
+
 export const getWikiPageRequest = z.object({
   params: z.object({
     id: z.string().uuid('无效的百科页面ID'),
@@ -386,7 +435,7 @@ export const listWikiPagesRequest = z.object({
     storyId: z.string().uuid().optional(),
     contentType: wikiPageContentType.optional(),
     search: z.string().max(100).optional(),
-    status: z.enum(['draft', 'published', 'archived']).optional(),
+    status: z.enum(WIKI_PAGE_STATUSES).optional(),
     page: z.string().optional(),
     limit: z.string().optional(),
   }),
@@ -415,7 +464,7 @@ export const deleteWikiAliasRequest = z.object({
 
 // ── Wiki Link ─────────────────────────────────────────
 
-export const wikiLinkType = z.enum(['reference', 'see_also', 'parent', 'child', 'related']);
+export const wikiLinkType = z.enum(WIKI_LINK_TYPES);
 
 export const wikiLinkSchema = z.object({
   targetPageId: z.string().uuid('无效的目标页面ID'),
@@ -433,5 +482,55 @@ export const deleteWikiLinkRequest = z.object({
   params: z.object({
     id: z.string().uuid('无效的百科页面ID'),
     linkId: z.string().uuid('无效的链接ID'),
+  }),
+});
+
+// ── Event Connectors（事件卡六向连接器）─────────────────────────
+
+/**
+ * 批量查事件六向连接器：?ids=uuid1,uuid2,...
+ * 上限 50 个事件 ID，避免超大批量打挂数据库。
+ */
+export const getEventConnectorsRequest = z.object({
+  query: z.object({
+    ids: z
+      .string()
+      .min(1, 'ids 不能为空')
+      .transform((s) =>
+        s
+          .split(',')
+          .map((x) => x.trim())
+          .filter(Boolean),
+      )
+      .pipe(
+        z
+          .array(z.string().uuid('无效的事件ID'))
+          .min(1, '至少需要一个事件ID')
+          .max(50, '一次最多查询 50 个事件'),
+      ),
+  }),
+});
+
+// ── Phase 4: 分支对比 + 路径叉路 ─────────────────────────────────
+
+/** GET /api/events/:eventId/branches/compare */
+export const getBranchComparisonRequest = z.object({
+  params: z.object({
+    eventId: z.string().uuid('无效的事件ID'),
+  }),
+});
+
+/** POST /api/reading-paths/:pathId/fork */
+export const forkReadingPathRequest = z.object({
+  params: z.object({
+    pathId: z.string().uuid('无效的阅读路径ID'),
+  }),
+  body: z.object({
+    atEventId: z.string().uuid('无效的事件ID'),
+    branchOptions: z
+      .array(z.string().uuid('无效的分支ID'))
+      .min(2, '至少需要 2 个分支选项')
+      .max(5, '最多 5 个分支选项'),
+    primary: z.string().uuid('无效的主选分支ID'),
   }),
 });
