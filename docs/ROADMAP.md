@@ -55,6 +55,7 @@
 | S3.2 阅读路径编辑页数据对接修复 | P1 | ✅ |
 | S3.3 表单验证库引入 | P2 | ⬜ |
 | S3.4 UI 组件库推广使用 | P2 | ⬜ |
+| S3.5 事件卡六向连接器（Feature Flag 守护） | P1 | ✅ 已完成（详见 [features/event-connectors.md](./features/event-connectors.md)） |
 
 ### 💡 Epic 4: 技术债持续偿还（Ongoing）
 
