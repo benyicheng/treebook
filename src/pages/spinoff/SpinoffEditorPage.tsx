@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { spinoffService, storyService, Story, Character, Spinoff, branchService, chapterService } from '../../api/storyService';
+import { storyService, spinoffService, branchService, chapterService } from '../../api/storyService';
+import { characterService } from '../../api/characterService';
+import type { Story, Character, Spinoff } from '../../api/types';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useToast } from '../../components/notifications';
 import { 
@@ -13,8 +15,9 @@ import { ChapterEditor } from '../../components/Editor';
 const SpinoffEditorPage: React.FC = () => {
   const { id } = useParams(); // Spinoff ID (if editing)
   const [searchParams] = useSearchParams();
-  const storyIdFromQuery = searchParams.get('storyId'); 
-  const branchIdFromQuery = searchParams.get('branchId'); 
+  const storyIdFromQuery = searchParams.get('storyId');
+  const branchIdFromQuery = searchParams.get('branchId');
+  const eventIdFromQuery = searchParams.get('eventId');
   
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
@@ -40,6 +43,7 @@ const SpinoffEditorPage: React.FC = () => {
     type: 'if_timeline',
     originalStoryId: storyIdFromQuery || '',
     originalBranchId: branchIdFromQuery || '',
+    originalEventId: eventIdFromQuery || '',
   });
 
   // Main Story Context
@@ -67,7 +71,7 @@ const SpinoffEditorPage: React.FC = () => {
           
           const storyData = await storyService.getById(data.originalStoryId);
           setOriginalStory(storyData);
-          const chars = await storyService.getCharacters(data.originalStoryId);
+          const chars = await characterService.getCharacters(data.originalStoryId);
           setCharacters(chars);
 
           if (data.originalBranchId) {
@@ -79,7 +83,7 @@ const SpinoffEditorPage: React.FC = () => {
           // Create mode with storyId
           const storyData = await storyService.getById(storyIdFromQuery);
           setOriginalStory(storyData);
-          const chars = await storyService.getCharacters(storyIdFromQuery);
+          const chars = await characterService.getCharacters(storyIdFromQuery);
           setCharacters(chars);
 
           if (branchIdFromQuery) {
@@ -114,7 +118,7 @@ const SpinoffEditorPage: React.FC = () => {
     try {
       setOriginalStory(story);
       setSpinoff(prev => ({ ...prev, originalStoryId: story.id }));
-      const chars = await storyService.getCharacters(story.id);
+      const chars = await characterService.getCharacters(story.id);
       setCharacters(chars);
       // Load chapters for chapter selection step
       const chapters = await chapterService.getByStory(story.id);
@@ -138,6 +142,7 @@ const SpinoffEditorPage: React.FC = () => {
       const payload = {
         ...spinoff,
         content: content || spinoff.content,
+        originalEventId: spinoff.originalEventId || null,
         referencedCharacters: JSON.stringify(selectedCharIds),
       };
 
@@ -203,9 +208,9 @@ const SpinoffEditorPage: React.FC = () => {
               <div 
                 key={story.id} 
                 onClick={() => handleSelectStory(story)}
-                className="group bg-ink-50 dark:bg-ink-800 p-6 rounded-[2.5rem] border border-ink-100 dark:border-ink-700 hover:border-indigo-400 transition-all cursor-pointer flex gap-4 items-center"
+                className="group bg-ink-50 dark:bg-ink-800 p-6 rounded-[2.5rem] border border-ink-100 dark:border-ink-700 hover:border-accent-400 transition-all cursor-pointer flex gap-4 items-center"
               >
-                <div className="w-16 h-20 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center shrink-0">
+                <div className="w-16 h-20 bg-accent-50 dark:bg-accent-800/30 rounded-2xl flex items-center justify-center shrink-0">
                   <Book className="text-accent-600" size={32} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -265,9 +270,9 @@ const SpinoffEditorPage: React.FC = () => {
               <div 
                 key={chapter.id} 
                 onClick={() => handleSelectChapter(chapter)}
-                className="group bg-ink-50 dark:bg-ink-800 p-6 rounded-[2.5rem] border border-ink-100 dark:border-ink-700 hover:border-indigo-400 transition-all cursor-pointer flex gap-4 items-center"
+                className="group bg-ink-50 dark:bg-ink-800 p-6 rounded-[2.5rem] border border-ink-100 dark:border-ink-700 hover:border-accent-400 transition-all cursor-pointer flex gap-4 items-center"
               >
-                <div className="w-12 h-12 bg-indigo-50 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center shrink-0">
+                <div className="w-12 h-12 bg-accent-50 dark:bg-accent-800/30 rounded-2xl flex items-center justify-center shrink-0">
                   <Book className="text-accent-600" size={24} />
                 </div>
                 <div className="flex-1 min-w-0">
@@ -392,7 +397,7 @@ const SpinoffEditorPage: React.FC = () => {
                   <Users size={14} />
                   引用角色
                 </div>
-                <span className="text-[10px] font-black text-accent-600 bg-indigo-50 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-black text-accent-600 bg-accent-50 px-2 py-0.5 rounded-full">
                   {selectedCharIds.length}
                 </span>
               </div>
@@ -403,12 +408,12 @@ const SpinoffEditorPage: React.FC = () => {
                     onClick={() => toggleCharacter(char.id)}
                     className={`p-3 rounded-2xl border-2 cursor-pointer transition-all ${
                       selectedCharIds.includes(char.id)
-                        ? 'border-accent-500 bg-indigo-50 dark:bg-indigo-900/20'
+                        ? 'border-accent-500 bg-accent-50 dark:bg-accent-800/20'
                         : 'border-transparent bg-ink-50 dark:bg-ink-700/50 hover:bg-ink-100'
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-accent-600 dark:text-indigo-400 font-bold text-xs">
+                      <div className="w-8 h-8 rounded-full bg-accent-100 dark:bg-accent-800/50 flex items-center justify-center text-accent-600 dark:text-accent-400 font-bold text-xs">
                         {char.name[0]}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -481,7 +486,7 @@ const SpinoffEditorPage: React.FC = () => {
                             onClick={() => setSpinoff(prev => ({ ...prev, type: t.id as any }))}
                             className={`p-4 rounded-3xl border-2 transition-all text-left space-y-2 ${
                               spinoff.type === t.id 
-                                ? 'border-accent-600 bg-indigo-50 dark:bg-indigo-900/20' 
+                                ? 'border-accent-600 bg-accent-50 dark:bg-accent-800/20' 
                                 : 'border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800'
                             }`}
                           >

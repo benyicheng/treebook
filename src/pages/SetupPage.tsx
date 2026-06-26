@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { ShieldCheck, User, Mail, Lock, CheckCircle, ArrowRight } from 'lucide-react';
-import { toast } from '../lib/toast';
+import { useToast } from '../components/notifications';
 
 const API_URL = window.location.hostname === 'localhost' 
   ? 'http://localhost:3001/api' 
@@ -10,6 +10,7 @@ const API_URL = window.location.hostname === 'localhost'
 
 const SetupPage: React.FC = () => {
   const navigate = useNavigate();
+  const { addToast } = useToast();
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [needsInit, setNeedsInit] = useState(false);
@@ -56,7 +57,7 @@ const SetupPage: React.FC = () => {
         email: form.email,
         password: form.password
       });
-      toast('初始化成功！请使用新创建的账号登录。', 'success');
+      addToast('success', '初始化成功！请使用新创建的账号登录。');
       navigate('/login');
     } catch (err: any) {
       setError(err.response?.data?.message || '初始化失败，请重试');
@@ -78,14 +79,14 @@ const SetupPage: React.FC = () => {
       <div className="max-w-md w-full">
         {/* Logo/Brand */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-accent-600 rounded-3xl shadow-xl shadow-indigo-200 mb-6 rotate-3">
+          <div className="inline-flex items-center justify-center w-20 h-20 bg-accent-600 rounded-3xl shadow-xl shadow-accent-200 mb-6 rotate-3">
             <ShieldCheck className="text-white" size={40} />
           </div>
           <h1 className="text-4xl font-black text-slate-900 tracking-tighter mb-2">TREEBOOK INIT</h1>
           <p className="text-slate-500 font-medium">配置您的首个超级管理员账号</p>
         </div>
 
-        <div className="bg-white rounded-[2rem] shadow-2xl shadow-indigo-100/50 p-8 border border-slate-100">
+        <div className="bg-white rounded-[2rem] shadow-2xl shadow-accent-100/50 p-8 border border-slate-100">
           {error && (
             <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm font-bold rounded-2xl border border-red-100 flex items-center gap-3 animate-shake">
               <div className="w-2 h-2 rounded-full bg-red-600" />
@@ -157,7 +158,7 @@ const SetupPage: React.FC = () => {
             <button
               type="submit"
               disabled={submitting}
-              className="w-full bg-accent-600 hover:bg-accent-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-indigo-100 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group"
+              className="w-full bg-accent-600 hover:bg-accent-700 text-white font-black py-5 rounded-2xl shadow-xl shadow-accent-100 transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 group"
             >
               {submitting ? '正在初始化...' : (
                 <>

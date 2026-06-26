@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Library,
   Check,
+  List,
 } from 'lucide-react';
 import client from '../../api/client';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -34,10 +35,18 @@ interface StoryBrief {
   title: string;
 }
 
+const guideTypeLabels: Record<string, string> = {
+  chronological: '按时间顺序',
+  character_focus: '聚焦特定角色',
+  theme_exploration: '主题探索',
+  completionist: '完整通关',
+};
+
 interface SelectedNode {
   nodeCategory: 'chapter' | 'branch' | 'spinoff';
   contentId: string;
   title: string;
+  introduction: string;
   note: string;
   storyId: string;
   storyTitle: string;
@@ -47,6 +56,7 @@ interface PathDetail {
   id: string;
   title: string;
   description: string | null;
+  guideType: string | null;
   origin: string;
   creator: { id: string; username: string; avatarUrl: string | null };
   storyId: string;
@@ -56,6 +66,7 @@ interface PathDetail {
     nodeCategory: string;
     contentId: string;
     contentTitle: string;
+    introduction: string | null;
     note: string | null;
     estimatedMin: number | null;
     storyId?: string;
@@ -109,6 +120,7 @@ const ReadingPathEditPage: React.FC = () => {
   // Form state
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [guideType, setGuideType] = useState('chronological');
 
   // Story map data for node picker
   const [storyName, setStoryName] = useState('');
@@ -158,6 +170,7 @@ const ReadingPathEditPage: React.FC = () => {
         setPathData(data);
         setTitle(data.title);
         setDescription(data.description || '');
+        setGuideType(data.guideType || 'chronological');
         setSelectedStoryId(data.storyId || '');
 
         // Pre-populate selected nodes
@@ -165,6 +178,7 @@ const ReadingPathEditPage: React.FC = () => {
           nodeCategory: n.nodeCategory as 'chapter' | 'branch' | 'spinoff',
           contentId: n.contentId,
           title: n.contentTitle,
+          introduction: n.introduction || '',
           note: n.note || '',
           storyId: n.storyId || data.storyId || '',
           storyTitle: n.storyTitle || '',
@@ -222,6 +236,7 @@ const ReadingPathEditPage: React.FC = () => {
         nodeCategory: parsed.category,
         contentId: parsed.contentId,
         title: node.title,
+        introduction: '',
         note: '',
         storyId: selectedStoryId,
         storyTitle: storyName,
@@ -258,6 +273,10 @@ const ReadingPathEditPage: React.FC = () => {
     setSelectedNodes((prev) => prev.map((n, i) => (i === index ? { ...n, note } : n)));
   };
 
+  const updateIntroduction = (index: number, introduction: string) => {
+    setSelectedNodes((prev) => prev.map((n, i) => (i === index ? { ...n, introduction } : n)));
+  };
+
   const updateNodeCharacterTags = (nodeCategory: string, contentId: string, tags: CharacterTag[]) => {
     const key = getNodeKey(nodeCategory, contentId);
     setNodeCharacterTags((prev) => {
@@ -283,10 +302,12 @@ const ReadingPathEditPage: React.FC = () => {
       await client.put(`/reading-paths/${id}`, {
         title: title.trim(),
         description: description.trim() || undefined,
+        guideType,
         nodes: selectedNodes.map((n, i) => ({
           nodeCategory: n.nodeCategory,
           contentId: n.contentId,
           sortOrder: i,
+          introduction: n.introduction || undefined,
           note: n.note || undefined,
           storyId: n.storyId,
           storyTitle: n.storyTitle,
@@ -398,8 +419,24 @@ const ReadingPathEditPage: React.FC = () => {
             <div>
               <label className="block text-xs font-bold text-ink-500 mb-1.5">简介</label>
               <textarea value={description} onChange={(e) => setDescription(e.target.value)}
-                placeholder="简要描述这条路线适合什么样的读者…" rows={3}
+                placeholder="简要描述这条路线适合什么样的读者…" rows={2}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-700 text-sm text-ink-800 dark:text-white placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-transparent resize-none" />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-ink-500 mb-1.5">路线类型</label>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(guideTypeLabels).map(([value, label]) => (
+                  <button key={value} onClick={() => setGuideType(value)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${
+                      guideType === value
+                        ? 'border-accent-400 bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400'
+                        : 'border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-700 text-ink-600 dark:text-ink-300 hover:border-accent-300 dark:hover:border-accent-600'
+                    }`}>
+                    {guideType === value && <Check size={12} className="shrink-0" />}
+                    {label}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -423,7 +460,7 @@ const ReadingPathEditPage: React.FC = () => {
             {(() => {
               const usedStories = new Set(selectedNodes.map((n) => n.storyId).filter(Boolean));
               if (usedStories.size > 1) {
-                return <p className="text-xs text-indigo-500 font-medium">跨作品路线（{usedStories.size} 篇故事）</p>;
+                return <p className="text-xs text-accent-500 font-medium">跨作品路线（{usedStories.size} 篇故事）</p>;
               }
               return null;
             })()}
@@ -464,9 +501,6 @@ const ReadingPathEditPage: React.FC = () => {
                           {node.storyTitle && (
                             <p className="text-[10px] text-indigo-400 truncate">{node.storyTitle}</p>
                           )}
-                          <input type="text" value={node.note} onChange={(e) => updateNote(i, e.target.value)}
-                            placeholder="添加推荐语（可选）"
-                            className="mt-0.5 w-full text-xs text-ink-400 bg-transparent border-0 border-b border-transparent hover:border-ink-200 focus:border-blue-400 focus:outline-none focus:ring-0 pb-0.5 placeholder-ink-300 dark:placeholder-ink-500 transition-colors" />
                         </div>
                         <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button onClick={() => moveNode(i, -1)} disabled={i === 0}
@@ -481,6 +515,15 @@ const ReadingPathEditPage: React.FC = () => {
                             <Trash2 size={14} className="text-red-400" />
                           </button>
                         </div>
+                      </div>
+                      {/* Node fields */}
+                      <div className="ml-8 mt-1.5 space-y-1">
+                        <input type="text" value={node.introduction} onChange={(e) => updateIntroduction(i, e.target.value)}
+                          placeholder="节点导读（选填，如：本章揭示了主角的身世）"
+                          className="w-full text-xs text-ink-600 dark:text-ink-300 bg-transparent border border-transparent hover:border-ink-200 dark:hover:border-ink-600 focus:border-accent-400 focus:outline-none focus:ring-0 rounded-lg px-2 py-1 placeholder-ink-300 dark:placeholder-ink-500 transition-colors" />
+                        <input type="text" value={node.note} onChange={(e) => updateNote(i, e.target.value)}
+                          placeholder="推荐语（选填）"
+                          className="w-full text-xs text-ink-400 bg-transparent border-0 border-b border-transparent hover:border-ink-200 focus:border-blue-400 focus:outline-none focus:ring-0 pb-0.5 placeholder-ink-300 dark:placeholder-ink-500 transition-colors" />
                       </div>
                       {/* Character tag selector per node */}
                       {node.storyId && (

@@ -31,12 +31,17 @@ const FTS_TRIGGERS = [
  *   消除了 $executeRawUnsafe 的误用风险。
  * - 仅在 content_fts 不存在时重建表并做全量回填；后续冷启动只做"幂等增量补齐"，
  *   避免每次重启都 DROP + 重建导致索引膨胀和启动延迟。
+ * - UPDATE/DELETE 触发器使用 DELETE FROM content_fts WHERE ... 而非 FTS5 的
+ *   INSERT ... VALUES('delete', ...) 命令，因为 Prisma 自带的 SQLite 引擎
+ *   在处理该命令时会报 "SQL logic error"（extended_code: 1）。
  */
 export async function ensureFts5Table(): Promise<void> {
   if (globalForPrisma.ftsInitialized) return;
 
   try {
-    // 1. 清理旧版触发器（旧触发器用了 FTS5 'delete'，与 Prisma 引擎不兼容）
+    // 1. 清理旧版触发器（旧触发器用了 FTS5 的 INSERT ... VALUES('delete', ...) 语法，
+    //    但该命令在 Prisma 自带的 SQLite 引擎中会报 "SQL logic error"。
+    //    替换为 DELETE FROM content_fts 可兼容所有 SQLite 版本。）
     //    触发器名称来自编译期常量（FTS_TRIGGERS），不含用户输入，可安全拼接。
     //    DDL 语句不支持 Prisma 参数占位，故仍用 Prisma.raw 拼接。
     for (const name of FTS_TRIGGERS) {
@@ -104,6 +109,8 @@ export async function ensureFts5Table(): Promise<void> {
     }
 
     // 4. 创建幂等触发器（IF NOT EXISTS）
+    //    注意：UPDATE / DELETE 触发器使用 DELETE FROM content_fts 而非 FTS5 的 'delete' 命令，
+    //    因为 Prisma 自带的 SQLite 引擎在处理 'delete' 命令时会报 SQL logic error。
     await prisma.$executeRaw(Prisma.raw(`
       CREATE TRIGGER IF NOT EXISTS content_fts_ai_story AFTER INSERT ON stories BEGIN
         INSERT INTO content_fts(title, content, type, sourceId, metadata)
@@ -112,6 +119,7 @@ export async function ensureFts5Table(): Promise<void> {
     `));
     await prisma.$executeRaw(Prisma.raw(`
       CREATE TRIGGER IF NOT EXISTS content_fts_au_story AFTER UPDATE ON stories BEGIN
+        DELETE FROM content_fts WHERE type='story' AND sourceId=NEW.id;
         INSERT INTO content_fts(title, content, type, sourceId, metadata)
         VALUES (NEW.title, IFNULL(NEW.description, ''), 'story', NEW.id, json_object('storyId', NEW.id, 'authorId', NEW.authorId));
       END;
@@ -124,6 +132,7 @@ export async function ensureFts5Table(): Promise<void> {
     `));
     await prisma.$executeRaw(Prisma.raw(`
       CREATE TRIGGER IF NOT EXISTS content_fts_au_chapter AFTER UPDATE ON chapters BEGIN
+        DELETE FROM content_fts WHERE type='chapter' AND sourceId=NEW.id;
         INSERT INTO content_fts(title, content, type, sourceId, metadata)
         VALUES (NEW.title, NEW.content, 'chapter', NEW.id, json_object('storyId', NEW.storyId, 'chapterId', NEW.id));
       END;
@@ -136,6 +145,7 @@ export async function ensureFts5Table(): Promise<void> {
     `));
     await prisma.$executeRaw(Prisma.raw(`
       CREATE TRIGGER IF NOT EXISTS content_fts_au_branch AFTER UPDATE ON branches BEGIN
+        DELETE FROM content_fts WHERE type='branch' AND sourceId=NEW.id;
         INSERT INTO content_fts(title, content, type, sourceId, metadata)
         VALUES (NEW.title, IFNULL(NEW.description, ''), 'branch', NEW.id, json_object('storyId', NEW.parentStoryId, 'authorId', NEW.authorId, 'branchId', NEW.id));
       END;
@@ -148,6 +158,7 @@ export async function ensureFts5Table(): Promise<void> {
     `));
     await prisma.$executeRaw(Prisma.raw(`
       CREATE TRIGGER IF NOT EXISTS content_fts_au_spinoff AFTER UPDATE ON spinoffs BEGIN
+        DELETE FROM content_fts WHERE type='spinoff' AND sourceId=NEW.id;
         INSERT INTO content_fts(title, content, type, sourceId, metadata)
         VALUES (NEW.title, IFNULL(NEW.summary, ''), 'spinoff', NEW.id, json_object('storyId', NEW.originalStoryId, 'authorId', NEW.authorId, 'spinoffId', NEW.id));
       END;
@@ -156,26 +167,22 @@ export async function ensureFts5Table(): Promise<void> {
     // 5. AFTER DELETE 触发器 — 保持 FTS5 索引与源表同步，防止脏数据残留
     await prisma.$executeRaw(Prisma.raw(`
       CREATE TRIGGER IF NOT EXISTS content_fts_ad_story AFTER DELETE ON stories BEGIN
-        INSERT INTO content_fts(content_fts, rowid, title, content, type, sourceId, metadata)
-        VALUES ('delete', (SELECT rowid FROM content_fts WHERE type='story' AND sourceId=OLD.id), '', '', '', '', '');
+        DELETE FROM content_fts WHERE type='story' AND sourceId=OLD.id;
       END;
     `));
     await prisma.$executeRaw(Prisma.raw(`
       CREATE TRIGGER IF NOT EXISTS content_fts_ad_chapter AFTER DELETE ON chapters BEGIN
-        INSERT INTO content_fts(content_fts, rowid, title, content, type, sourceId, metadata)
-        VALUES ('delete', (SELECT rowid FROM content_fts WHERE type='chapter' AND sourceId=OLD.id), '', '', '', '', '');
+        DELETE FROM content_fts WHERE type='chapter' AND sourceId=OLD.id;
       END;
     `));
     await prisma.$executeRaw(Prisma.raw(`
       CREATE TRIGGER IF NOT EXISTS content_fts_ad_branch AFTER DELETE ON branches BEGIN
-        INSERT INTO content_fts(content_fts, rowid, title, content, type, sourceId, metadata)
-        VALUES ('delete', (SELECT rowid FROM content_fts WHERE type='branch' AND sourceId=OLD.id), '', '', '', '', '');
+        DELETE FROM content_fts WHERE type='branch' AND sourceId=OLD.id;
       END;
     `));
     await prisma.$executeRaw(Prisma.raw(`
       CREATE TRIGGER IF NOT EXISTS content_fts_ad_spinoff AFTER DELETE ON spinoffs BEGIN
-        INSERT INTO content_fts(content_fts, rowid, title, content, type, sourceId, metadata)
-        VALUES ('delete', (SELECT rowid FROM content_fts WHERE type='spinoff' AND sourceId=OLD.id), '', '', '', '', '');
+        DELETE FROM content_fts WHERE type='spinoff' AND sourceId=OLD.id;
       END;
     `));
 

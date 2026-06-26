@@ -8,18 +8,11 @@ import { useEventConnector } from './EventConnectorsContext';
 import EventConnectorBar from './EventConnectorBar';
 import EventConnectorInlineGrid from './EventConnectorInlineGrid';
 import BranchCompareDrawer from './BranchCompareDrawer';
+import EventDetailDrawer from './EventDetailDrawer';
+import { LikeButton } from '../../../components/Interaction/LikeButton';
+import { ShareButton } from '../../../components/Interaction/ShareButton';
+import { EVENT_TYPE_LABELS } from './eventConstants';
 import type { ConnectorKey } from '../../../api/eventConnectorService';
-
-const EVENT_TYPE_LABELS: Record<string, string> = {
-  main_arc: '主线',
-  side_story: '支线',
-  character_event: '角色事件',
-  world_event: '世界事件',
-  climax: '高潮',
-  turning_point: '转折点',
-  flashback: '回忆/倒叙',
-  foreshadowing: '伏笔',
-};
 
 const NODE_CONFIG: Record<string, { icon: React.ReactNode; label: string }> = {
   chapter: { icon: <BookOpen size={12} />, label: '章节' },
@@ -49,6 +42,9 @@ const BooklistEventCard: React.FC<BooklistEventCardProps> = ({
   const typeLabel = EVENT_TYPE_LABELS[evt.type] || evt.type || '主线';
   const nodes = evt.nodes || [];
   const hasNodes = nodes.length > 0;
+
+  // ── 事件详情弹窗 ──
+  const [detailOpen, setDetailOpen] = useState(false);
 
   // ── 六向连接器（feature flag 守护）────────────────────────────
   // hook 在 flag off / 加载中 / 失败时返回 { active: false }，等价于不存在
@@ -92,7 +88,7 @@ const BooklistEventCard: React.FC<BooklistEventCardProps> = ({
             </div>
             <div className="min-w-0">
               <button
-                onClick={() => navigate('/story/' + evt.storyId)}
+                onClick={() => setDetailOpen(true)}
                 className="text-sm font-bold text-ink-800 dark:text-white truncate block w-full text-left hover:text-accent-500 transition-colors"
               >
                 {evt.title}
@@ -122,6 +118,20 @@ const BooklistEventCard: React.FC<BooklistEventCardProps> = ({
 
         {evt.description && (
           <p className="text-xs text-ink-500 leading-relaxed line-clamp-2">{evt.description}</p>
+        )}
+
+        {(evt.id) && (
+          <div className="flex items-center gap-2">
+            <LikeButton targetType="event" targetId={evt.id} size="sm" showCount={true} />
+            <ShareButton
+              targetType="event"
+              targetId={evt.id}
+              title={evt.title}
+              description={evt.description || ''}
+              size="sm"
+              showCount={false}
+            />
+          </div>
         )}
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -192,6 +202,14 @@ const BooklistEventCard: React.FC<BooklistEventCardProps> = ({
           eventId={compareDrawer.eventId}
           eventTitle={compareDrawer.eventTitle}
         />
+
+        {detailOpen && (
+          <EventDetailDrawer
+            eventId={evt.id}
+            onClose={() => setDetailOpen(false)}
+            storyId={evt.storyId}
+          />
+        )}
 
         {hasNodes && (
           <>

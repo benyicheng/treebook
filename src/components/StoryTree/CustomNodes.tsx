@@ -127,8 +127,8 @@ const SpinoffNode = ({ data, id }: NodeProps) => {
     spinoffType === 'biography' ? '传记' :
     spinoffType === 'world_expansion' ? '设定' : '平行线';
 
-  const borderColor = isOfficial ? 'border-amber-400 shadow-amber-100' : 'border-indigo-400';
-  const iconBg = isOfficial ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400' : 'bg-indigo-50 dark:bg-indigo-900/40 text-accent-600 dark:text-indigo-400';
+  const borderColor = isOfficial ? 'border-amber-400 shadow-amber-100' : 'border-accent-400';
+  const iconBg = isOfficial ? 'bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400' : 'bg-accent-50 dark:bg-accent-800/40 text-accent-600 dark:text-accent-400';
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -143,7 +143,7 @@ const SpinoffNode = ({ data, id }: NodeProps) => {
       role="button"
       aria-label={`番外：${data.label || '无标题'}`}
       onKeyDown={handleKeyDown}
-      className={`px-4 py-3 shadow-xl rounded-2xl bg-ink-50 dark:bg-ink-800 border-2 ${borderColor} ${viewModeClass(data.viewModeModifier)} min-w-[190px] max-w-[220px] group transition-all hover:scale-105 hover:shadow-indigo-200 dark:hover:shadow-indigo-900/40 hover:border-accent-600 cursor-pointer relative`}>
+      className={`px-4 py-3 shadow-xl rounded-2xl bg-ink-50 dark:bg-ink-800 border-2 ${borderColor} ${viewModeClass(data.viewModeModifier)} min-w-[190px] max-w-[220px] group transition-all hover:scale-105 hover:shadow-accent-200 dark:hover:shadow-accent-800/40 hover:border-accent-600 cursor-pointer relative`}>
       <Handle type="target" position={Position.Top} className={`w-2.5 h-2.5 ${isOfficial ? 'bg-amber-500' : 'bg-accent-500'} border-2 border-white dark:border-ink-800`} />
       <div className="flex items-start gap-2.5">
         <div className={`p-1.5 ${iconBg} rounded-xl shrink-0 mt-0.5`}>
@@ -157,7 +157,7 @@ const SpinoffNode = ({ data, id }: NodeProps) => {
             <span className={`px-1 py-0.5 rounded text-[8px] font-bold ${
               spinoffType === 'biography' ? 'bg-accent-100 text-accent-500' :
               spinoffType === 'world_expansion' ? 'bg-accent-100 text-accent-500' :
-              'bg-indigo-100 text-accent-600'
+              'bg-accent-100 text-accent-600'
             }`}>
               {typeLabel}
             </span>

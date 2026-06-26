@@ -17,21 +17,21 @@ import {
 
 interface ChapterItem {
   id: string;
-  chapterId: string;
+  chapterId?: string | null;
   notes?: string;
-  chapter: {
+  chapter?: {
     id: string;
     title: string;
     content?: string;
     branchId?: string | null;
-    story: {
+    story?: {
       id: string;
       title: string;
       author?: {
         username: string;
       };
     };
-  };
+  } | null;
 }
 
 interface BooklistChapterCardProps {
@@ -84,11 +84,11 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
     position: 'relative' as const,
   };
 
-  const wordCount = item.chapter.content
+  const wordCount = item.chapter?.content
     ? Math.round((item.chapter.content.length / 2))
     : 0;
 
-  const previewContent = item.chapter.content
+  const previewContent = item.chapter?.content
     ? item.chapter.content.slice(0, 200) + (item.chapter.content.length > 200 ? '...' : '')
     : '';
 
@@ -141,12 +141,12 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
             <div className="space-y-2">
               <div className="flex items-center gap-3">
                 <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                  item.chapter.branchId ? 'bg-accent-100 text-accent-500' : 'bg-accent-100 text-accent-500'
+                  item.chapter?.branchId ? 'bg-accent-100 text-accent-500' : 'bg-accent-100 text-accent-500'
                 }`}>
-                  {item.chapter.branchId ? '平行分支' : '主线章节'}
+                  {item.chapter?.branchId ? '平行分支' : '主线章节'}
                 </span>
                 <span className="text-xs font-bold text-ink-400">
-                  {item.chapter.story.title}
+                  {item.chapter?.story?.title}
                 </span>
                 {isCurrent && (
                   <span className="px-2 py-0.5 bg-accent-100 dark:bg-accent-500/15 text-accent-600 dark:text-accent-400 text-[10px] font-black rounded-full">
@@ -157,7 +157,7 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
               <h3 className={`text-2xl font-black group-hover:text-accent-500 transition-colors ${
                 isCompleted ? 'text-ink-500 dark:text-ink-400 line-through decoration-1 decoration-ink-300' : 'text-ink-800 dark:text-white'
               }`}>
-                {item.chapter.title}
+                {item.chapter?.title || '未知章节'}
               </h3>
             </div>
             <div className="flex items-center gap-2">

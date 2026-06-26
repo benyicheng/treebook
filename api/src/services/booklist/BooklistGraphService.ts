@@ -15,6 +15,7 @@ export class BooklistGraphService {
         where: { booklistId },
         orderBy: { orderIndex: 'asc' },
         include: {
+          chapter: { select: { id: true, title: true, story: { select: { id: true, title: true } } } },
           outgoingEdges: {
             include: {
               targetItem: { select: { id: true, targetType: true, targetId: true } },
@@ -41,8 +42,57 @@ export class BooklistGraphService {
       }),
     ]);
 
+    // Enrich wiki items with their titles
+    const wikiItemIds = items
+      .filter((item) => item.targetType === 'wiki' && item.targetId)
+      .map((item) => item.targetId!);
+
+    let wikiPages: Map<string, { title: string; contentType: string; summary: string | null }> = new Map();
+    if (wikiItemIds.length > 0) {
+      const pages = await prisma.wikiPage.findMany({
+        where: { id: { in: wikiItemIds } },
+        select: { id: true, title: true, contentType: true, summary: true },
+      });
+      wikiPages = new Map(pages.map((p) => [p.id, { title: p.title, contentType: p.contentType, summary: p.summary }]));
+    }
+
+    // Enrich spinoff items with their titles
+    const spinoffItemIds = items
+      .filter((item) => item.targetType === 'spinoff' && item.targetId && !item.chapterId)
+      .map((item) => item.targetId!);
+
+    let spinoffs: Map<string, { title: string }> = new Map();
+    if (spinoffItemIds.length > 0) {
+      const found = await prisma.spinoff.findMany({
+        where: { id: { in: spinoffItemIds } },
+        select: { id: true, title: true },
+      });
+      spinoffs = new Map(found.map((s) => [s.id, { title: s.title }]));
+    }
+
+    // Enrich branch items with their titles
+    const branchItemIds = items
+      .filter((item) => item.targetType === 'branch' && item.targetId && !item.chapterId)
+      .map((item) => item.targetId!);
+
+    let branches: Map<string, { title: string }> = new Map();
+    if (branchItemIds.length > 0) {
+      const found = await prisma.branch.findMany({
+        where: { id: { in: branchItemIds } },
+        select: { id: true, title: true },
+      });
+      branches = new Map(found.map((b) => [b.id, { title: b.title }]));
+    }
+
+    const enrichedItems = items.map((item) => ({
+      ...item,
+      wiki: item.targetType === 'wiki' && item.targetId ? wikiPages.get(item.targetId) || null : null,
+      spinoff: item.targetType === 'spinoff' && item.targetId ? spinoffs.get(item.targetId) || null : null,
+      branch: item.targetType === 'branch' && item.targetId ? branches.get(item.targetId) || null : null,
+    }));
+
     return {
-      items,
+      items: enrichedItems,
       relations,
       nodes: items.length,
       edges: relations.length,

@@ -12,16 +12,8 @@ export interface NotificationItem {
   createdAt: string;
 }
 
-export interface NotificationListResponse {
-  items: NotificationItem[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
-}
-
 const notificationService = {
-  getNotifications: async (page = 1, limit = 20): Promise<NotificationListResponse> => {
+  getNotifications: async (page = 1, limit = 20): Promise<{ items: NotificationItem[]; total: number; page: number; limit: number; totalPages: number }> => {
     const { data } = await client.get<any>('/notifications', { params: { page, limit } });
     return data;
   },

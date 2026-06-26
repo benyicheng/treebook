@@ -16,18 +16,15 @@ export function useStories(params?: {
   });
 }
 
-export function useStory(id: string) {
+export function useStory(id?: string) {
+  const validId = id && id !== 'undefined' && id !== 'null' ? id : undefined;
   return useQuery({
-    queryKey: queryKeys.stories.detail(id),
-    queryFn: () => storyService.getById(id),
-    enabled: !!id,
-  });
-}
-
-export function useMyStories() {
-  return useQuery({
-    queryKey: queryKeys.stories.my,
-    queryFn: () => storyService.getMy(),
+    queryKey: queryKeys.stories.detail(validId || ''),
+    queryFn: () => {
+      if (!validId) throw new Error('useStory: invalid id');
+      return storyService.getById(validId);
+    },
+    enabled: !!validId,
   });
 }
 
@@ -35,14 +32,6 @@ export function useRecentReads() {
   return useQuery({
     queryKey: queryKeys.stories.recent,
     queryFn: () => storyService.getRecentReads(),
-  });
-}
-
-export function useStoryTags() {
-  return useQuery({
-    queryKey: queryKeys.stories.tags,
-    queryFn: () => storyService.getTags(),
-    staleTime: 5 * 60_000,
   });
 }
 

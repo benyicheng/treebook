@@ -11,6 +11,7 @@ import {
   createLink,
   removeLink,
   lookupWikis,
+  getWikiReferences,
 } from '../controllers/wikiController';
 import { authenticate } from '../middleware/auth';
 import { validateRequest } from '../middleware/validate';
@@ -40,6 +41,9 @@ router.delete('/:id', authenticate, deleteWikiPage);
 // Aliases
 router.post('/:id/aliases', authenticate, validateRequest(createWikiAliasRequest), addAlias);
 router.delete('/:id/aliases/:aliasId', authenticate, validateRequest(deleteWikiAliasRequest), removeAlias);
+
+// Cross-references
+router.get('/:id/references', getWikiReferences);
 
 // Links
 router.get('/:id/links', getLinks);

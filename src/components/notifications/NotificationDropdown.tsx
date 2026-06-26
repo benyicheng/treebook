@@ -95,6 +95,8 @@ const NotificationDropdown: React.FC = () => {
     return () => document.removeEventListener('keydown', handleEsc);
   }, [isOpen]);
 
+  if (!isAuthenticated) return null;
+
   const handleNotificationClick = (id: string) => {
     markAsRead(id);
   };

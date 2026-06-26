@@ -3,10 +3,10 @@ import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { FollowService } from '../services/FollowService';
 import { AppError } from '../utils/http';
+import { getCurrentUser } from '../utils/authHelpers';
 
 export const followUser = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { followingId } = req.body;
   if (!followingId) throw new AppError(400, 'BAD_REQUEST', '缺少 followingId');
@@ -16,8 +16,7 @@ export const followUser = catchAsync(async (req: AuthRequest, res: Response) => 
 });
 
 export const unfollowUser = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { followingId } = req.body;
   if (!followingId) throw new AppError(400, 'BAD_REQUEST', '缺少 followingId');
@@ -27,8 +26,7 @@ export const unfollowUser = catchAsync(async (req: AuthRequest, res: Response) =
 });
 
 export const getFollowers = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { cursor, limit } = req.query;
   const result = await FollowService.getFollowers(
@@ -40,8 +38,7 @@ export const getFollowers = catchAsync(async (req: AuthRequest, res: Response) =
 });
 
 export const getFollowing = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { cursor, limit } = req.query;
   const result = await FollowService.getFollowing(
@@ -53,8 +50,7 @@ export const getFollowing = catchAsync(async (req: AuthRequest, res: Response) =
 });
 
 export const checkFollowStatus = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { targetId } = req.query;
   if (!targetId) throw new AppError(400, 'BAD_REQUEST', '缺少 targetId');
@@ -64,8 +60,7 @@ export const checkFollowStatus = catchAsync(async (req: AuthRequest, res: Respon
 });
 
 export const batchFollowStatus = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { targetIds } = req.body;
   if (!Array.isArray(targetIds)) {
@@ -80,8 +75,7 @@ export const batchFollowStatus = catchAsync(async (req: AuthRequest, res: Respon
  * GET /api/follows/activity — 关注动态 Feed
  */
 export const getFollowActivity = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { cursor, limit } = req.query;
   const result = await FollowService.getFollowActivity(

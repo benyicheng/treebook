@@ -1,4 +1,5 @@
-import { Request, Response } from 'express';
+import { Response } from 'express';
+import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { DbInteractionEventSink } from '../observability/events/DbInteractionEventSink';
 import type { InteractionEventType } from '../domains/interactions/events';
@@ -17,7 +18,7 @@ interface AnalyticsEventPayload {
 
 const dbSink = new DbInteractionEventSink();
 
-export const recordEvents = catchAsync(async (req: Request, res: Response) => {
+export const recordEvents = catchAsync(async (req: AuthRequest, res: Response) => {
   let events: AnalyticsEventPayload[] = req.body.events || req.body;
   if (!Array.isArray(events)) {
     events = [events];
@@ -29,7 +30,7 @@ export const recordEvents = catchAsync(async (req: Request, res: Response) => {
 
   const ip = req.ip || req.socket.remoteAddress || undefined;
   const userAgent = req.headers['user-agent'] || undefined;
-  const userId = (req as any).user?.id;
+  const userId = req.user?.id;
 
   const results = await Promise.allSettled(
     events.map((ev) => {

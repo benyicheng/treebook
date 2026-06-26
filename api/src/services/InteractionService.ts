@@ -5,7 +5,7 @@ export type { TargetType };
 
 export class InteractionService {
   static isTargetType(t: string): t is TargetType {
-    return ['story', 'chapter', 'booklist', 'spinoff'].includes(t);
+    return ['story', 'chapter', 'booklist', 'spinoff', 'event'].includes(t);
   }
 
   static async getInteractionStats(targetType: TargetType, targetId: string, userId?: string) {

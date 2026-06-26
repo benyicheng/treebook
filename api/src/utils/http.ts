@@ -11,7 +11,8 @@ export const sendErr = (res: Response, code: string, message: string, traceId?: 
 export class AppError extends Error {
   statusCode: number;
   code: string;
-  
+  readonly name = 'AppError';
+
   constructor(statusCode: number, code: string, message: string) {
     super(message);
     this.statusCode = statusCode;

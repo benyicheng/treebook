@@ -21,21 +21,21 @@ import { useBooklistProgress } from '../../../hooks/useBooklistProgress';
 
 interface ChapterItem {
   id: string;
-  chapterId: string;
+  chapterId?: string | null;
   notes?: string;
-  chapter: {
+  chapter?: {
     id: string;
     title: string;
     content?: string;
     branchId?: string | null;
-    story: {
+    story?: {
       id: string;
       title: string;
       author?: {
         username: string;
       };
     };
-  };
+  } | null;
 }
 
 interface BooklistTimelineProps {

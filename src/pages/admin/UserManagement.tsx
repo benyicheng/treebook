@@ -104,7 +104,7 @@ const UserManagement: React.FC = () => {
                           <div className="flex items-center gap-3">
                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-white font-bold text-xs">
                               {user.avatarUrl ? (
-                                <img src={user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" />
+                                <img src={user.avatarUrl} alt="" className="w-full h-full rounded-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                               ) : (
                                 user.username?.[0]?.toUpperCase() || '?'
                               )}

@@ -5,7 +5,7 @@ import FollowButton from '../FollowButton';
 
 // Mock useAuthStore
 const mockUseAuthStore = vi.fn();
-vi.mock('../../stores/useAuthStore', () => ({
+vi.mock('../../../stores/useAuthStore', () => ({
   useAuthStore: (...args: any[]) => mockUseAuthStore(...args),
 }));
 
@@ -23,7 +23,7 @@ vi.mock('react-router-dom', async () => {
 const mockCheckFollowStatus = vi.fn();
 const mockFollow = vi.fn();
 const mockUnfollow = vi.fn();
-vi.mock('../../api/followService', () => ({
+vi.mock('../../../api/followService', () => ({
   followService: {
     checkFollowStatus: (...args: any[]) => mockCheckFollowStatus(...args),
     follow: (...args: any[]) => mockFollow(...args),

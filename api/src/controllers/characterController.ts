@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../prisma';
 import { catchAsync } from '../utils/catchAsync';
 import { AppError } from '../utils/http';
+import { verifyTargetAccess } from '../utils/authHelpers';
 
 interface AuthRequest extends Request {
   user?: { id: string; role: string; email: string };
@@ -104,56 +105,9 @@ export const createCharacterAppearance = catchAsync(async (req: AuthRequest, res
     throw new AppError(404, 'CHARACTER_NOT_FOUND', 'Character not found');
   }
 
-  // 验证目标内容存在
-  let targetExists = false;
-  switch (targetType) {
-    case 'chapter':
-      targetExists = !!(await prisma.chapter.findUnique({ where: { id: targetId }, select: { id: true } }));
-      break;
-    case 'branch':
-      targetExists = !!(await prisma.branch.findUnique({ where: { id: targetId }, select: { id: true } }));
-      break;
-    case 'spinoff':
-      targetExists = !!(await prisma.spinoff.findUnique({ where: { id: targetId }, select: { id: true } }));
-      break;
-  }
-  if (!targetExists) {
-    throw new AppError(404, 'TARGET_NOT_FOUND', `${targetType} with id ${targetId} not found`);
-  }
-
-  // 权限检查：验证用户是目标内容的作者或 admin
-  const isAdmin = req.user!.role === 'admin';
-  if (!isAdmin) {
-    let isAuthor = false;
-    switch (targetType) {
-      case 'chapter': {
-        const chapter = await prisma.chapter.findUnique({
-          where: { id: targetId },
-          select: { story: { select: { authorId: true } } },
-        });
-        isAuthor = chapter?.story?.authorId === userId;
-        break;
-      }
-      case 'branch': {
-        const branch = await prisma.branch.findUnique({
-          where: { id: targetId },
-          select: { authorId: true },
-        });
-        isAuthor = branch?.authorId === userId;
-        break;
-      }
-      case 'spinoff': {
-        const spinoff = await prisma.spinoff.findUnique({
-          where: { id: targetId },
-          select: { authorId: true },
-        });
-        isAuthor = spinoff?.authorId === userId;
-        break;
-      }
-    }
-    if (!isAuthor) {
-      throw new AppError(403, 'FORBIDDEN', 'You are not the author of this content');
-    }
+  // 验证目标内容存在且用户有权限
+  if (req.user!.role !== 'admin') {
+    await verifyTargetAccess(targetType, targetId, userId);
   }
 
   // 检查是否已存在（unique constraint）
@@ -196,39 +150,9 @@ export const deleteCharacterAppearance = catchAsync(async (req: AuthRequest, res
     throw new AppError(404, 'NOT_FOUND', 'Appearance record not found');
   }
 
-  // 权限检查
-  const isAdmin = req.user!.role === 'admin';
-  if (!isAdmin) {
-    let isAuthor = false;
-    switch (appearance.targetType) {
-      case 'chapter': {
-        const chapter = await prisma.chapter.findUnique({
-          where: { id: appearance.targetId },
-          select: { story: { select: { authorId: true } } },
-        });
-        isAuthor = chapter?.story?.authorId === userId;
-        break;
-      }
-      case 'branch': {
-        const branch = await prisma.branch.findUnique({
-          where: { id: appearance.targetId },
-          select: { authorId: true },
-        });
-        isAuthor = branch?.authorId === userId;
-        break;
-      }
-      case 'spinoff': {
-        const spinoff = await prisma.spinoff.findUnique({
-          where: { id: appearance.targetId },
-          select: { authorId: true },
-        });
-        isAuthor = spinoff?.authorId === userId;
-        break;
-      }
-    }
-    if (!isAuthor) {
-      throw new AppError(403, 'FORBIDDEN', 'You are not the author of this content');
-    }
+  // 权限检查：验证用户是目标内容的作者（admin 跳过）
+  if (req.user!.role !== 'admin') {
+    await verifyTargetAccess(appearance.targetType, appearance.targetId, userId);
   }
 
   await prisma.characterAppearance.delete({ where: { id } });

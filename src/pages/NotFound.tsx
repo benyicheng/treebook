@@ -5,7 +5,7 @@ const NotFound = () => {
   return (
     <div className="min-h-[calc(100vh-12rem)] flex items-center justify-center p-8">
       <div className="text-center max-w-md">
-        <div className="w-20 h-20 bg-indigo-50 dark:bg-indigo-900/30 rounded-3xl flex items-center justify-center mx-auto mb-6">
+        <div className="w-20 h-20 bg-accent-50 dark:bg-accent-800/30 rounded-3xl flex items-center justify-center mx-auto mb-6">
           <Compass size={36} className="text-accent-500" />
         </div>
         <h1 className="text-6xl font-black text-ink-200 dark:text-ink-700 mb-4">404</h1>

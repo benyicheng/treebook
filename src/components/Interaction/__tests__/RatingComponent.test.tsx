@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { RatingComponent } from '../RatingComponent';
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
 import { interactionService } from '../../../api/interactionService';
 import { useAuthStore } from '../../../stores/useAuthStore';
 
@@ -21,7 +26,14 @@ vi.mock('../../../stores/useAuthStore', () => ({
   useAuthStore: vi.fn(),
 }));
 
-vi.mock('../../Toast', () => ({
+const { mockUseInteractionStore } = vi.hoisted(() => ({
+  mockUseInteractionStore: vi.fn((...args: any[]) => ({ showLoginPrompt: vi.fn() })),
+}));
+vi.mock('../../../stores/useInteractionStore', () => ({
+  useInteractionStore: (args: any) => mockUseInteractionStore(args),
+}));
+
+vi.mock('../../notifications/Toast', () => ({
   useToast: () => ({ addToast: vi.fn() }),
 }));
 
@@ -59,25 +71,25 @@ describe('RatingComponent', () => {
   // ============ 渲染 ============
   describe('渲染', () => {
     it('显示平均分和评分人数', () => {
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
       expect(screen.getByText('4.2')).toBeInTheDocument();
       expect(screen.getByText('(42人评分)')).toBeInTheDocument();
     });
 
     it('隐藏详情（showDetail=false）', () => {
-      render(<RatingComponent {...defaultProps} showDetail={false} />);
+      renderWithRouter(<RatingComponent {...defaultProps} showDetail={false} />);
       expect(screen.queryByText(/人评分/)).not.toBeInTheDocument();
     });
 
     it('显示评分分布条形图', () => {
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
       expect(screen.getByText('5星')).toBeInTheDocument();
       expect(screen.getByText('4星')).toBeInTheDocument();
       expect(screen.getByText('3星')).toBeInTheDocument();
     });
 
     it('无评分时隐藏分布图', () => {
-      render(
+      renderWithRouter(
         <RatingComponent
           {...defaultProps}
           ratingCount={0}
@@ -89,17 +101,17 @@ describe('RatingComponent', () => {
     });
 
     it('sm 尺寸可渲染', () => {
-      render(<RatingComponent {...defaultProps} size="sm" />);
+      renderWithRouter(<RatingComponent {...defaultProps} size="sm" />);
       expect(screen.getByText('(42人评分)')).toBeInTheDocument();
     });
 
     it('lg 尺寸可渲染', () => {
-      render(<RatingComponent {...defaultProps} size="lg" />);
+      renderWithRouter(<RatingComponent {...defaultProps} size="lg" />);
       expect(screen.getByText('(42人评分)')).toBeInTheDocument();
     });
 
     it('触发异步 getStats 获取最新数据', async () => {
-      render(<RatingComponent targetType="story" targetId="fetch-test" />);
+      renderWithRouter(<RatingComponent targetType="story" targetId="fetch-test" />);
       await waitFor(() => {
         expect(interactionService.getStats).toHaveBeenCalledWith('story', 'fetch-test');
       });
@@ -110,22 +122,21 @@ describe('RatingComponent', () => {
   describe('未登录状态', () => {
     it('点击星星触发登录提示', async () => {
       (useAuthStore as any).mockReturnValue({ isAuthenticated: false });
-      const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent');
+      const showLoginPrompt = vi.fn();
+      mockUseInteractionStore.mockReturnValue({ showLoginPrompt });
 
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
 
       const stars = document.querySelectorAll('.cursor-pointer');
       fireEvent.click(stars[0], { clientX: 20 });
-      expect(dispatchEventSpy).toHaveBeenCalledWith(
-        expect.objectContaining({ type: 'show-login-prompt' }),
-      );
+      expect(showLoginPrompt).toHaveBeenCalled();
     });
   });
 
   // ============ 评分弹窗 ============
   describe('评分弹窗', () => {
     it('点击星星打开评分弹窗', async () => {
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
 
       const stars = document.querySelectorAll('.cursor-pointer');
       fireEvent.click(stars[0], { clientX: 20 });
@@ -136,7 +147,7 @@ describe('RatingComponent', () => {
     });
 
     it('点击星星左侧为半星评分', async () => {
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
 
       // jsdom 默认 getBoundingClientRect 返回全零，需 mock
       const stars = document.querySelectorAll('.cursor-pointer');
@@ -155,7 +166,7 @@ describe('RatingComponent', () => {
     });
 
     it('点击右侧为整数评分', async () => {
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
 
       const stars = document.querySelectorAll('.cursor-pointer');
       fireEvent.click(stars[3], { clientX: 30 }); // 第4颗星右侧 = 4
@@ -166,7 +177,7 @@ describe('RatingComponent', () => {
     });
 
     it('选择 / 取消评分标签', async () => {
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
 
       fireEvent.click(document.querySelectorAll('.cursor-pointer')[0], { clientX: 20 });
 
@@ -181,7 +192,7 @@ describe('RatingComponent', () => {
     });
 
     it('最多选择 5 个标签，第 6 个不被添加', async () => {
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
 
       fireEvent.click(document.querySelectorAll('.cursor-pointer')[0], { clientX: 20 });
       await waitFor(() => screen.getByText('为什么给出这个评分？'));
@@ -196,7 +207,7 @@ describe('RatingComponent', () => {
     });
 
     it('取消按钮关闭弹窗', async () => {
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
 
       fireEvent.click(document.querySelectorAll('.cursor-pointer')[0], { clientX: 20 });
       await waitFor(() => screen.getByText('为什么给出这个评分？'));
@@ -219,7 +230,7 @@ describe('RatingComponent', () => {
     });
 
     it('提交评分时传递 score 和 reasonTags', async () => {
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
 
       // 点击第4颗星右侧 = 4分
       fireEvent.click(document.querySelectorAll('.cursor-pointer')[3], { clientX: 30 });
@@ -240,7 +251,7 @@ describe('RatingComponent', () => {
     it('成功提交后调用 onRatingChange 回调', async () => {
       const onRatingChange = vi.fn();
 
-      render(<RatingComponent {...defaultProps} onRatingChange={onRatingChange} />);
+      renderWithRouter(<RatingComponent {...defaultProps} onRatingChange={onRatingChange} />);
 
       const stars = document.querySelectorAll('.cursor-pointer');
       const mockRect = vi
@@ -266,7 +277,7 @@ describe('RatingComponent', () => {
       const pendingPromise = new Promise((resolve) => { resolveSubmit = resolve; });
       (interactionService.submitRating as any).mockReturnValue(pendingPromise);
 
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
 
       fireEvent.click(document.querySelectorAll('.cursor-pointer')[0], { clientX: 20 });
       await waitFor(() => screen.getByText('为什么给出这个评分？'));
@@ -293,7 +304,7 @@ describe('RatingComponent', () => {
         myRating: null, myReasonTags: [], viewCount: 100,
       });
 
-      render(<RatingComponent {...defaultProps} />);
+      renderWithRouter(<RatingComponent {...defaultProps} />);
 
       fireEvent.click(document.querySelectorAll('.cursor-pointer')[0], { clientX: 20 });
       await waitFor(() => screen.getByText('为什么给出这个评分？'));

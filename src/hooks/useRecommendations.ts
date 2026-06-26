@@ -48,7 +48,7 @@ export function useFallbackStories(limit = 16) {
 
       // Fallback to official stories
       const data = await storyService.getAll({ isOfficial: true, limit });
-      return (Array.isArray(data) ? data : (data as any)?.data || []) as Story[];
+      return (Array.isArray(data) ? data : (data as { data: Story[] })?.data || []) as Story[];
     },
   });
 }

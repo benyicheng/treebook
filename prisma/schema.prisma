@@ -95,6 +95,7 @@ model User {
   readingHistory ReadingHistory[]
   savepoints     ReadingSavepoint[]
   comments       Comment[]
+  eventComments  EventComment[]
   booklistProgress BooklistProgress[]
   wallet         Wallet?
   transactions   Transaction[]
@@ -183,6 +184,22 @@ model Comment {
   @@index([chapterId])
   @@index([authorId])
   @@map("comments")
+}
+
+/// 大事件评论 — 让读者围绕事件展开讨论
+model EventComment {
+  id        String      @id @default(uuid())
+  content   String
+  author    User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  authorId  String
+  event     StoryEvent  @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  eventId   String
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  @@index([eventId])
+  @@index([authorId])
+  @@map("event_comments")
 }
 
 model ReadingHistory {
@@ -520,6 +537,7 @@ model StoryEvent {
   spinoffsOriginatedHere Spinoff[] @relation("SpinoffOriginEvent")
   /// Phase 3：本事件中提及的百科条目
   wikiMentions WikiEntityMention[] @relation("EventWikiMention")
+  comments     EventComment[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 

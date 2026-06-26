@@ -1,12 +1,5 @@
 import client from './client';
 
-export interface FollowUser {
-  id: string;
-  username: string;
-  avatarUrl?: string;
-  followerCount: number;
-}
-
 export interface ActivityItem {
   id: string;
   type: 'story' | 'branch' | 'spinoff';
@@ -43,7 +36,7 @@ export const followService = {
     if (cursor) params.set('cursor', cursor);
     params.set('limit', String(limit));
     const { data } = await client.get(`/follows/${userId}/followers?${params}`);
-    return data as { data: FollowUser[]; nextCursor: string | null };
+    return data as { data: { id: string; username: string; avatarUrl?: string; followerCount: number }[]; nextCursor: string | null };
   },
 
   getFollowing: async (userId: string, cursor?: string, limit = 20) => {
@@ -51,7 +44,7 @@ export const followService = {
     if (cursor) params.set('cursor', cursor);
     params.set('limit', String(limit));
     const { data } = await client.get(`/follows/${userId}/following?${params}`);
-    return data as { data: FollowUser[]; nextCursor: string | null };
+    return data as { data: { id: string; username: string; avatarUrl?: string; followerCount: number }[]; nextCursor: string | null };
   },
 
   checkFollowStatus: async (targetId: string) => {

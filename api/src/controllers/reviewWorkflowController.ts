@@ -1,4 +1,5 @@
 import type { Request, Response } from 'express';
+import type { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { AppError } from '../utils/http';
 import { ReviewCaseRepository } from '../domains/reviewWorkflow/ReviewCaseRepository';
@@ -6,7 +7,7 @@ import { ModerationAdminService } from '../domains/moderation/ModerationAdminSer
 import { ReviewWorkflowService } from '../domains/reviewWorkflow/ReviewWorkflowService';
 import { ReviewWorkflowConfigService } from '../domains/reviewWorkflow/ReviewWorkflowConfigService';
 
-const toInt = (v: any, d: number) => {
+const toInt = (v: unknown, d: number): number => {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
 };
@@ -27,16 +28,16 @@ export const getReviewCaseById = catchAsync(async (req: Request, res: Response) 
   res.json({ success: true, data: row });
 });
 
-export const addReviewCaseAction = catchAsync(async (req: Request, res: Response) => {
-  const actorUserId = (req as any).user?.id || null;
-  const traceId = (req as any).traceId;
+export const addReviewCaseAction = catchAsync(async (req: AuthRequest, res: Response) => {
+  const actorUserId = req.user?.id || null;
+  const traceId = req.traceId;
   const caseId = req.params.id;
   const { action, payload } = req.body || {};
   if (!action) throw new AppError(400, 'BAD_REQUEST', '缺少 action');
 
   const row = await ReviewCaseRepository.getCaseById(caseId);
   if (!row) throw new AppError(404, 'NOT_FOUND', 'Case not found');
-  const canAct = await ReviewWorkflowService.canAct((req as any).user, { level: row.level, action });
+  const canAct = await ReviewWorkflowService.canAct(req.user, { level: row.level, action });
   if (!canAct) throw new AppError(403, 'FORBIDDEN', 'Insufficient permissions');
 
   if (action === 'assign') {
@@ -83,9 +84,9 @@ export const addReviewCaseAction = catchAsync(async (req: Request, res: Response
 
     await ModerationAdminService.manualDecision({
       actorUserId: actorUserId || undefined,
-      targetType: row.targetType as any,
+      targetType: row.targetType,
       targetId: row.targetId,
-      status: decisionStatus as any,
+      status: decisionStatus,
       labels,
       reasons,
       traceId,

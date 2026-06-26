@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { Share2, Link2, Check, X, MessageCircle } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { Share2, Link2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { interactionService, SharePlatform, TargetType } from '../../api/interactionService';
 import Modal from '../ui/Modal';
@@ -119,6 +119,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       case 'chapter': return 'read';
       case 'booklist': return 'booklist';
       case 'spinoff': return 'spinoff';
+      case 'event': return 'events';
       default: return '';
     }
   };

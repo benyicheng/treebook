@@ -2,16 +2,15 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { ChapterService } from '../services/ChapterService';
-import { NotificationService } from '../services/NotificationService';
 import { AppError } from '../utils/http';
+import { getCurrentUser } from '../utils/authHelpers';
+import { notifyStoryAuthor } from '../utils/notifications';
 import { moderateText, reviewContent } from '../utils/contentModeration';
 import { ModerationVisibilityService } from '../domains/moderation/ModerationVisibilityService';
 import { prisma } from '../prisma';
 
 export const createChapter = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!authorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: userRole } = getCurrentUser(req);
 
   const chapter = await ChapterService.createChapter(authorId, userRole, req.body);
   moderateText(req, 'chapters', 'chapter', chapter.id, 'title', chapter.title, authorId);
@@ -20,9 +19,7 @@ export const createChapter = catchAsync(async (req: AuthRequest, res: Response) 
 });
 
 export const updateChapter = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!authorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: userRole } = getCurrentUser(req);
 
   const updatedChapter = await ChapterService.updateChapter(req.params.id, authorId, userRole, req.body);
   reviewContent(authorId, 'chapters', 'chapter', updatedChapter.id, 'text', 'title', { text: updatedChapter.title, field: 'title' });
@@ -33,16 +30,14 @@ export const updateChapter = catchAsync(async (req: AuthRequest, res: Response) 
 });
 
 export const deleteChapter = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!authorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: userRole } = getCurrentUser(req);
 
   const result = await ChapterService.deleteChapter(req.params.id, authorId, userRole);
   res.json({ success: true, data: result });
 });
 
-export const getChapterById = catchAsync(async (req: Request, res: Response) => {
-  const userId = (req as any).user?.id;
+export const getChapterById = catchAsync(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id;
   const referralBooklistId = req.query.referralId as string;
   const chapter = await ChapterService.getChapterById(req.params.id, userId, referralBooklistId);
   if (chapter && chapter.id && await ModerationVisibilityService.shouldMask('chapter', chapter.id)) {
@@ -72,8 +67,7 @@ export const getComments = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const createComment = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId } = getCurrentUser(req);
 
   const comment = await ChapterService.createComment(req.params.id, authorId, req.body.content);
   moderateText(req, 'comments', 'comment', comment.id, 'content', comment.content, authorId);
@@ -85,23 +79,16 @@ export const createComment = catchAsync(async (req: AuthRequest, res: Response) 
       select: { storyId: true, title: true },
     });
     if (chapter) {
-      const story = await prisma.story.findUnique({
-        where: { id: chapter.storyId },
-        select: { authorId: true },
-      });
-      if (story && story.authorId !== authorId) {
-        await NotificationService.createNotification({
-          userId: story.authorId,
-          actorId: authorId,
-          type: 'comment_reply',
-          targetType: 'comment',
-          targetId: comment.id,
-          message: `有人评论了你的章节「${chapter.title}」`,
-        });
-      }
+      await notifyStoryAuthor(
+        chapter.storyId,
+        authorId,
+        'comment_reply',
+        'comment',
+        comment.id,
+        () => `有人评论了你的章节「${chapter.title}」`,
+      );
     }
   } catch (err) {
-    // 通知失败不影响主流程
     console.error('Failed to create comment notification:', err);
   }
 
@@ -109,9 +96,7 @@ export const createComment = catchAsync(async (req: AuthRequest, res: Response) 
 });
 
 export const updateComment = catchAsync(async (req: AuthRequest, res: Response) => {
-  const actorId = req.user?.id;
-  const role = req.user?.role;
-  if (!actorId || !role) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: actorId, role: role } = getCurrentUser(req);
 
   const updated = await ChapterService.updateComment(req.params.commentId, actorId, role, req.body.content);
   reviewContent(actorId, 'comments', 'comment', updated.id, 'text', 'content', { text: updated.content, field: 'content' });

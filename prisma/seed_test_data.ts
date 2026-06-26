@@ -67,9 +67,7 @@ async function main() {
   const ch33 = chapters.find(c => c.title.includes('掌天瓶'))!;
 
   const existingBranch = (await prisma.branch.findFirst({ where: { title: '暗影协议' } }))!;
-  const existingBranch2 = (await prisma.branch.findFirst({ where: { title: '星辰之泪' } }))!;
   const branchCh1 = await prisma.chapter.findFirst({ where: { branchId: existingBranch.id } })!;
-  const branch2Ch1 = await prisma.chapter.findFirst({ where: { branchId: existingBranch2.id } })!;
 
   const chars = await prisma.character.findMany();
   const charCaptain = chars.find(c => c.name === '艾伦·卡特')!;
@@ -84,6 +82,20 @@ async function main() {
   const existingWikis = await prisma.wikiPage.findMany();
   const wikiChar = existingWikis.find(w => w.slug === 'alan-carter')!;
   const wikiNexus = existingWikis.find(w => w.slug === 'nexus-9')!;
+
+  // Ensure "星辰之泪" branch exists (referenced later for sub-branch)
+  let existingBranch2 = await prisma.branch.findFirst({ where: { title: '星辰之泪' } });
+  if (!existingBranch2) {
+    const story1Chs = await prisma.chapter.findMany({ where: { storyId: story1.id, branchId: null }, orderBy: { orderIndex: 'asc' } });
+    const forkChapter = story1Chs[1] || story1Chs[0]; // 古老的信号
+    existingBranch2 = await prisma.branch.create({
+      data: {
+        parentStoryId: story1.id, parentChapterId: forkChapter.id, authorId: reader.id,
+        title: '星辰之泪', description: '假如主角发现了空间站隐藏的神秘矿物',
+        branchType: 'alternate', isOfficial: false, viewCount: 75,
+      },
+    });
+  }
 
   console.log('References loaded.');
 
@@ -490,25 +502,25 @@ async function main() {
       type: 'COLLECTION', viewCount: 340, likesCount: 18,
     },
   });
-  const bliCyber1 = await prisma.booklistItem.create({ data: { booklistId: blCyber.id, chapterId: s4c1.id, targetType: 'chapter', targetId: s4c1.id, orderIndex: 1, notes: '开篇' } });
-  const bliCyber2 = await prisma.booklistItem.create({ data: { booklistId: blCyber.id, chapterId: s4c3.id, targetType: 'chapter', targetId: s4c3.id, orderIndex: 2, notes: '高潮' } });
-  const bliCyber3 = await prisma.booklistItem.create({ data: { booklistId: blCyber.id, chapterId: ch11.id, targetType: 'chapter', targetId: ch11.id, orderIndex: 3, notes: '经典科幻' } });
+  const bliCyber1 = await prisma.booklistItem.create({ data: { booklistId: blCyber.id, chapterId: s4c1.id, targetType: 'chapter', targetId: s4c1.id, orderIndex: 1, notes: '开篇', section: 'mainline' } });
+  const bliCyber2 = await prisma.booklistItem.create({ data: { booklistId: blCyber.id, chapterId: s4c3.id, targetType: 'chapter', targetId: s4c3.id, orderIndex: 2, notes: '高潮', section: 'mainline' } });
+  const bliCyber3 = await prisma.booklistItem.create({ data: { booklistId: blCyber.id, chapterId: ch11.id, targetType: 'chapter', targetId: ch11.id, orderIndex: 3, notes: '经典科幻', section: 'mainline' } });
 
   // New booklist: 推理小说迷
   const blMystery = await prisma.booklist.create({
     data: { creatorId: userTieDan.id, title: '悬疑推理精选', description: '烧脑神作合集', type: 'COLLECTION', viewCount: 210 },
   });
-  await prisma.booklistItem.create({ data: { booklistId: blMystery.id, chapterId: s6c1.id, targetType: 'chapter', targetId: s6c1.id, orderIndex: 1 } });
-  await prisma.booklistItem.create({ data: { booklistId: blMystery.id, chapterId: s6c3.id, targetType: 'chapter', targetId: s6c3.id, orderIndex: 2 } });
-  await prisma.booklistItem.create({ data: { booklistId: blMystery.id, chapterId: s6c5.id, targetType: 'chapter', targetId: s6c5.id, orderIndex: 3 } });
+  await prisma.booklistItem.create({ data: { booklistId: blMystery.id, chapterId: s6c1.id, targetType: 'chapter', targetId: s6c1.id, orderIndex: 1, section: 'mainline' } });
+  await prisma.booklistItem.create({ data: { booklistId: blMystery.id, chapterId: s6c3.id, targetType: 'chapter', targetId: s6c3.id, orderIndex: 2, section: 'mainline' } });
+  await prisma.booklistItem.create({ data: { booklistId: blMystery.id, chapterId: s6c5.id, targetType: 'chapter', targetId: s6c5.id, orderIndex: 3, section: 'mainline' } });
 
   // New booklist: 角色专题
   const blChar = await prisma.booklist.create({
     data: { creatorId: author.id, title: '最强主角合集', description: '各故事主角的精彩片段', type: 'TIMELINE', viewCount: 150 },
   });
-  await prisma.booklistItem.create({ data: { booklistId: blChar.id, chapterId: ch11.id, targetType: 'chapter', targetId: ch11.id, orderIndex: 1, notes: '卡特登场' } });
-  await prisma.booklistItem.create({ data: { booklistId: blChar.id, chapterId: s4c1.id, targetType: 'chapter', targetId: s4c1.id, orderIndex: 2, notes: '林夜出场' } });
-  await prisma.booklistItem.create({ data: { booklistId: blChar.id, chapterId: s7c1.id, targetType: 'chapter', targetId: s7c1.id, orderIndex: 3 } });
+  await prisma.booklistItem.create({ data: { booklistId: blChar.id, chapterId: ch11.id, targetType: 'chapter', targetId: ch11.id, orderIndex: 1, notes: '卡特登场', section: 'mainline' } });
+  await prisma.booklistItem.create({ data: { booklistId: blChar.id, chapterId: s4c1.id, targetType: 'chapter', targetId: s4c1.id, orderIndex: 2, notes: '林夜出场', section: 'mainline' } });
+  await prisma.booklistItem.create({ data: { booklistId: blChar.id, chapterId: s7c1.id, targetType: 'chapter', targetId: s7c1.id, orderIndex: 3, section: 'mainline' } });
 
   // BooklistItemRelations
   await prisma.booklistItemRelation.create({ data: { sourceItemId: bliCyber1.id, targetItemId: bliCyber2.id, relationType: 'PRECEDING_EVENT' } });

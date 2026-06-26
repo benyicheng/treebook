@@ -1,0 +1,17 @@
+{
+  "name": "treebook",
+  "short_name": "treebook",
+  "description": "Explore stories, branch narratives, and track your reading progress across connected universes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

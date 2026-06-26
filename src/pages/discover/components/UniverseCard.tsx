@@ -1,74 +1,74 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, GitBranch, Sparkles, Route, Users, Eye } from 'lucide-react';
+import { BookOpen, GitBranch, Sparkles, Eye, Users } from 'lucide-react';
 import { UniverseFeedItem } from '../../../api/discoverService';
 
 interface UniverseCardProps {
   item: UniverseFeedItem;
+  index?: number;
 }
 
-interface StatTileProps {
-  icon: React.ElementType;
-  label: string;
-  value: number;
-  color: string;
-}
+const statMeta = [
+  { icon: BookOpen, label: '章节', key: 'chapterCount' as const, color: 'text-accent-500', bg: 'bg-accent-50 dark:bg-accent-500/15' },
+  { icon: GitBranch, label: '分支', key: 'branchCount' as const, color: 'text-purple-500', bg: 'bg-purple-50 dark:bg-purple-900/30' },
+  { icon: Sparkles, label: '番外', key: 'spinoffCount' as const, color: 'text-amber-500', bg: 'bg-amber-50 dark:bg-amber-900/30' },
+  { icon: Users, label: '活跃', key: 'activeReaders' as const, color: 'text-rose-500', bg: 'bg-rose-50 dark:bg-rose-900/30' },
+  { icon: Eye, label: '浏览', key: 'hotPathsCount' as const, color: 'text-cyan-500', bg: 'bg-cyan-50 dark:bg-cyan-900/30' },
+];
 
-const StatTile: React.FC<StatTileProps> = ({ icon: Icon, label, value, color }) => (
-  <div
-    className={`flex flex-col items-center justify-center gap-0.5 p-2.5 rounded-xl ${color} transition-colors`}
-  >
-    <Icon size={16} className="opacity-70" />
-    <span className="text-sm font-black">{value}</span>
-    <span className="text-[9px] font-bold opacity-60 uppercase tracking-wider">{label}</span>
-  </div>
-);
-
-const UniverseCard: React.FC<UniverseCardProps> = ({ item }) => {
+const UniverseCard: React.FC<UniverseCardProps> = ({ item, index = 0 }) => {
   const statusLabel: Record<string, string> = {
     ongoing: '连载中',
     completed: '已完结',
     paused: '暂停中',
   };
 
-  const statusColor: Record<string, string> = {
-    ongoing: 'bg-green-500',
-    completed: 'bg-accent-400',
-    paused: 'bg-yellow-500',
+  const statusStyle: Record<string, string> = {
+    ongoing: 'bg-green-500/15 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800',
+    completed: 'bg-accent-500/15 text-accent-600 dark:text-accent-400 border-accent-200 dark:border-accent-800',
+    paused: 'bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-200 dark:border-yellow-800',
   };
 
   return (
     <Link
       to={`/story/${item.id}`}
-      className="group block bg-ink-50 dark:bg-ink-800 rounded-2xl border border-ink-100 dark:border-ink-700 overflow-hidden hover:shadow-xl hover:border-accent-200 dark:hover:border-accent-600 transition-all duration-300"
+      className="group block bg-white dark:bg-ink-800 rounded-2xl border border-ink-100 dark:border-ink-700 overflow-hidden hover:shadow-lg hover:-translate-y-1 hover:border-accent-200 dark:hover:border-accent-600 transition-all duration-300"
     >
       {/* Cover */}
-      <div className="relative h-32 bg-gradient-to-br from-accent-100 to-indigo-100 dark:from-accent-500/10 dark:to-accent-600/10 overflow-hidden">
+      <div className="relative h-40 bg-gradient-to-br from-accent-100 via-indigo-100 to-purple-100 dark:from-accent-500/10 dark:via-indigo-500/10 dark:to-purple-500/10 overflow-hidden">
         {item.coverImage ? (
           <img
             src={item.coverImage}
             alt={item.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <BookOpen size={36} className="text-blue-300 dark:text-accent-500" />
+            <BookOpen size={44} className="text-ink-300 dark:text-ink-600" />
           </div>
         )}
+
+        {/* Gradient overlay at bottom for text readability */}
+        <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/40 to-transparent" />
+
+        {/* Status badge */}
         <span
-          className={`absolute top-3 left-3 px-2.5 py-1 rounded-full text-[10px] font-bold text-white ${statusColor[item.status] || 'bg-ink-500'}`}
+          className={`absolute top-3 left-3 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusStyle[item.status] || 'bg-ink-500/15 text-ink-500 border-ink-200'}`}
         >
           {statusLabel[item.status] || item.status}
         </span>
-      </div>
 
-      {/* Header */}
-      <div className="px-4 pt-3 pb-2">
-        <h3 className="text-base font-bold text-ink-800 dark:text-white group-hover:text-accent-500 dark:group-hover:text-accent-400 transition-colors truncate">
+        {/* Title overlay on cover */}
+        <h3 className="absolute bottom-3 left-3 right-3 text-base font-bold text-white drop-shadow-lg truncate">
           {item.title}
         </h3>
-        <div className="mt-1 flex items-center gap-2">
-          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-[8px] font-bold text-white overflow-hidden shrink-0">
+      </div>
+
+      {/* Body */}
+      <div className="px-4 pt-3 pb-4 space-y-3">
+        {/* Author + description */}
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 flex items-center justify-center text-[9px] font-bold text-white overflow-hidden shrink-0 ring-2 ring-white dark:ring-ink-700">
             {item.author.avatarUrl ? (
               <img
                 src={item.author.avatarUrl}
@@ -79,56 +79,30 @@ const UniverseCard: React.FC<UniverseCardProps> = ({ item }) => {
               item.author.username[0]?.toUpperCase()
             )}
           </div>
-          <span className="text-xs font-medium text-ink-500 dark:text-ink-400 truncate">
+          <span className="text-xs font-semibold text-ink-500 dark:text-ink-400 truncate">
             {item.author.username}
           </span>
-          {item.description && (
-            <span className="text-xs text-ink-400 dark:text-ink-500 truncate ml-auto">
-              · {item.description?.slice(0, 30)}
-            </span>
-          )}
         </div>
-      </div>
 
-      {/* Stats Grid */}
-      <div className="px-4 pb-4">
-        <div className="grid grid-cols-3 gap-1.5">
-          <StatTile
-            icon={BookOpen}
-            label="章节"
-            value={item.chapterCount}
-            color="bg-accent-50 text-accent-500 dark:bg-accent-500/15 dark:text-accent-400"
-          />
-          <StatTile
-            icon={GitBranch}
-            label="分支"
-            value={item.branchCount}
-            color="bg-purple-50 text-accent-500 dark:bg-purple-900/30 dark:text-purple-400"
-          />
-          <StatTile
-            icon={Sparkles}
-            label="番外"
-            value={item.spinoffCount}
-            color="bg-amber-50 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400"
-          />
-          <StatTile
-            icon={Route}
-            label="路径"
-            value={item.readingPathCount}
-            color="bg-cyan-50 text-cyan-600 dark:bg-cyan-900/30 dark:text-cyan-400"
-          />
-          <StatTile
-            icon={Users}
-            label="活跃"
-            value={item.activeReaders}
-            color="bg-rose-50 text-rose-600 dark:bg-rose-900/30 dark:text-rose-400"
-          />
-          <StatTile
-            icon={Eye}
-            label="浏览"
-            value={item.hotPathsCount}
-            color="bg-accent-50 text-accent-500 dark:bg-accent-500/15 dark:text-accent-400"
-          />
+        {/* Description */}
+        {item.description && (
+          <p className="text-xs text-ink-400 dark:text-ink-500 line-clamp-2 leading-relaxed">
+            {item.description}
+          </p>
+        )}
+
+        {/* Stats row */}
+        <div className="flex items-center gap-3 pt-1">
+          {statMeta.map(({ icon: Icon, label, key, color, bg }) => (
+            <div
+              key={key}
+              className={`flex items-center gap-1 px-2 py-1 rounded-lg ${bg} ${color}`}
+              title={label}
+            >
+              <Icon size={12} className="shrink-0" />
+              <span className="text-[11px] font-bold">{item[key]}</span>
+            </div>
+          ))}
         </div>
       </div>
     </Link>

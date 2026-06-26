@@ -1,15 +1,18 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import ReactFlow, {
   Node,
   Edge,
   Controls,
   Background,
   MiniMap,
+  Handle,
+  Position,
   useNodesState,
   useEdgesState,
   MarkerType,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
+import { useNavigate } from 'react-router-dom';
 import { useBooklistGraph, useCreateRelation, useDeleteRelation } from '../../../hooks/useBooklists';
 import { useAuthStore } from '../../../stores/useAuthStore';
 import { useToast } from '../../../components/notifications';
@@ -42,16 +45,58 @@ const relationLabels: Record<string, string> = {
   BACKGROUND_REFERENCE: '背景引用',
 };
 
+const contentTypeLabels: Record<string, string> = {
+  character: '角色',
+  setting: '设定',
+  event: '事件',
+  concept: '概念',
+  faction: '势力',
+  item: '物品',
+};
+
+const GraphNode: React.FC<{ data: any }> = ({ data }) => {
+  return (
+    <div className="px-3 py-2">
+      <Handle type="target" position={Position.Top} className="!bg-gray-400" />
+      <Handle type="source" position={Position.Bottom} className="!bg-gray-400" />
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-sm font-bold text-ink-800 leading-tight">{data.label}</span>
+        {data.isWiki && (
+          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-green-100 text-green-700 text-[10px] font-bold leading-none">
+            百科
+          </span>
+        )}
+      </div>
+      {data.storyTitle && (
+        <div className="text-[11px] text-ink-400 truncate">{data.storyTitle}</div>
+      )}
+      {data.isWiki && data.wikiContentType && (
+        <div className="mt-1">
+          <span className="inline-flex px-1.5 py-0.5 rounded bg-green-50 text-green-600 text-[10px] font-medium border border-green-200">
+            {contentTypeLabels[data.wikiContentType] || data.wikiContentType}
+          </span>
+        </div>
+      )}
+      {data.notes && (
+        <div className="mt-1 text-[11px] text-ink-500 italic line-clamp-2">{data.notes}</div>
+      )}
+    </div>
+  );
+};
+
+const nodeTypes = { default: GraphNode };
+
 const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
   const { user } = useAuthStore();
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const { data: graphData, isLoading } = useBooklistGraph(booklistId);
   const createRelation = useCreateRelation();
   const deleteRelation = useDeleteRelation();
 
   // Add relation modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newRelation, setNewRelation] = useState({ sourceItemId: '', targetItemId: '', relationType: 'REFERENCE' });
+  const [newRelation, setNewRelation] = useState({ sourceItemId: '', targetItemId: '', relationType: 'BACKGROUND_REFERENCE' });
 
   const graph = graphData?.data ?? graphData;
   const items = graph?.items ?? [];
@@ -59,29 +104,42 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
 
   // Build React Flow nodes from items
   const initialNodes: Node[] = useMemo(() => {
-    return items.map((item: any, index: number) => ({
-      id: item.id,
-      type: 'default',
-      position: {
-        x: (index % 4) * 280 + 50,
-        y: Math.floor(index / 4) * 200 + 50,
-      },
-      data: {
-        label: item.chapter?.title || item.targetId || `条目 ${index + 1}`,
-        notes: item.notes,
-        storyTitle: item.chapter?.story?.title,
-      },
-      style: {
-        background: '#f8fafc',
-        border: '2px solid #6366f1',
-        borderRadius: 12,
-        padding: '12px 16px',
-        fontSize: 13,
-        fontWeight: 600,
-        minWidth: 200,
-        boxShadow: '0 2px 8px rgba(99,102,241,0.15)',
-      },
-    }));
+    return items.map((item: any, index: number) => {
+      const isWiki = item.targetType === 'wiki';
+      const wiki = item.wiki;
+      const spinoff = item.spinoff;
+      const branch = item.branch;
+      const label = isWiki && wiki ? wiki.title : (item.chapter?.title || spinoff?.title || branch?.title || item.targetId || `条目 ${index + 1}`);
+      return {
+        id: item.id,
+        type: 'default',
+        position: {
+          x: (index % 4) * 280 + 50,
+          y: Math.floor(index / 4) * 200 + 50,
+        },
+        data: {
+          label,
+          notes: item.notes,
+          storyTitle: item.chapter?.story?.title,
+          isWiki,
+          targetId: item.targetId,
+          wikiContentType: wiki?.contentType,
+          wikiSummary: wiki?.summary,
+        },
+        style: {
+          background: isWiki ? 'var(--color-surface-2)' : 'var(--color-surface)',
+          border: isWiki ? '2px solid #22c55e' : '2px solid var(--color-accent)',
+          borderRadius: 'var(--radius-lg)',
+          padding: '12px 16px',
+          fontSize: 'var(--text-sm)',
+          fontWeight: 600,
+          minWidth: 220,
+          boxShadow: isWiki
+            ? '0 2px 8px rgba(34,197,94,0.15)'
+            : '0 2px 8px rgba(99,102,241,0.15)',
+        },
+      };
+    });
   }, [items]);
 
   // Build React Flow edges from relations
@@ -92,16 +150,16 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
       target: rel.targetItemId,
       label: relationLabels[rel.relationType] || rel.relationType,
       style: {
-        stroke: relationColors[rel.relationType] || '#94a3b8',
+        stroke: relationColors[rel.relationType] || 'var(--color-text-muted)',
         strokeWidth: 2,
       },
       markerEnd: {
         type: MarkerType.ArrowClosed,
-        color: relationColors[rel.relationType] || '#94a3b8',
+        color: relationColors[rel.relationType] || 'var(--color-text-muted)',
       },
       animated: true,
-      labelStyle: { fontSize: 10, fontWeight: 600 },
-      labelBgStyle: { fill: '#ffffff', fillOpacity: 0.9 },
+      labelStyle: { fontSize: 'var(--text-xs)', fontWeight: 600 },
+      labelBgStyle: { fill: 'var(--color-surface)', fillOpacity: 0.9 },
       labelBgPadding: [6, 3] as [number, number],
       labelBgBorderRadius: 4,
     }));
@@ -109,6 +167,12 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
 
   const [nodes, , onNodesChange] = useNodesState(initialNodes);
   const [edges, , onEdgesChange] = useEdgesState(initialEdges);
+
+  const handleNodeClick = useCallback((_event: React.MouseEvent, node: Node) => {
+    if (node.data.isWiki && node.data.targetId) {
+      navigate(`/wiki/${node.data.targetId}`);
+    }
+  }, [navigate]);
 
   const handleAddRelation = async () => {
     if (!newRelation.sourceItemId || !newRelation.targetItemId) {
@@ -125,7 +189,7 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
         },
       });
       setIsAddModalOpen(false);
-      setNewRelation({ sourceItemId: '', targetItemId: '', relationType: 'REFERENCE' });
+      setNewRelation({ sourceItemId: '', targetItemId: '', relationType: 'BACKGROUND_REFERENCE' });
       addToast('success', '关系已创建');
     } catch {
       addToast('error', '创建关系失败');
@@ -143,7 +207,7 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500" />
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-500" />
       </div>
     );
   }
@@ -162,16 +226,16 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
       <div className="flex items-center justify-between bg-white dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 p-4">
         <div className="flex items-center gap-6 text-sm">
           <span className="text-ink-500">
-            <strong className="text-indigo-500">{graph.nodes || items.length}</strong> 个节点
+            <strong className="text-accent-500">{graph.nodes || items.length}</strong> 个节点
           </span>
           <span className="text-ink-500">
-            <strong className="text-indigo-500">{graph.edges || relations.length}</strong> 条连线
+            <strong className="text-accent-500">{graph.edges || relations.length}</strong> 条连线
           </span>
         </div>
         {user && (
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-xl text-sm font-bold hover:bg-indigo-600 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-accent-500 text-white rounded-xl text-sm font-bold hover:bg-accent-600 transition-colors"
           >
             <Plus size={16} />
             添加关系
@@ -184,18 +248,20 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
         <ReactFlow
           nodes={nodes}
           edges={edges}
+          nodeTypes={nodeTypes}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onNodeClick={handleNodeClick}
           fitView
           attributionPosition="bottom-left"
           minZoom={0.3}
           maxZoom={2}
         >
           <Controls />
-          <Background color="#e2e8f0" gap={20} />
+          <Background color="var(--color-border)" gap={20} />
           <MiniMap
-            nodeStrokeColor="#6366f1"
-            nodeColor="#e0e7ff"
+            nodeStrokeColor="var(--color-accent)"
+            nodeColor="var(--color-surface-2)"
             nodeBorderRadius={8}
             style={{ width: 150, height: 100 }}
           />
@@ -228,7 +294,7 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
               <option value="">选择源条目</option>
               {items.map((item: any) => (
                 <option key={item.id} value={item.id}>
-                  {item.chapter?.title || item.targetId || item.id.slice(0, 8)}
+                  {item.chapter?.title || item.wiki?.title || item.spinoff?.title || item.branch?.title || item.targetId || item.id.slice(0, 8)}
                 </option>
               ))}
             </select>
@@ -243,7 +309,7 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
               <option value="">选择目标条目</option>
               {items.map((item: any) => (
                 <option key={item.id} value={item.id}>
-                  {item.chapter?.title || item.targetId || item.id.slice(0, 8)}
+                  {item.chapter?.title || item.wiki?.title || item.spinoff?.title || item.branch?.title || item.targetId || item.id.slice(0, 8)}
                 </option>
               ))}
             </select>
@@ -263,7 +329,7 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
           <button
             onClick={handleAddRelation}
             disabled={createRelation.isPending}
-            className="w-full py-3 bg-indigo-500 text-white rounded-xl font-black hover:bg-indigo-600 disabled:opacity-50 transition-colors"
+            className="w-full py-3 bg-accent-500 text-white rounded-xl font-black hover:bg-accent-600 disabled:opacity-50 transition-colors"
           >
             {createRelation.isPending ? '添加中...' : '确认添加'}
           </button>

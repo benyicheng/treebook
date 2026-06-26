@@ -26,7 +26,7 @@ interface PendingEvent {
   timestamp: string;
 }
 
-let queue: PendingEvent[] = [];
+const queue: PendingEvent[] = [];
 let flushTimer: ReturnType<typeof setTimeout> | null = null;
 
 function scheduleFlush() {
@@ -41,24 +41,32 @@ async function flush() {
   if (queue.length === 0) return;
 
   const batch = queue.splice(0, BATCH_SIZE);
-  const remaining = queue.splice(0); // drain rest
-  queue = [];
-
-  const payload = [...batch, ...remaining];
+  if (batch.length === 0) return;
 
   try {
     if (navigator.sendBeacon) {
-      const blob = new Blob([JSON.stringify({ events: payload })], { type: 'application/json' });
+      const blob = new Blob([JSON.stringify({ events: batch })], { type: 'application/json' });
       navigator.sendBeacon(ENDPOINT, blob);
     } else {
       await fetch(ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ events: payload }),
+        body: JSON.stringify({ events: batch }),
       });
     }
   } catch {
     // 埋点失败静默，不影响用户体验
+  }
+}
+
+function flushAllSync() {
+  if (queue.length === 0) return;
+  const all = queue.splice(0);
+  try {
+    const blob = new Blob([JSON.stringify({ events: all })], { type: 'application/json' });
+    navigator.sendBeacon(ENDPOINT, blob);
+  } catch {
+    // 静默失败
   }
 }
 
@@ -76,19 +84,10 @@ function enqueue(event: Omit<PendingEvent, 'timestamp'>) {
   }
 }
 
-// 页面卸载时强制发送
+// 页面卸载时强制发送 (同步 sendBeacon，不依赖 fetch)
 if (typeof window !== 'undefined') {
-  window.addEventListener('beforeunload', () => {
-    if (queue.length > 0) {
-      flush();
-    }
-  });
-
-  window.addEventListener('pagehide', () => {
-    if (queue.length > 0) {
-      flush();
-    }
-  });
+  window.addEventListener('beforeunload', () => flushAllSync());
+  window.addEventListener('pagehide', () => flushAllSync());
 }
 
 // ─── 公共 API ───────────────────────────────────────────

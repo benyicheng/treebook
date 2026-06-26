@@ -59,7 +59,7 @@ const WalletDashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-gradient-to-br from-accent-600 to-violet-700 p-8 lg:p-6 rounded-3xl text-white shadow-xl shadow-indigo-200 relative overflow-hidden group col-span-1 md:col-span-2 lg:col-span-1">
+        <div className="bg-gradient-to-br from-accent-600 to-violet-700 p-8 lg:p-6 rounded-3xl text-white shadow-xl shadow-accent-200 relative overflow-hidden group col-span-1 md:col-span-2 lg:col-span-1">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform">
             <Coins size={80} />
           </div>

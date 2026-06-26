@@ -108,6 +108,7 @@ export const queryKeys = {
     list: (params?: Record<string, unknown>) =>
       [...queryKeys.wiki.lists(), params ?? {}] as const,
     detail: (id: string) => [...queryKeys.wiki.all, 'detail', id] as const,
+    references: (id: string) => [...queryKeys.wiki.all, 'references', id] as const,
   },
 
   cms: {
@@ -116,6 +117,7 @@ export const queryKeys = {
 
   readingProgress: {
     all: ['readingProgress'] as const,
+    byBooklist: (booklistId: string) => ['readingProgress', 'booklist', booklistId] as const,
     progress: (chapterIds?: string[]) =>
       ['readingProgress', 'progress', chapterIds ?? 'all'] as const,
     stats: ['readingProgress', 'stats'] as const,

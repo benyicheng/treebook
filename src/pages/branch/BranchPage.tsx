@@ -255,7 +255,7 @@ const BranchPage: React.FC = () => {
                     }));
                     setIsSubBranchModalOpen(true);
                   }}
-                  className="flex items-center gap-2 px-6 py-3 bg-indigo-500 text-white rounded-2xl font-bold hover:bg-indigo-600 transition-all shadow-lg active:scale-95"
+                  className="flex items-center gap-2 px-6 py-3 bg-accent-500 text-white rounded-2xl font-bold hover:bg-accent-600 transition-all shadow-lg active:scale-95"
                 >
                   <GitFork size={18} />
                   创建子分支
@@ -335,10 +335,10 @@ const BranchPage: React.FC = () => {
         {currentBranch.subBranches && currentBranch.subBranches.length > 0 && (
           <div className="px-8 py-6 bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-950/20 dark:to-purple-950/20 border-t border-ink-100 dark:border-ink-600">
             <div className="flex items-center gap-2 mb-4">
-              <Layers size={18} className="text-indigo-500" />
+              <Layers size={18} className="text-accent-500" />
               <span className="text-sm font-bold text-ink-600 dark:text-ink-300">
                 子分支
-                <span className="ml-1 px-2 py-0.5 bg-indigo-500 text-white text-[10px] font-black rounded-full">
+                <span className="ml-1 px-2 py-0.5 bg-accent-500 text-white text-[10px] font-black rounded-full">
                   {currentBranch.subBranches.length}
                 </span>
               </span>
@@ -348,17 +348,17 @@ const BranchPage: React.FC = () => {
                 <Link
                   key={sub.id}
                   to={`/branch/${sub.id}`}
-                  className="flex-shrink-0 w-64 p-4 bg-white dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-lg transition-all group"
+                  className="flex-shrink-0 w-64 p-4 bg-white dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 hover:border-accent-300 dark:hover:border-accent-700 hover:shadow-lg transition-all group"
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
+                    <div className="p-2 rounded-lg bg-accent-100 dark:bg-accent-800/30 text-accent-600 dark:text-accent-400">
                       <GitFork size={14} />
                     </div>
                     {sub.isOfficial && (
                       <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[8px] font-black rounded-full uppercase">官方</span>
                     )}
                   </div>
-                  <h4 className="font-bold text-ink-800 dark:text-white text-sm line-clamp-2 group-hover:text-indigo-600 transition-colors">{sub.title}</h4>
+                  <h4 className="font-bold text-ink-800 dark:text-white text-sm line-clamp-2 group-hover:text-accent-600 transition-colors">{sub.title}</h4>
                   {sub.description && (
                     <p className="text-xs text-ink-400 mt-1 line-clamp-2">{sub.description}</p>
                   )}
@@ -583,7 +583,7 @@ const BranchPage: React.FC = () => {
         title="创建子分支"
       >
         <form onSubmit={handleCreateSubBranch} className="space-y-4">
-          <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl flex gap-3 text-indigo-700 dark:text-indigo-300 text-sm">
+          <div className="p-4 bg-accent-50 dark:bg-accent-800/20 rounded-2xl flex gap-3 text-accent-700 dark:text-accent-300 text-sm">
             <GitFork size={20} className="shrink-0" />
             <p>子分支是在现有分支基础上进一步分叉的平行分支，探索更深层次的可能性。</p>
           </div>
@@ -636,7 +636,7 @@ const BranchPage: React.FC = () => {
                   onClick={() => setNewSubBranchData(prev => ({ ...prev, branchType: opt.value }))}
                   className={`flex-1 py-3 rounded-xl text-sm font-bold border-2 transition-all ${
                     newSubBranchData.branchType === opt.value
-                      ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+                      ? 'border-indigo-500 bg-accent-50 dark:bg-accent-500/10 text-accent-600 dark:text-accent-400'
                       : 'border-ink-200 dark:border-ink-600 text-ink-500 hover:border-ink-300'
                   }`}
                 >
@@ -648,7 +648,7 @@ const BranchPage: React.FC = () => {
           <button
             type="submit"
             disabled={isSubmitting || !newSubBranchData.title.trim() || !newSubBranchData.parentChapterId}
-            className="w-full py-4 bg-indigo-500 text-white rounded-2xl font-black hover:bg-indigo-600 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+            className="w-full py-4 bg-accent-500 text-white rounded-2xl font-black hover:bg-accent-600 transition-all shadow-lg active:scale-95 disabled:opacity-50"
           >
             {isSubmitting ? '创建中...' : '确认创建'}
           </button>

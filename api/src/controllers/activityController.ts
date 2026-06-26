@@ -3,10 +3,10 @@ import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { ActivityService } from '../services/ActivityService';
 import { AppError } from '../utils/http';
+import { getCurrentUser } from '../utils/authHelpers';
 
 export const getFeed = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { cursor, limit } = req.query;
   const result = await ActivityService.getFeed(
@@ -18,8 +18,7 @@ export const getFeed = catchAsync(async (req: AuthRequest, res: Response) => {
 });
 
 export const getUserActivities = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { cursor, limit } = req.query;
   const result = await ActivityService.getUserActivities(

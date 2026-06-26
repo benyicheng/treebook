@@ -22,6 +22,6 @@ router.get('/rating-reason-tags', getRatingReasonTags);
 router.get('/:targetType/:targetId', optionalAuthenticate, validateRequest(getInteractionStatsRequest), getInteractionStats);
 router.post('/:targetType/:targetId/like', authenticate, validateRequest(toggleLikeRequest), toggleLike);
 router.put('/:targetType/:targetId/rating', authenticate, validateRequest(updateRatingRequest), updateRating);
-router.post('/:targetType/:targetId/share', validateRequest(recordShareRequest), recordShare);
+router.post('/:targetType/:targetId/share', authenticate, validateRequest(recordShareRequest), recordShare);
 
 export default router;

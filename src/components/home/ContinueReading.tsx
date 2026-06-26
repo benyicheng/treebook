@@ -34,6 +34,7 @@ const ContinueReading: React.FC<ContinueReadingProps> = ({ recentReads }) => (
                 src={item.story?.coverImage || coverFallback}
                 alt={item.story?.title}
                 loading="lazy"
+                onError={(e) => { e.currentTarget.src = coverFallback }}
                 className="w-full h-full object-cover"
               />
             </div>

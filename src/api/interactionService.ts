@@ -33,7 +33,7 @@ export interface RatingRequest {
 export type SharePlatform = 'wechat' | 'weibo' | 'qq' | 'copy' | 'twitter' | 'facebook';
 
 // 目标类型
-export type TargetType = 'story' | 'chapter' | 'booklist' | 'spinoff';
+export type TargetType = 'story' | 'chapter' | 'booklist' | 'spinoff' | 'event';
 
 // 分享配置
 export interface ShareConfig {
@@ -76,12 +76,6 @@ export const interactionService = {
     return data;
   },
 
-  // 获取评分理由标签
-  getRatingReasonTags: async (): Promise<string[]> => {
-    const { data } = await client.get<{ tags: string[] }>('/interactions/rating-reason-tags');
-    return data.tags;
-  },
-
   // 生成分享配置
   generateShareConfig: (
     platform: SharePlatform,
@@ -103,6 +97,9 @@ export const interactionService = {
         break;
       case 'spinoff':
         url = `${baseUrl}/spinoff/${targetId}`;
+        break;
+      case 'event':
+        url = `${baseUrl}/events/${targetId}`;
         break;
       default:
         url = baseUrl;

@@ -11,18 +11,26 @@ export type StoryEventNodeInput = {
 };
 
 export class StoryEventService {
-  static async create(data: {
-    storyId: string;
-    title: string;
-    description?: string;
-    type?: string;
-    importance?: number;
-    color?: string;
-    sortOrder?: number;
-    nodes?: StoryEventNodeInput[];
-  }) {
+  static async create(
+    authorId: string,
+    userRole: string,
+    data: {
+      storyId: string;
+      title: string;
+      description?: string;
+      type?: string;
+      importance?: number;
+      color?: string;
+      sortOrder?: number;
+      nodes?: StoryEventNodeInput[];
+    },
+  ) {
     const story = await prisma.story.findUnique({ where: { id: data.storyId } });
     if (!story) throw new AppError(404, 'NOT_FOUND', '故事不存在');
+    // 权限：只有故事作者（或管理员）能创建事件
+    if (story.authorId !== authorId && userRole !== 'admin') {
+      throw new AppError(403, 'FORBIDDEN', '只有故事作者可以创建大事件');
+    }
 
     const maxOrder = await prisma.storyEvent.aggregate({
       where: { storyId: data.storyId },
@@ -54,7 +62,6 @@ export class StoryEventService {
     });
 
     // Phase 3：异步解析 [[wiki:slug]] 引用落表，不阻塞响应。
-    // 失败仅记日志，不影响事件本体写入成功的语义。
     safeFireAndForget(syncEventWikiMentions(event.id, event.description), {
       op: 'syncEventWikiMentions/create',
     });
@@ -106,6 +113,8 @@ export class StoryEventService {
 
   static async update(
     id: string,
+    authorId: string,
+    userRole: string,
     data: {
       title?: string;
       description?: string;
@@ -115,8 +124,15 @@ export class StoryEventService {
       sortOrder?: number;
     },
   ) {
-    const existing = await prisma.storyEvent.findUnique({ where: { id } });
+    const existing = await prisma.storyEvent.findUnique({
+      where: { id },
+      include: { story: { select: { authorId: true } } },
+    });
     if (!existing) throw new AppError(404, 'NOT_FOUND', '大事件不存在');
+    // 权限：只有故事作者（或管理员）能修改事件
+    if (existing.story.authorId !== authorId && userRole !== 'admin') {
+      throw new AppError(403, 'FORBIDDEN', '只有故事作者可以修改大事件');
+    }
 
     const updated = await prisma.storyEvent.update({
       where: { id },
@@ -141,9 +157,30 @@ export class StoryEventService {
     return updated;
   }
 
-  static async delete(id: string) {
-    const existing = await prisma.storyEvent.findUnique({ where: { id } });
+  static async delete(id: string, authorId: string, userRole: string) {
+    const existing = await prisma.storyEvent.findUnique({
+      where: { id },
+      include: { story: { select: { authorId: true } } },
+    });
     if (!existing) throw new AppError(404, 'NOT_FOUND', '大事件不存在');
+    // 权限：只有故事作者（或管理员）能删除事件
+    if (existing.story.authorId !== authorId && userRole !== 'admin') {
+      throw new AppError(403, 'FORBIDDEN', '只有故事作者可以删除大事件');
+    }
+
+    // 清理 BooklistItem 中引用该事件的悬空条目（含其子项 parentItemId）。
+    // schema 的 onDelete 已处理 Node/Comment/WikiMention(Cascade)、
+    // Branch/Spinoff/ReadingPathNode(SetNull)，仅 BooklistItem 无外键是盲区。
+    const eventItems = await prisma.booklistItem.findMany({
+      where: { targetType: 'event', targetId: id },
+      select: { id: true },
+    });
+    if (eventItems.length > 0) {
+      const itemIds = eventItems.map(i => i.id);
+      // 先删子项（parentItemId 指向这些 event 条目）
+      await prisma.booklistItem.deleteMany({ where: { parentItemId: { in: itemIds } } });
+      await prisma.booklistItem.deleteMany({ where: { id: { in: itemIds } } });
+    }
 
     await prisma.storyEvent.delete({ where: { id } });
     return { success: true };
@@ -151,9 +188,20 @@ export class StoryEventService {
 
   // ── Node management ──
 
-  static async addNode(eventId: string, data: StoryEventNodeInput) {
-    const event = await prisma.storyEvent.findUnique({ where: { id: eventId } });
+  static async addNode(
+    eventId: string,
+    authorId: string,
+    userRole: string,
+    data: StoryEventNodeInput,
+  ) {
+    const event = await prisma.storyEvent.findUnique({
+      where: { id: eventId },
+      include: { story: { select: { authorId: true } } },
+    });
     if (!event) throw new AppError(404, 'NOT_FOUND', '大事件不存在');
+    if (event.story.authorId !== authorId && userRole !== 'admin') {
+      throw new AppError(403, 'FORBIDDEN', '只有故事作者可以管理事件节点');
+    }
 
     const maxOrder = await prisma.storyEventNode.aggregate({
       where: { eventId },
@@ -172,17 +220,34 @@ export class StoryEventService {
     });
   }
 
-  static async removeNode(nodeId: string) {
-    const node = await prisma.storyEventNode.findUnique({ where: { id: nodeId } });
+  static async removeNode(nodeId: string, authorId: string, userRole: string) {
+    const node = await prisma.storyEventNode.findUnique({
+      where: { id: nodeId },
+      include: { event: { include: { story: { select: { authorId: true } } } } },
+    });
     if (!node) throw new AppError(404, 'NOT_FOUND', '事件节点不存在');
+    if (node.event.story.authorId !== authorId && userRole !== 'admin') {
+      throw new AppError(403, 'FORBIDDEN', '只有故事作者可以管理事件节点');
+    }
 
     await prisma.storyEventNode.delete({ where: { id: nodeId } });
     return { success: true };
   }
 
-  static async reorderNodes(eventId: string, nodeIds: string[]) {
-    const event = await prisma.storyEvent.findUnique({ where: { id: eventId } });
+  static async reorderNodes(
+    eventId: string,
+    authorId: string,
+    userRole: string,
+    nodeIds: string[],
+  ) {
+    const event = await prisma.storyEvent.findUnique({
+      where: { id: eventId },
+      include: { story: { select: { authorId: true } } },
+    });
     if (!event) throw new AppError(404, 'NOT_FOUND', '大事件不存在');
+    if (event.story.authorId !== authorId && userRole !== 'admin') {
+      throw new AppError(403, 'FORBIDDEN', '只有故事作者可以管理事件节点');
+    }
 
     await prisma.$transaction(
       nodeIds.map((nodeId, idx) =>

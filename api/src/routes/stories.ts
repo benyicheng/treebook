@@ -12,7 +12,6 @@ import {
   updateCharacter,
   deleteCharacter,
   getTags,
-  certifyBranch,
   batchCharacterAppearances,
   getStoryCharacterAppearances
 } from '../controllers/storyController';
@@ -75,8 +74,5 @@ router.put('/:id/character-appearances',
   validateRequest(batchCharacterAppearancesRequest),
   batchCharacterAppearances
 );
-
-// Branch routes
-router.post('/branches/:branchId/certify', authenticate, certifyBranch);
 
 export default router;

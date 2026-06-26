@@ -6,6 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { FollowButton } from '../components/Interaction';
 import { useToast } from '../components/notifications';
 import { ActivityFeed } from '../components/notifications';
+import { Avatar } from '../components/ui';
 import {
   Users, BookOpen, GitBranch, Sparkles, Calendar,
   Loader2, ArrowLeft, Settings, AlertCircle,
@@ -108,12 +109,8 @@ const ProfilePage: React.FC = () => {
             {/* Avatar + Follow */}
             <div className="flex items-end justify-between -mt-12 mb-6">
               <div className="w-24 h-24 rounded-full ring-4 ring-white dark:ring-ink-800 bg-gradient-to-br from-accent-400 to-accent-600 p-0.5 shadow-lg">
-                <div className="w-full h-full rounded-full bg-ink-50 dark:bg-ink-800 flex items-center justify-center text-accent-500 font-black text-3xl overflow-hidden">
-                  {publicProfile.avatarUrl ? (
-                    <img src={publicProfile.avatarUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    publicProfile.username?.[0]?.toUpperCase() || '?'
-                  )}
+                <div className="w-full h-full rounded-full overflow-hidden">
+                  <Avatar src={publicProfile.avatarUrl} alt={publicProfile.username} fallback={publicProfile.username?.[0]} size="xl" className="w-full h-full" />
                 </div>
               </div>
               <div className="mb-1">
@@ -190,12 +187,8 @@ const ProfilePage: React.FC = () => {
 
         <div className="flex items-center gap-6 p-6 bg-ink-50 dark:bg-ink-700/50 rounded-3xl border border-ink-100 dark:border-ink-700">
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 p-0.5 shadow-lg">
-            <div className="w-full h-full rounded-full bg-ink-50 dark:bg-ink-800 flex items-center justify-center text-accent-500 font-black text-2xl overflow-hidden">
-              {avatarUrl ? (
-                <img src={avatarUrl} alt="Preview" className="w-full h-full object-cover" />
-              ) : (
-                username?.[0]?.toUpperCase() || '?'
-              )}
+            <div className="w-full h-full rounded-full overflow-hidden">
+              <Avatar src={avatarUrl} alt="Preview" fallback={username?.[0]} size="xl" className="w-full h-full" />
             </div>
           </div>
           <div>

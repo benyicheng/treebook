@@ -25,13 +25,14 @@ export const createBooklist = catchAsync(async (req: AuthRequest, res: Response)
 });
 
 export const getBooklists = catchAsync(async (req: Request, res: Response) => {
-  const { creatorId, isPublic, limit, type, tag, sortBy, page } = req.query;
+  const { creatorId, isPublic, limit, type, tag, q, sortBy, page } = req.query;
   const result = await BooklistCrudService.getBooklists({
     creatorId: creatorId as string,
     isPublic: isPublic === 'false' ? false : true,
     limit: limit ? parseInt(limit as string) : undefined,
     type: type as string,
     tag: tag as string,
+    q: q as string,
     sortBy: sortBy as 'hot' | 'earning' | 'newest' | undefined,
     page: page as string,
   });
@@ -91,6 +92,20 @@ export const updateBooklistItemNotes = catchAsync(async (req: AuthRequest, res: 
   reviewContent(creatorId, 'booklists', 'booklist_item', item.id, 'text', 'notes', { text: item.notes, field: 'notes' });
   moderateText(req, 'booklists', 'booklist_item', item.id, 'notes', item.notes, creatorId);
   res.json({ success: true, data: item });
+});
+
+export const batchAddItems = catchAsync(async (req: AuthRequest, res: Response) => {
+  const { id: creatorId, role: userRole } = getCurrentUser(req);
+
+  const result = await BooklistItemService.batchAddItems(req.params.id, creatorId, userRole, req.body);
+  res.status(201).json({ success: true, data: result });
+});
+
+export const reorderBooklistItems = catchAsync(async (req: AuthRequest, res: Response) => {
+  const { id: creatorId, role: userRole } = getCurrentUser(req);
+
+  const result = await BooklistItemService.reorderItems(req.params.id, creatorId, userRole, req.body);
+  res.json({ success: true, data: result });
 });
 
 export const upsertProgress = catchAsync(async (req: AuthRequest, res: Response) => {

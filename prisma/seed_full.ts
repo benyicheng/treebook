@@ -511,16 +511,16 @@ async function main() {
   });
 
   // BooklistItems
-  const bli1 = await prisma.booklistItem.create({ data: { booklistId: booklist1.id, chapterId: ch11.id, targetType: 'chapter', targetId: ch11.id, orderIndex: 1, notes: '开篇必读' } });
-  const bli2 = await prisma.booklistItem.create({ data: { booklistId: booklist1.id, chapterId: ch12.id, targetType: 'chapter', targetId: ch12.id, orderIndex: 2, notes: '核心悬念' } });
-  const bli3 = await prisma.booklistItem.create({ data: { booklistId: booklist1.id, chapterId: ch13.id, targetType: 'chapter', targetId: ch13.id, orderIndex: 3, notes: '剧情高潮' } });
+  const bli1 = await prisma.booklistItem.create({ data: { booklistId: booklist1.id, chapterId: ch11.id, targetType: 'chapter', targetId: ch11.id, orderIndex: 1, notes: '开篇必读', section: 'mainline' } });
+  const bli2 = await prisma.booklistItem.create({ data: { booklistId: booklist1.id, chapterId: ch12.id, targetType: 'chapter', targetId: ch12.id, orderIndex: 2, notes: '核心悬念', section: 'mainline' } });
+  const bli3 = await prisma.booklistItem.create({ data: { booklistId: booklist1.id, chapterId: ch13.id, targetType: 'chapter', targetId: ch13.id, orderIndex: 3, notes: '剧情高潮', section: 'mainline' } });
 
-  await prisma.booklistItem.create({ data: { booklistId: booklist2.id, chapterId: ch31.id, targetType: 'chapter', targetId: ch31.id, orderIndex: 1, notes: '凡人起点' } });
-  await prisma.booklistItem.create({ data: { booklistId: booklist2.id, chapterId: ch32.id, targetType: 'chapter', targetId: ch32.id, orderIndex: 2, notes: '入门七玄门' } });
+  await prisma.booklistItem.create({ data: { booklistId: booklist2.id, chapterId: ch31.id, targetType: 'chapter', targetId: ch31.id, orderIndex: 1, notes: '凡人起点', section: 'mainline' } });
+  await prisma.booklistItem.create({ data: { booklistId: booklist2.id, chapterId: ch32.id, targetType: 'chapter', targetId: ch32.id, orderIndex: 2, notes: '入门七玄门', section: 'mainline' } });
 
-  await prisma.booklistItem.create({ data: { booklistId: booklist3.id, chapterId: ch11.id, targetType: 'chapter', targetId: ch11.id, orderIndex: 1 } });
-  await prisma.booklistItem.create({ data: { booklistId: booklist3.id, chapterId: ch21.id, targetType: 'chapter', targetId: ch21.id, orderIndex: 2 } });
-  await prisma.booklistItem.create({ data: { booklistId: booklist3.id, chapterId: ch31.id, targetType: 'chapter', targetId: ch31.id, orderIndex: 3 } });
+  await prisma.booklistItem.create({ data: { booklistId: booklist3.id, chapterId: ch11.id, targetType: 'chapter', targetId: ch11.id, orderIndex: 1, section: 'mainline' } });
+  await prisma.booklistItem.create({ data: { booklistId: booklist3.id, chapterId: ch21.id, targetType: 'chapter', targetId: ch21.id, orderIndex: 2, section: 'mainline' } });
+  await prisma.booklistItem.create({ data: { booklistId: booklist3.id, chapterId: ch31.id, targetType: 'chapter', targetId: ch31.id, orderIndex: 3, section: 'mainline' } });
 
   // BooklistItemRelations (graph edges)
   await prisma.booklistItemRelation.create({ data: { sourceItemId: bli1.id, targetItemId: bli2.id, relationType: 'PRECEDING_EVENT', label: '剧情推进' } });

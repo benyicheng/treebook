@@ -2,29 +2,39 @@ import type { Response } from 'express';
 import fs from 'fs';
 import { catchAsync } from '../utils/catchAsync';
 import { AppError } from '../utils/http';
+import { getCurrentUser } from '../utils/authHelpers';
 import type { AuthRequest } from '../middleware/auth';
 import { MediaService } from '../domains/media/MediaService';
 import { MediaRepository } from '../domains/media/MediaRepository';
 import { MediaStorageService } from '../domains/media/MediaStorageService';
 import { ModerationGateway } from '../domains/moderation/ModerationGateway';
 
-export const uploadMedia = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id || null;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+interface MulterRequest extends Omit<AuthRequest, 'file'> {
+  file?: {
+    buffer: Buffer;
+    originalname: string;
+    mimetype: string;
+  };
+  body: Record<string, unknown>;
+}
 
-  const f: any = (req as any).file;
+export const uploadMedia = catchAsync(async (req: AuthRequest, res: Response) => {
+  const { id: userId } = getCurrentUser(req);
+  const mReq = req as MulterRequest;
+
+  const f = mReq.file;
   if (!f?.buffer || !f?.originalname || !f?.mimetype) throw new AppError(400, 'BAD_REQUEST', '缺少上传文件');
 
-  const purpose = typeof (req as any).body?.purpose === 'string' ? (req as any).body.purpose : null;
+  const purpose = typeof mReq.body?.purpose === 'string' ? (mReq.body.purpose as string) : null;
   const out = await MediaService.upload({
     ownerUserId: userId,
     purpose,
-    buffer: f.buffer as Buffer,
-    originalName: f.originalname as string,
-    mimeType: f.mimetype as string,
+    buffer: f.buffer,
+    originalName: f.originalname,
+    mimeType: f.mimetype,
   });
 
-  void ModerationGateway.enqueueMediaUrl(req as any, {
+  void ModerationGateway.enqueueMediaUrl(req, {
     businessLine: 'media',
     targetType: 'media_asset',
     targetId: out.assetId,
@@ -32,7 +42,7 @@ export const uploadMedia = catchAsync(async (req: AuthRequest, res: Response) =>
     contentType: out.kind,
     mediaUrl: out.storagePath,
     userId,
-  } as any);
+  } as Parameters<typeof ModerationGateway.enqueueMediaUrl>[1]);
 
   res.status(201).json({
     success: true,

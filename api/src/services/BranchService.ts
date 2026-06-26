@@ -5,7 +5,7 @@ import { Prisma } from '@prisma/client';
 
 export class BranchService {
   static async createBranch(authorId: string, userRole: string, data: any) {
-    const { parentStoryId, parentChapterId, title, description, branchType, conditions, isOfficial } = data;
+    const { parentStoryId, parentChapterId, parentEventId, title, description, branchType, conditions, isOfficial } = data;
 
     const parentStory = await prisma.story.findUnique({ where: { id: parentStoryId } });
     if (!parentStory) throw new AppError(404, 'NOT_FOUND', 'Parent story not found');
@@ -20,6 +20,7 @@ export class BranchService {
       data: {
         parentStoryId,
         parentChapterId,
+        parentEventId: parentEventId || null,
         authorId,
         title,
         description,
@@ -38,10 +39,17 @@ export class BranchService {
     return branch;
   }
 
-  static async getBranches(query: { page?: string; limit?: string } = {}): Promise<PaginatedResponse<any>> {
+  static async getBranches(query: { q?: string; page?: string; limit?: string } = {}): Promise<PaginatedResponse<any>> {
+    const q = query.q;
     const { page, limit } = parsePagination(query);
 
-    const where = {};
+    const where: Prisma.BranchWhereInput = {};
+    if (q) {
+      where.OR = [
+        { title: { contains: q } },
+        { description: { contains: q } },
+      ];
+    }
     const [items, total] = await Promise.all([
       prisma.branch.findMany({
         where,

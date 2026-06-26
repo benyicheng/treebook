@@ -11,10 +11,10 @@ export type UploadedMedia = {
 };
 
 const resolveApiUrl = (path: string) => {
-  const base = String((client.defaults as any)?.baseURL || '');
-  if (!base) return path;
+  const baseURL = client.defaults.baseURL;
+  if (!baseURL || typeof baseURL !== 'string') return path;
   if (!path.startsWith('/')) return path;
-  const origin = base.replace(/\/api\/?$/, '');
+  const origin = baseURL.replace(/\/api\/?$/, '');
   return origin + path;
 };
 
@@ -26,11 +26,11 @@ export const mediaService = {
     const res = await client.post('/media/uploads', fd, {
       headers: { 'Content-Type': 'multipart/form-data' },
     });
-    const data = res.data as any;
+    const data = res.data as UploadedMedia;
     return {
       ...data,
       resolvedUrl: resolveApiUrl(data.url),
-    } as UploadedMedia;
+    };
   },
 };
 

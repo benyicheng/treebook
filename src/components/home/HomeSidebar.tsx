@@ -215,7 +215,7 @@ const HomeSidebar: React.FC<HomeSidebarProps> = ({
                 to={`/reading-path/${p.id}`}
                 className="group block p-4 rounded-2xl border border-ink-100 dark:border-ink-700 
                   bg-white/70 dark:bg-ink-700/30 backdrop-blur-sm
-                  hover:border-indigo-200/70 dark:hover:border-indigo-800/50 
+                  hover:border-accent-200/70 dark:hover:border-accent-800/50 
                   hover:shadow-md hover:shadow-accent-500/5 hover:-translate-y-0.5
                   transition-all duration-300"
               >
@@ -226,7 +226,7 @@ const HomeSidebar: React.FC<HomeSidebarProps> = ({
                     <Route size={13} className="text-white" />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <h4 className="text-sm font-bold text-ink-800 dark:text-white group-hover:text-accent-600 dark:group-hover:text-indigo-400 transition-colors line-clamp-1">
+                    <h4 className="text-sm font-bold text-ink-800 dark:text-white group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors line-clamp-1">
                       {p.title}
                     </h4>
                     <p className="text-xs text-ink-400 dark:text-ink-500 mt-1">

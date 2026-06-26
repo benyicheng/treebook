@@ -13,7 +13,10 @@ vi.mock('./hooks/useStoryDetails', () => ({
 
 // Mock toast
 const mockAddToast = vi.fn();
-vi.mock('../../components/Toast', () => ({
+vi.mock('../../components/notifications', () => ({
+  useToast: () => ({ addToast: mockAddToast }),
+}));
+vi.mock('../../components/notifications/Toast', () => ({
   useToast: () => ({ addToast: mockAddToast }),
 }));
 

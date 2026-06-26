@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import { Star, X, Check } from 'lucide-react';
+import { Star, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { interactionService, RATING_REASON_TAGS, TargetType } from '../../api/interactionService';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useInteractionStore } from '../../stores/useInteractionStore';
 import { useToast } from '../notifications/Toast';
 import Modal from '../ui/Modal';
 
@@ -14,7 +16,6 @@ interface RatingComponentProps {
   ratingCount?: number;
   ratingAvg?: number;
   ratingDist?: Record<string, number>;
-  onRate?: (rating: number, reasonTags: string[]) => void;
   onRatingChange?: (rating: number, reasonTags: string[]) => void;
   size?: 'sm' | 'md' | 'lg';
   showDetail?: boolean;
@@ -35,14 +36,15 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
   ratingCount = 0,
   ratingAvg = 0,
   ratingDist = {},
-  onRate,
   onRatingChange,
   size = 'md',
   showDetail = true,
   showDistribution = false,
 }) => {
   const { isAuthenticated } = useAuthStore();
+  const { showLoginPrompt } = useInteractionStore();
   const { addToast } = useToast();
+  const navigate = useNavigate();
   const [currentRating, setCurrentRating] = useState<number | null>(initialRating);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [selectedTags, setSelectedTags] = useState<string[]>(initialReasonTags);
@@ -54,8 +56,9 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
 
   const classes = sizeClasses[size];
 
-  // 获取评分统计
+  // 仅在独立使用（无父组件传入初始值）时获取评分统计
   useEffect(() => {
+    if (initialRating !== undefined && initialRating !== null) return;
     const fetchStats = async () => {
       try {
         const data = await interactionService.getStats(targetType, targetId);
@@ -69,7 +72,7 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
       }
     };
     fetchStats();
-  }, [targetType, targetId]);
+  }, [targetType, targetId, initialRating]);
 
   // 计算评分分布百分比
   const distributionData = React.useMemo(() => {
@@ -89,7 +92,8 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
 
   const handleStarClick = useCallback((starIndex: number, isHalf: boolean) => {
     if (!isAuthenticated) {
-      window.dispatchEvent(new CustomEvent('show-login-prompt'));
+      showLoginPrompt();
+      navigate('/login');
       return;
     }
 
@@ -127,16 +131,15 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
     } catch (error: any) {
       console.error('Rating failed:', error);
       const status = error.response?.status;
-      const errorCode = error.response?.data?.code;
       const errorMsg = error.response?.data?.message;
       
       if (status === 401) {
         addToast('warning', '请先登录后再评分');
       } else if (status === 429) {
         addToast('warning', '评分太频繁，请稍后再试');
-      } else if (errorCode === 'VALIDATION_ERROR') {
+      } else if (error.response?.data?.code === 'VALIDATION_ERROR') {
         addToast('warning', '评分格式错误：' + (errorMsg || '评分必须是0.5-5.0之间的半整数'));
-      } else if (errorCode === 'NOT_FOUND') {
+      } else if (error.response?.data?.code === 'NOT_FOUND') {
         addToast('info', '目标内容不存在');
       } else {
         addToast('error', '评分失败：' + (errorMsg || '请稍后重试'));

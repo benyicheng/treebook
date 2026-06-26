@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -33,6 +33,52 @@ import CommentSection from './CommentSection';
 import { InteractionBar, ShareButton } from '../../components/Interaction';
 import { FollowButton } from '../../components/Interaction';
 import { ReadingSettings, loadInitial } from '../../components/reading';
+import { parseWikiEntities } from '../../utils/wikiEntityParser';
+import WikiPopover from '../../components/wiki/WikiPopover';
+import { wikiService, WikiLookupResult } from '../../api/wikiService';
+
+function useWikiLookup() {
+  const [selectedText, setSelectedText] = useState('');
+  const [results, setResults] = useState<WikiLookupResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleTextSelect = useCallback((e: React.MouseEvent) => {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || !selection.toString().trim()) {
+      setSelectedText('');
+      setResults([]);
+      return;
+    }
+    const text = selection.toString().trim();
+    if (text.length < 2) return;
+
+    setPosition({ x: e.clientX, y: e.clientY });
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setSelectedText(text);
+      setLoading(true);
+      try {
+        const data = await wikiService.lookup(text, 3);
+        setResults(data);
+      } catch {
+        setResults([]);
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
+
+  return { selectedText, results, loading, position, handleTextSelect };
+}
 
 const ReadPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -115,6 +161,29 @@ const ReadPage: React.FC = () => {
       }
     }
   }, [chapter?.id, isDrawerOpen]);
+
+  // ─── Wiki integration ───
+  const { selectedText, results: wikiResults, loading: wikiLoading, position, handleTextSelect } = useWikiLookup();
+
+  const contentParts = useMemo(() => {
+    if (!chapter) return [];
+    const text = chapter.content;
+    const entities = parseWikiEntities(text);
+    if (entities.length === 0) return [{ type: 'text' as const, content: text }];
+    const parts: Array<{ type: 'text' | 'entity'; content: string }> = [];
+    let lastIndex = 0;
+    for (const entity of entities) {
+      if (entity.start > lastIndex) {
+        parts.push({ type: 'text', content: text.slice(lastIndex, entity.start) });
+      }
+      parts.push({ type: 'entity', content: entity.name });
+      lastIndex = entity.end;
+    }
+    if (lastIndex < text.length) {
+      parts.push({ type: 'text', content: text.slice(lastIndex) });
+    }
+    return parts;
+  }, [chapter]);
 
   // ─── Navigation helpers ───
   const navigateBooklist = (direction: 'prev' | 'next') => {
@@ -444,7 +513,7 @@ const ReadPage: React.FC = () => {
       )}
 
       {/* ── Reading Area ── */}
-      <div className="max-w-[65ch] mx-auto px-6 py-12 md:py-20">
+      <div className="max-w-[85ch] mx-auto px-6 py-12 md:py-20">
         <div className="space-y-8 mb-16">
           <div className="space-y-4 text-center">
             <h1 className="text-3xl md:text-3xl font-black font-display text-ink-800 dark:text-ink-100 tracking-tight">
@@ -465,9 +534,51 @@ const ReadPage: React.FC = () => {
               fontFamily: readingSettings.fontFamily === 'serif' ? 'var(--font-reading)' : 'var(--font-ui)',
               lineHeight: 1.75,
             }}
+            onMouseUp={handleTextSelect}
           >
-            <ReactMarkdown>{chapter.content}</ReactMarkdown>
+            {contentParts.map((part, i) =>
+              part.type === 'entity' ? (
+                <WikiPopover key={i} entityName={part.content}>
+                  <span>{part.content}</span>
+                </WikiPopover>
+              ) : (
+                <ReactMarkdown key={`t${i}`}>{part.content}</ReactMarkdown>
+              )
+            )}
           </div>
+
+          {/* Text selection wiki popover */}
+          {wikiResults.length > 0 && (
+            <div
+              className="fixed z-50 w-72 bg-white dark:bg-ink-700 rounded-xl shadow-2xl border border-ink-200 dark:border-ink-600 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200"
+              style={{
+                top: position.y + 12,
+                left: Math.max(8, Math.min(position.x, window.innerWidth - 300)),
+              }}
+            >
+              {wikiResults.map((item) => (
+                <a
+                  key={item.id}
+                  href={`/wiki/${item.id}`}
+                  className="block p-4 hover:bg-ink-50 dark:hover:bg-ink-600 transition-colors border-b border-ink-100 dark:border-ink-600 last:border-b-0"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="font-bold text-sm text-ink-800 dark:text-ink-100 truncate">
+                      {item.title}
+                    </h4>
+                    <span className="shrink-0 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent-100 dark:bg-accent-800 text-accent-600 dark:text-accent-300">
+                      {item.contentType}
+                    </span>
+                  </div>
+                  {item.summary && (
+                    <p className="mt-1 text-xs text-ink-500 dark:text-ink-400 line-clamp-2">
+                      {item.summary}
+                    </p>
+                  )}
+                </a>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Branch Discovery Section ── */}

@@ -27,7 +27,7 @@ const Home: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { data: storiesData, isLoading: storiesLoading } = useStories();
-  const stories = Array.isArray(storiesData) ? storiesData : (storiesData as any)?.data || [];
+  const stories = Array.isArray(storiesData) ? storiesData : (storiesData as { data: Story[] } | undefined)?.data || [];
   const { user, isAuthenticated } = useAuthStore();
   const { config, fetchConfig } = useSiteConfigStore();
   const recentReadsQuery = useRecentReads();
@@ -85,7 +85,7 @@ const Home: React.FC = () => {
   const sortedStories = useMemo(() => {
     const list = [...stories];
     switch (exploreTab) {
-      case '热门': return list.sort((a, b) => ((b as any).viewCount || 0) - ((a as any).viewCount || 0));
+      case '热门': return list.sort((a, b) => (b.viewCount ?? 0) - (a.viewCount ?? 0));
       case '新书': return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
       case '官方': return list.filter(s => s.isOfficial);
       case '完结': return list.filter(s => s.status === 'completed');

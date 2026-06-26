@@ -2,6 +2,7 @@ import type { Request } from 'express';
 import { ModerationGateway } from '../domains/moderation/ModerationGateway';
 import { ReviewWorkflowService } from '../domains/reviewWorkflow/ReviewWorkflowService';
 import type { ModerationTargetType, ModerationContentType } from '../domains/moderation/types';
+import { safeFireAndForget } from './catchAsync';
 
 export function moderateText(
   req: Request,
@@ -13,7 +14,10 @@ export function moderateText(
   userId?: string,
 ) {
   if (!text) return;
-  void ModerationGateway.enqueueText(req, { businessLine, targetType, targetId, field, text, userId });
+  safeFireAndForget(
+    ModerationGateway.enqueueText(req, { businessLine, targetType, targetId, field, text, userId }),
+    { traceId: req.traceId, op: `moderateText:${businessLine}:${targetId}:${field}` },
+  );
 }
 
 export function moderateMedia(
@@ -27,7 +31,10 @@ export function moderateMedia(
   contentType: 'image' | 'video' = 'image',
 ) {
   if (!url) return;
-  void ModerationGateway.enqueueMediaUrl(req, { businessLine, targetType, targetId, field, contentType, mediaUrl: url, userId });
+  safeFireAndForget(
+    ModerationGateway.enqueueMediaUrl(req, { businessLine, targetType, targetId, field, contentType, mediaUrl: url, userId }),
+    { traceId: req.traceId, op: `moderateMedia:${businessLine}:${targetId}:${field}` },
+  );
 }
 
 export function reviewContent(
@@ -40,5 +47,8 @@ export function reviewContent(
   snapshot: Record<string, any>,
 ) {
   if (!actorUserId) return;
-  void ReviewWorkflowService.onContentUpdated({ actorUserId, businessLine, targetType, targetId, contentType, field, snapshot });
+  safeFireAndForget(
+    ReviewWorkflowService.onContentUpdated({ actorUserId, businessLine, targetType, targetId, contentType, field, snapshot }),
+    { op: `reviewContent:${businessLine}:${targetId}:${field}` },
+  );
 }

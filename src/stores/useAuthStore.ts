@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 import { authService, User } from '../api/authService';
+import { getToken, setToken, clearToken } from '../lib/tokenStore';
+import client from '../api/client';
 
 interface AuthState {
   user: User | null;
@@ -22,8 +24,8 @@ function clearAuth(set: (partial: Partial<AuthState>) => void) {
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  token: localStorage.getItem('token'),
-  isAuthenticated: !!localStorage.getItem('token'),
+  token: getToken(),
+  isAuthenticated: !!getToken(),
   isLoading: false,
   error: null,
 
@@ -38,6 +40,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const { user, token } = await authService.login(credentials);
+      setToken(token);
       set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
       set({ error: err.response?.data?.error?.message || err.message, isLoading: false });
@@ -49,6 +52,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       const { user, token } = await authService.register(userData);
+      setToken(token);
       set({ user, token, isAuthenticated: true, isLoading: false });
     } catch (err: any) {
       set({ error: err.response?.data?.error?.message || err.message, isLoading: false });
@@ -62,16 +66,30 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   checkAuth: async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
+    let token = getToken();
+
+    // No in-memory token — try to restore session via httpOnly refresh cookie
+    if (!token) {
+      try {
+        const { data, status } = await client.post<{ token: string }>('/auth/refresh', {});
+        if (status === 204 || !data) {
+          clearAuth(set);
+          return;
+        }
+        token = data.token;
+        setToken(token);
+      } catch {
+        clearAuth(set);
+        return;
+      }
+    }
 
     set({ isLoading: true, token });
     try {
       const user = await authService.getMe();
       set({ user, isAuthenticated: true, isLoading: false });
     } catch (err) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      clearToken();
       clearAuth(set);
     }
   },

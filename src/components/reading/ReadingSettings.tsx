@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import Modal from '../ui/Modal';
+import { useThemeStore, type ThemeMode } from '../../stores/useThemeStore';
 
-// ─── Types ─────────────────────────────────────────
-
-export type ThemeMode = 'light' | 'dark' | 'auto';
 export type FontMode = 'serif' | 'sans';
 
 export interface ReadingSettingsState {
@@ -19,8 +17,6 @@ interface ReadingSettingsProps {
   onChange?: (settings: ReadingSettingsState) => void;
 }
 
-// ─── Storage keys ──────────────────────────────────
-
 const STORAGE_KEYS = {
   fontSize: 'readFontSize',
   theme: 'readTheme',
@@ -28,8 +24,6 @@ const STORAGE_KEYS = {
 } as const;
 
 const FONT_SIZE_RANGE = { min: 14, max: 28, step: 2 };
-
-// ─── Helpers ───────────────────────────────────────
 
 function loadInitial(): ReadingSettingsState {
   return {
@@ -39,42 +33,17 @@ function loadInitial(): ReadingSettingsState {
   };
 }
 
-function persist(settings: ReadingSettingsState): void {
+function persistFont(settings: { fontSize: number; fontFamily: FontMode }): void {
   localStorage.setItem(STORAGE_KEYS.fontSize, String(settings.fontSize));
-  localStorage.setItem(STORAGE_KEYS.theme, settings.themeMode);
   localStorage.setItem(STORAGE_KEYS.font, settings.fontFamily);
 }
 
-function applyTheme(mode: ThemeMode): void {
-  const root = document.documentElement;
-  if (mode === 'dark') {
-    root.setAttribute('data-theme', 'dark');
-    root.classList.add('dark');
-  } else if (mode === 'light') {
-    root.removeAttribute('data-theme');
-    root.classList.remove('dark');
-  } else {
-    // auto: follow system preference
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (prefersDark) {
-      root.setAttribute('data-theme', 'dark');
-      root.classList.add('dark');
-    } else {
-      root.removeAttribute('data-theme');
-      root.classList.remove('dark');
-    }
-  }
-}
-
-// ─── Shared Controls ───────────────────────────────
-
 const SettingsControls: React.FC<{
-  settings: ReadingSettingsState;
-  onUpdate: (patch: Partial<ReadingSettingsState>) => void;
+  settings: { fontSize: number; themeMode: ThemeMode; fontFamily: FontMode };
+  onUpdate: (patch: Partial<{ fontSize: number; themeMode: ThemeMode; fontFamily: FontMode }>) => void;
 }> = ({ settings, onUpdate }) => {
   return (
     <div className="flex flex-col gap-6">
-      {/* Font Size */}
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-ink-400 uppercase tracking-wider">字号</span>
         <div className="flex items-center gap-3">
@@ -106,7 +75,6 @@ const SettingsControls: React.FC<{
         </div>
       </div>
 
-      {/* Theme */}
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-ink-400 uppercase tracking-wider">主题</span>
         <div className="flex gap-2">
@@ -133,7 +101,6 @@ const SettingsControls: React.FC<{
         </div>
       </div>
 
-      {/* Font Family */}
       <div className="flex flex-col gap-2">
         <span className="text-xs font-medium text-ink-400 uppercase tracking-wider">字体</span>
         <div className="flex gap-2">
@@ -160,32 +127,36 @@ const SettingsControls: React.FC<{
   );
 };
 
-// ─── Main Component ────────────────────────────────
-
 export const ReadingSettings: React.FC<ReadingSettingsProps> = ({
   variant,
   isOpen,
   onClose,
   onChange,
 }) => {
-  const [settings, setSettings] = useState<ReadingSettingsState>(loadInitial);
-
-  // Apply theme on mount and when settings change
-  useEffect(() => {
-    applyTheme(settings.themeMode);
-  }, [settings.themeMode]);
+  const { themeMode, setThemeMode } = useThemeStore();
+  const [fontSettings, setFontSettings] = useState<{ fontSize: number; fontFamily: FontMode }>(() => ({
+    fontSize: Number(localStorage.getItem(STORAGE_KEYS.fontSize)) || 18,
+    fontFamily: (localStorage.getItem(STORAGE_KEYS.font) as FontMode) || 'serif',
+  }));
 
   const handleUpdate = useCallback(
-    (patch: Partial<ReadingSettingsState>) => {
-      setSettings((prev) => {
-        const next = { ...prev, ...patch };
-        persist(next);
-        onChange?.(next);
-        return next;
-      });
+    (patch: Partial<{ fontSize: number; themeMode: ThemeMode; fontFamily: FontMode }>) => {
+      if ('themeMode' in patch && patch.themeMode !== undefined) {
+        setThemeMode(patch.themeMode);
+      }
+      if ('fontSize' in patch || 'fontFamily' in patch) {
+        setFontSettings((prev) => {
+          const next = { ...prev, ...patch };
+          persistFont(next);
+          onChange?.({ ...next, themeMode });
+          return next;
+        });
+      }
     },
-    [onChange]
+    [onChange, setThemeMode, themeMode]
   );
+
+  const settings = { ...fontSettings, themeMode };
 
   if (variant === 'inline') {
     if (!isOpen) return null;
@@ -207,7 +178,6 @@ export const ReadingSettings: React.FC<ReadingSettingsProps> = ({
     );
   }
 
-  // Modal variant
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="阅读设置">
       <div className="p-6">
@@ -217,5 +187,4 @@ export const ReadingSettings: React.FC<ReadingSettingsProps> = ({
   );
 };
 
-// Re-export for external use
-export { loadInitial, persist, applyTheme, STORAGE_KEYS };
+export { loadInitial, STORAGE_KEYS };

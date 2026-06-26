@@ -193,7 +193,7 @@ const DashboardPage: React.FC = () => {
         ].map((tab) => (
           <button
             key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
+            onClick={() => setActiveTab(tab.id as TabId)}
             className={`flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-black transition-all ${
               activeTab === tab.id 
                 ? 'bg-accent-500 text-white shadow-lg shadow-accent-400/20 scale-[1.02]' 
@@ -245,12 +245,12 @@ const DashboardPage: React.FC = () => {
                 {[...storyList, ...branchList].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()).slice(0, 3).map((item, i) => (
                   <Link 
                     key={i} 
-                    to={(item as any).parentStoryId ? `/branch/${item.id}` : `/story/${item.id}`}
+                    to={'parentStoryId' in item ? `/branch/${item.id}` : `/story/${item.id || '#'}`}
                     className="flex items-center justify-between p-4 rounded-2xl hover:bg-ink-50 dark:hover:bg-ink-700 transition-all border border-transparent hover:border-ink-100 dark:hover:border-ink-600"
                   >
                     <div className="flex items-center gap-4">
-                      <div className={`p-2 rounded-xl ${(item as any).parentStoryId ? 'bg-purple-50 dark:bg-accent-500/10 text-accent-500' : 'bg-accent-50 dark:bg-accent-500/10 text-accent-500'}`}>
-                        {(item as any).parentStoryId ? <GitBranch size={18} /> : <Book size={18} />}
+                      <div className={`p-2 rounded-xl ${'parentStoryId' in item ? 'bg-purple-50 dark:bg-accent-500/10 text-accent-500' : 'bg-accent-50 dark:bg-accent-500/10 text-accent-500'}`}>
+                        {'parentStoryId' in item ? <GitBranch size={18} /> : <Book size={18} />}
                       </div>
                       <div>
                         <div className="text-sm font-black text-ink-800 dark:text-white">{item.title}</div>

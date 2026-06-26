@@ -86,7 +86,7 @@ const roleService = {
 
   /** 导出角色为 CSV */
   async exportRolesCsv() {
-    const res = await client.get('/roles/export', { params: { format: 'csv' }, responseType: 'blob' as any });
+    const res = await client.get('/roles/export', { params: { format: 'csv' }, responseType: 'blob' as const });
     return res.data as Blob;
   },
 

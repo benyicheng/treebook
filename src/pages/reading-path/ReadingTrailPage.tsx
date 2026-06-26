@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 import client from '../../api/client';
 import { useTrail } from '../../hooks/useReadingPaths';
-import { toast } from '../../lib/toast';
+import { useToast } from '../../components/notifications';
 import { TrailData, TrailNode } from '../../hooks/useReadingPaths';
 
 const getNodeLink = (node: TrailNode): string => {
@@ -79,6 +79,7 @@ const ReadingTrailPage: React.FC = () => {
   // ── Local UI state ──
   const [advancing, setAdvancing] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
+  const { addToast } = useToast();
 
   // Derive from trail data
   const nodes = trail?.path.nodes || [];
@@ -105,7 +106,7 @@ const ReadingTrailPage: React.FC = () => {
         }
       }
     } catch (err: any) {
-      toast(err?.message || '操作失败', 'error');
+      addToast('error', err?.message || '操作失败');
     } finally {
       setAdvancing(false);
     }
@@ -176,127 +177,160 @@ const ReadingTrailPage: React.FC = () => {
   const colorClass = currentNode ? getNodeColor(currentNode.nodeCategory) : '';
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4 space-y-6">
-      {/* Top bar */}
-      <div className="flex items-center justify-between">
-        <button
-          onClick={handleBackToPath}
-          className="flex items-center gap-2 text-sm text-ink-500 hover:text-ink-800 transition-colors"
-        >
-          <ArrowLeft size={16} />
-          {trail.path.title}
-        </button>
-        <span className="text-sm text-ink-400">
-          {trail.currentNodeIndex + 1} / {totalNodes}
-        </span>
-      </div>
+    <div className="max-w-5xl mx-auto py-8 px-4">
+      <div className="flex flex-col lg:flex-row gap-6">
+        {/* ── Left sidebar: node map ── */}
+        <aside className="w-full lg:w-72 lg:shrink-0">
+          <div className="lg:sticky lg:top-24 space-y-4">
+            {/* Path title + booklist link */}
+            <div>
+              <h2 className="text-sm font-black text-ink-800 truncate">{trail.path.title}</h2>
+              {trail.path.booklistId && (
+                <Link to={`/booklist/${trail.path.booklistId}`}
+                  className="inline-flex items-center gap-1 mt-1 text-[11px] text-accent-500 hover:text-accent-600 font-medium">
+                  <Route size={12} /> 来自书单
+                </Link>
+              )}
+            </div>
 
-      {/* Progress bar */}
-      <div className="w-full bg-ink-100 rounded-full h-2">
-        <div
-          className="bg-accent-400 h-2 rounded-full transition-all duration-500"
-          style={{ width: `${((trail.currentNodeIndex + 1) / totalNodes) * 100}%` }}
-        />
-      </div>
+            {/* Compact progress */}
+            <div className="flex items-center justify-between text-xs text-ink-400">
+              <span>进度</span>
+              <span>{trail.currentNodeIndex + 1} / {totalNodes}</span>
+            </div>
+            <div className="w-full bg-ink-100 rounded-full h-1.5">
+              <div className="bg-accent-400 h-1.5 rounded-full transition-all duration-500"
+                style={{ width: `${((trail.currentNodeIndex + 1) / totalNodes) * 100}%` }} />
+            </div>
 
-      {/* Current node */}
-      {currentNode ? (
-        <div className="bg-white border border-ink-200 rounded-2xl p-8 space-y-6">
-          <div className="flex items-center gap-3">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${colorClass}`}
-            >
-              <NodeIcon size={12} />
-              {getCategoryLabel(currentNode.nodeCategory)}
-            </span>
-            <span className="text-xs text-ink-400">
-              节点 {trail.currentNodeIndex + 1}
+            {/* Node list */}
+            <nav className="space-y-0.5 max-h-48 lg:max-h-[calc(100vh-16rem)] overflow-y-auto pr-1">
+              {nodes.map((node: any, idx: number) => {
+                const Icon = getNodeIcon(node.nodeCategory);
+                const isCurrent = idx === trail.currentNodeIndex;
+                const isDone = idx < trail.currentNodeIndex;
+
+                return (
+                  <Link key={node.id} to={getNodeLink(node)}
+                    className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors ${
+                      isCurrent
+                        ? 'bg-accent-50 border border-accent-200 font-bold text-accent-600'
+                        : isDone
+                          ? 'text-ink-400 hover:bg-ink-50'
+                          : 'text-ink-500 hover:bg-ink-50'
+                    }`}
+                  >
+                    {isDone ? (
+                      <CheckCircle size={14} className="text-green-500 shrink-0" />
+                    ) : (
+                      <span className={`flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold shrink-0 ${
+                        isCurrent ? 'bg-accent-400 text-white' : 'bg-ink-100 text-ink-400'
+                      }`}>
+                        {idx + 1}
+                      </span>
+                    )}
+                    <Icon size={12} className="shrink-0" />
+                    <span className="truncate flex-1">{node.contentTitle}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+          </div>
+        </aside>
+
+        {/* ── Right main content ── */}
+        <div className="flex-1 min-w-0 space-y-6">
+          {/* Top bar */}
+          <div className="flex items-center justify-between">
+            <button onClick={handleBackToPath}
+              className="flex items-center gap-2 text-sm text-ink-500 hover:text-ink-800 transition-colors">
+              <ArrowLeft size={16} />
+              {trail.path.title}
+            </button>
+            <span className="text-sm text-ink-400">
+              {trail.currentNodeIndex + 1} / {totalNodes}
             </span>
           </div>
 
-          <h2 className="text-xl font-bold text-ink-800">{currentNode.contentTitle}</h2>
+          {/* Progress bar */}
+          <div className="w-full bg-ink-100 rounded-full h-2">
+            <div className="bg-accent-400 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${((trail.currentNodeIndex + 1) / totalNodes) * 100}%` }} />
+          </div>
 
-          {currentNode.note && currentNode.note !== currentNode.contentTitle && (
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-              <p className="text-sm text-amber-800 leading-relaxed">
-                <strong className="text-xs uppercase tracking-wider">导游提示：</strong>
-                {currentNode.note}
-              </p>
+          {/* Current node */}
+          {currentNode ? (
+            <div className="bg-white border border-ink-200 rounded-2xl p-8 space-y-6">
+              <div className="flex items-center gap-3">
+                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${colorClass}`}>
+                  <NodeIcon size={12} />
+                  {getCategoryLabel(currentNode.nodeCategory)}
+                </span>
+                <span className="text-xs text-ink-400">节点 {trail.currentNodeIndex + 1}</span>
+              </div>
+
+              <h2 className="text-xl font-bold text-ink-800">{currentNode.contentTitle}</h2>
+
+              {currentNode.note && currentNode.note !== currentNode.contentTitle && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                  <p className="text-sm text-amber-800 leading-relaxed">
+                    <strong className="text-xs uppercase tracking-wider">导游提示：</strong>
+                    {currentNode.note}
+                  </p>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3 pt-2">
+                <Link to={getNodeLink(currentNode)}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-accent-400 text-white rounded-xl text-sm font-bold hover:bg-accent-500 transition-colors">
+                  <Play size={16} /> 去阅读
+                </Link>
+                <button onClick={handleAdvance} disabled={advancing}
+                  className="flex items-center gap-2 px-5 py-2.5 border border-ink-200 text-ink-600 rounded-xl text-sm font-bold hover:bg-ink-50 disabled:opacity-50 transition-colors">
+                  <ArrowRight size={16} />
+                  {advancing ? '处理中...' : '已完成此节点，继续'}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white border border-ink-200 rounded-2xl p-8 text-center">
+              <p className="text-ink-500">当前没有可阅读的节点</p>
+              <button onClick={handleBackToPath}
+                className="mt-4 px-6 py-2 bg-ink-100 rounded-xl text-sm font-bold hover:bg-ink-200 transition-colors">
+                返回
+              </button>
             </div>
           )}
 
-          <div className="flex items-center gap-3 pt-2">
-            <Link
-              to={getNodeLink(currentNode)}
-              className="flex items-center gap-2 px-5 py-2.5 bg-accent-400 text-white rounded-xl text-sm font-bold hover:bg-accent-500 transition-colors"
-            >
-              <Play size={16} />
-              去阅读
-            </Link>
-
-            <button
-              onClick={handleAdvance}
-              disabled={advancing}
-              className="flex items-center gap-2 px-5 py-2.5 border border-ink-200 text-ink-600 rounded-xl text-sm font-bold hover:bg-ink-50 disabled:opacity-50 transition-colors"
-            >
-              <ArrowRight size={16} />
-              {advancing ? '处理中...' : '已完成此节点，继续'}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white border border-ink-200 rounded-2xl p-8 text-center">
-          <p className="text-ink-500">当前没有可阅读的节点</p>
-          <button
-            onClick={handleBackToPath}
-            className="mt-4 px-6 py-2 bg-ink-100 rounded-xl text-sm font-bold hover:bg-ink-200 transition-colors"
-          >
-            返回
-          </button>
-        </div>
-      )}
-
-      {/* Node list preview */}
-      <div className="space-y-2">
-        <h3 className="text-sm font-bold text-ink-500 px-1">全部节点</h3>
-        <div className="space-y-1">
-          {nodes.map((node: any, idx: number) => {
-            const Icon = getNodeIcon(node.nodeCategory);
-            const isCurrent = idx === trail.currentNodeIndex;
-            const isDone = idx < trail.currentNodeIndex;
-
-            return (
-              <div
-                key={node.id}
-                className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors ${
-                  isCurrent
-                    ? 'bg-accent-50 border border-accent-200 font-bold text-accent-600'
-                    : isDone
-                      ? 'bg-ink-50 text-ink-400'
-                      : 'bg-white border border-ink-100 text-ink-500'
-                }`}
-              >
-                {isDone ? (
-                  <CheckCircle size={16} className="text-green-500 shrink-0" />
-                ) : (
-                  <span
-                    className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 ${
-                      isCurrent
-                        ? 'bg-accent-400 text-white'
-                        : 'bg-ink-100 text-ink-400'
-                    }`}
-                  >
-                    {idx + 1}
-                  </span>
-                )}
-                <Icon size={14} className="shrink-0" />
-                <span className="truncate">{node.contentTitle}</span>
-                <span className="text-[10px] text-ink-400 shrink-0">
-                  {getCategoryLabel(node.nodeCategory)}
-                </span>
-              </div>
-            );
-          })}
+          {/* Mobile node list (collapsible) */}
+          <details className="lg:hidden">
+            <summary className="text-sm font-bold text-ink-500 cursor-pointer px-1 py-2 select-none">
+              全部节点 ({totalNodes})
+            </summary>
+            <div className="mt-2 space-y-1">
+              {nodes.map((node: any, idx: number) => {
+                const Icon = getNodeIcon(node.nodeCategory);
+                const isCurrent = idx === trail.currentNodeIndex;
+                const isDone = idx < trail.currentNodeIndex;
+                return (
+                  <div key={node.id}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm transition-colors ${
+                      isCurrent ? 'bg-accent-50 border border-accent-200 font-bold text-accent-600'
+                        : isDone ? 'bg-ink-50 text-ink-400'
+                        : 'bg-white border border-ink-100 text-ink-500'
+                    }`}>
+                    {isDone ? <CheckCircle size={16} className="text-green-500 shrink-0" />
+                      : <span className={`flex items-center justify-center w-6 h-6 rounded-full text-xs font-bold shrink-0 ${
+                          isCurrent ? 'bg-accent-400 text-white' : 'bg-ink-100 text-ink-400'
+                        }`}>{idx + 1}</span>}
+                    <Icon size={14} className="shrink-0" />
+                    <span className="truncate flex-1">{node.contentTitle}</span>
+                    <span className="text-[10px] text-ink-400 shrink-0">{getCategoryLabel(node.nodeCategory)}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </details>
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ import type { CreateSpinoffDTO, UpdateSpinoffDTO } from '../utils/validation';
 
 export class SpinoffService {
   static async createSpinoff(authorId: string, data: CreateSpinoffDTO) {
-    const { originalStoryId, originalBranchId, originalChapterId, title, summary, content, type, isOfficial, revenueShareRate } = data;
+    const { originalStoryId, originalBranchId, originalChapterId, originalEventId, title, summary, content, type, isOfficial, revenueShareRate } = data;
 
     const originalStory: any = await ensure.exists(prisma.story, originalStoryId, 'Original story');
     await ensure.exists(prisma.user, authorId, 'Author');
@@ -29,6 +29,7 @@ export class SpinoffService {
         originalStoryId,
         originalBranchId: originalBranchId || null,
         originalChapterId: resolvedChapterId,
+        originalEventId: originalEventId || null,
         authorId,
         title,
         summary: summary ?? null,

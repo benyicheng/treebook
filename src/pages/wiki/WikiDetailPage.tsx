@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
-import { useWikiPage, useDeleteWikiPage, useAddWikiAlias, useRemoveWikiAlias, useCreateWikiLink, useRemoveWikiLink } from '../../hooks/useWiki';
+import { useWikiPage, useDeleteWikiPage, useAddWikiAlias, useRemoveWikiAlias, useCreateWikiLink, useRemoveWikiLink, useWikiReferences } from '../../hooks/useWiki';
 import { wikiService, WikiLookupResult } from '../../api/wikiService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useToast } from '../../components/notifications';
@@ -10,7 +10,7 @@ import {
   ArrowLeft, Edit3, Trash2, Plus, X, Link2, Hash,
   FileText, Users, Globe, BookOpen, Zap, Puzzle,
   Swords, Package, Clock, Eye, AlertCircle,
-  Search, Loader2,
+  Search, Loader2, Route, Library,
 } from 'lucide-react';
 
 const contentTypeLabels: Record<string, string> = {
@@ -48,6 +48,7 @@ const WikiDetailPage: React.FC = () => {
   const removeAlias = useRemoveWikiAlias(id!);
   const createLink = useCreateWikiLink(id!);
   const removeLink = useRemoveWikiLink(id!);
+  const { data: references } = useWikiReferences(id);
 
   const page = data?.data ?? data;
 
@@ -172,7 +173,7 @@ const WikiDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[80vh]">
-        <div className="w-12 h-12 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-accent-500 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -201,7 +202,7 @@ const WikiDetailPage: React.FC = () => {
           <div className="flex items-center gap-2">
             <Link
               to={`/wiki/${id}/edit`}
-              className="flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-xl text-sm font-black hover:bg-indigo-600 transition-colors"
+              className="flex items-center gap-2 px-4 py-2 bg-accent-500 text-white rounded-xl text-sm font-black hover:bg-accent-600 transition-colors"
             >
               <Edit3 size={16} />
               编辑
@@ -243,12 +244,12 @@ const WikiDetailPage: React.FC = () => {
           <div className="text-right text-xs text-ink-400 space-y-1">
             <p className="flex items-center gap-1 justify-end"><Clock size={13} />更新于 {new Date(page.updatedAt).toLocaleString('zh-CN')}</p>
             <p className="flex items-center gap-1 justify-end"><Eye size={13} />版本 v{page.version}</p>
-            {page.story && <p className="text-indigo-500 font-bold">所属故事：{page.story.title}</p>}
+            {page.story && <p className="text-accent-500 font-bold">所属故事：{page.story.title}</p>}
           </div>
         </div>
 
         {page.summary && (
-          <p className="text-ink-500 italic border-l-4 border-indigo-300 pl-4 py-1 bg-indigo-50 dark:bg-indigo-900/20 rounded-r-xl">
+          <p className="text-ink-500 italic border-l-4 border-accent-300 pl-4 py-1 bg-accent-50 dark:bg-accent-800/20 rounded-r-xl">
             {page.summary}
           </p>
         )}
@@ -284,7 +285,7 @@ const WikiDetailPage: React.FC = () => {
         {page.aliases?.length > 0 ? (
           <div className="flex flex-wrap gap-2">
             {page.aliases.map((alias: any) => (
-              <span key={alias.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 rounded-xl text-sm font-medium">
+              <span key={alias.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-accent-50 dark:bg-accent-800/30 text-accent-700 dark:text-accent-300 rounded-xl text-sm font-medium">
                 {alias.alias}
                 {alias.language && <span className="text-[10px] text-indigo-400">({alias.language})</span>}
                 {isCreator && (
@@ -303,7 +304,7 @@ const WikiDetailPage: React.FC = () => {
             <input
               type="text"
               placeholder="添加别名..."
-              className="flex-1 px-4 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
+              className="flex-1 px-4 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 outline-none focus:ring-2 focus:ring-accent-400 text-sm"
               value={aliasInput}
               onChange={e => setAliasInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleAddAlias()}
@@ -318,7 +319,7 @@ const WikiDetailPage: React.FC = () => {
             <button
               onClick={handleAddAlias}
               disabled={addAlias.isPending || !aliasInput.trim()}
-              className="px-4 py-2 bg-indigo-500 text-white rounded-xl text-sm font-bold hover:bg-indigo-600 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 bg-accent-500 text-white rounded-xl text-sm font-bold hover:bg-accent-600 disabled:opacity-50 transition-colors"
             >
               <Plus size={16} />
             </button>
@@ -339,7 +340,7 @@ const WikiDetailPage: React.FC = () => {
               {page.outgoingLinks.map((link: any) => (
                 <div key={link.id} className="flex items-center justify-between p-3 bg-ink-50 dark:bg-ink-800 rounded-xl">
                   <div>
-                    <Link to={`/wiki/${link.targetPage?.id || link.targetPageId}`} className="font-bold text-indigo-500 hover:text-indigo-600 text-sm">
+                    <Link to={`/wiki/${link.targetPage?.id || link.targetPageId}`} className="font-bold text-accent-500 hover:text-accent-600 text-sm">
                       {link.targetPage?.title || link.targetPageId}
                     </Link>
                     <span className="ml-2 text-[10px] text-ink-400 bg-ink-100 dark:bg-ink-700 px-1.5 py-0.5 rounded">
@@ -369,7 +370,7 @@ const WikiDetailPage: React.FC = () => {
             <div className="space-y-2">
               {page.incomingLinks.map((link: any) => (
                 <div key={link.id} className="flex items-center justify-between p-3 bg-ink-50 dark:bg-ink-800 rounded-xl">
-                  <Link to={`/wiki/${link.sourcePage?.id || link.sourcePageId}`} className="font-bold text-indigo-500 hover:text-indigo-600 text-sm">
+                  <Link to={`/wiki/${link.sourcePage?.id || link.sourcePageId}`} className="font-bold text-accent-500 hover:text-accent-600 text-sm">
                     {link.sourcePage?.title || link.sourcePageId}
                   </Link>
                   <span className="text-[10px] text-ink-400 bg-ink-100 dark:bg-ink-700 px-1.5 py-0.5 rounded">
@@ -384,6 +385,54 @@ const WikiDetailPage: React.FC = () => {
         </div>
       </div>
 
+      {/* References section */}
+      {references && (
+        <div className="bg-white dark:bg-ink-700 rounded-3xl border border-ink-100 dark:border-ink-600 p-6 space-y-4">
+          <h2 className="text-lg font-black text-ink-800 dark:text-white flex items-center gap-2">
+            <Library size={20} className="text-indigo-400" />
+            被引用于
+          </h2>
+
+          {/* Referencing booklists */}
+          <div>
+            <h3 className="text-sm font-bold text-ink-500 mb-2 flex items-center gap-1.5">
+              <Library size={14} /> 书单
+            </h3>
+            {references.booklists.length > 0 ? (
+              <div className="space-y-1">
+                {references.booklists.map(bl => (
+                  <Link key={bl.id} to={`/booklist/${bl.id}`}
+                    className="block p-3 rounded-xl bg-ink-50 dark:bg-ink-800 hover:bg-accent-50 dark:hover:bg-accent-800/20 transition-colors">
+                    <span className="font-bold text-sm text-accent-500 hover:text-accent-600">{bl.title}</span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-ink-400">暂未被任何书单引用</p>
+            )}
+          </div>
+
+          {/* Referencing reading paths */}
+          <div>
+            <h3 className="text-sm font-bold text-ink-500 mb-2 flex items-center gap-1.5">
+              <Route size={14} /> 阅读路径
+            </h3>
+            {references.readingPaths.length > 0 ? (
+              <div className="space-y-1">
+                {references.readingPaths.map(rp => (
+                  <Link key={rp.id} to={`/reading-path/${rp.id}`}
+                    className="block p-3 rounded-xl bg-ink-50 dark:bg-ink-800 hover:bg-accent-50 dark:hover:bg-accent-800/20 transition-colors">
+                    <span className="font-bold text-sm text-accent-500 hover:text-accent-600">{rp.title}</span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-ink-400">暂未被任何阅读路径引用</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Add Link (creator only) */}
       {isCreator && (
         <div className="bg-white dark:bg-ink-700 rounded-3xl border border-ink-100 dark:border-ink-600 p-6 space-y-4">
@@ -394,8 +443,8 @@ const WikiDetailPage: React.FC = () => {
           <div className="flex items-center gap-3">
             <div className="relative flex-1" ref={linkSearchRef}>
               {selectedLinkTarget ? (
-                <div className="flex items-center justify-between px-4 py-2 rounded-xl border border-indigo-300 dark:border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-sm">
-                  <span className="font-bold text-indigo-600 dark:text-indigo-300 truncate">
+                <div className="flex items-center justify-between px-4 py-2 rounded-xl border border-accent-300 dark:border-accent-500 bg-accent-50 dark:bg-accent-800/30 text-sm">
+                  <span className="font-bold text-accent-600 dark:text-accent-300 truncate">
                     {selectedLinkTarget.title}
                   </span>
                   <button
@@ -411,7 +460,7 @@ const WikiDetailPage: React.FC = () => {
                   <input
                     type="text"
                     placeholder="搜索百科页面..."
-                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 outline-none focus:ring-2 focus:ring-indigo-400 text-sm"
+                    className="w-full pl-9 pr-4 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 outline-none focus:ring-2 focus:ring-accent-400 text-sm"
                     value={linkSearchQuery}
                     onChange={e => setLinkSearchQuery(e.target.value)}
                     onFocus={() => { if (linkSearchResults.length > 0) setLinkSearchOpen(true); }}
@@ -437,7 +486,7 @@ const WikiDetailPage: React.FC = () => {
                             <span className="font-bold text-sm text-ink-800 dark:text-ink-100 truncate">
                               {r.title}
                             </span>
-                            <span className="shrink-0 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300">
+                            <span className="shrink-0 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent-100 dark:bg-accent-800 text-accent-600 dark:text-accent-300">
                               {contentTypeLabels[r.contentType] || r.contentType}
                             </span>
                           </div>
@@ -470,7 +519,7 @@ const WikiDetailPage: React.FC = () => {
             <button
               onClick={handleCreateLink}
               disabled={createLink.isPending || !selectedLinkTarget?.id}
-              className="px-4 py-2 bg-indigo-500 text-white rounded-xl text-sm font-bold hover:bg-indigo-600 disabled:opacity-50 transition-colors"
+              className="px-4 py-2 bg-accent-500 text-white rounded-xl text-sm font-bold hover:bg-accent-600 disabled:opacity-50 transition-colors"
             >
               添加
             </button>

@@ -2,16 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import AddToBooklistModal from '../AddToBooklistModal';
+import { booklistService } from '../../../api/storyService';
 
 // Mock useAuthStore
-const mockUseAuthStore = vi.fn();
-vi.mock('../../stores/useAuthStore', () => ({
+const { mockUseAuthStore } = vi.hoisted(() => ({ mockUseAuthStore: vi.fn() }));
+vi.mock('../../../stores/useAuthStore', () => ({
   useAuthStore: (...args: any[]) => mockUseAuthStore(...args),
 }));
 
 // Mock useToast
-const mockAddToast = vi.fn();
-vi.mock('../Toast', () => ({
+const { mockAddToast } = vi.hoisted(() => ({ mockAddToast: vi.fn() }));
+vi.mock('../../notifications/Toast', () => ({
   useToast: () => ({ addToast: mockAddToast }),
 }));
 
@@ -27,13 +28,11 @@ vi.mock('../Modal', () => ({
     ) : null,
 }));
 
-// Mock booklistService
-const mockGetMy = vi.fn();
-const mockAddItem = vi.fn();
-vi.mock('../../api/storyService', () => ({
+// Mock booklistService — same pattern as LikeButton/RatingComponent
+vi.mock('../../../api/storyService', () => ({
   booklistService: {
-    getMy: (...args: any[]) => mockGetMy(...args),
-    addItem: (...args: any[]) => mockAddItem(...args),
+    getMy: vi.fn(),
+    addItem: vi.fn(),
   },
 }));
 
@@ -74,14 +73,14 @@ describe('AddToBooklistModal', () => {
   describe('authenticated state', () => {
     beforeEach(() => {
       mockUseAuthStore.mockReturnValue({ isAuthenticated: true });
-      mockGetMy.mockResolvedValue([
+      (booklistService.getMy as any).mockResolvedValue([
         { id: 'list-1', title: '我的精选', description: '', isPublic: true },
       ]);
-      mockAddItem.mockResolvedValue({});
+      (booklistService.addItem as any).mockResolvedValue({});
     });
 
     it('loads user booklists on open', async () => {
-      mockGetMy.mockResolvedValue([
+      (booklistService.getMy as any).mockResolvedValue([
         { id: 'list-1', title: '我的精选', description: '', isPublic: true },
         { id: 'list-2', title: '科幻合集', description: '', isPublic: false },
       ]);
@@ -89,7 +88,7 @@ describe('AddToBooklistModal', () => {
       renderWithRouter(<AddToBooklistModal {...baseProps} />);
 
       await waitFor(() => {
-        expect(mockGetMy).toHaveBeenCalled();
+        expect(booklistService.getMy).toHaveBeenCalled();
       });
 
       await waitFor(() => {
@@ -104,10 +103,6 @@ describe('AddToBooklistModal', () => {
     });
 
     it('shows booklist select dropdown with options', async () => {
-      mockGetMy.mockResolvedValue([
-        { id: 'list-1', title: '我的精选', description: '', isPublic: true },
-      ]);
-
       renderWithRouter(<AddToBooklistModal {...baseProps} />);
 
       await waitFor(() => {
@@ -126,11 +121,6 @@ describe('AddToBooklistModal', () => {
     });
 
     it('submits and shows success state', async () => {
-      mockGetMy.mockResolvedValue([
-        { id: 'list-1', title: '我的精选', description: '', isPublic: true },
-      ]);
-      mockAddItem.mockResolvedValue({});
-
       renderWithRouter(<AddToBooklistModal {...baseProps} />);
 
       await waitFor(() => {
@@ -140,7 +130,7 @@ describe('AddToBooklistModal', () => {
       fireEvent.click(screen.getByText('确认加入'));
 
       await waitFor(() => {
-        expect(mockAddItem).toHaveBeenCalledWith('list-1', {
+        expect(booklistService.addItem).toHaveBeenCalledWith('list-1', {
           chapterId: 'chap-1',
           notes: '',
         });
@@ -152,8 +142,6 @@ describe('AddToBooklistModal', () => {
     });
 
     it('calls onClose after successful add', async () => {
-      mockAddItem.mockResolvedValue({});
-
       renderWithRouter(<AddToBooklistModal {...baseProps} />);
 
       await waitFor(() => {
@@ -166,19 +154,14 @@ describe('AddToBooklistModal', () => {
         expect(screen.getByText('成功加入书单！')).toBeInTheDocument();
       });
 
-      // onClose will be called after setTimeout(1500)
-      // We verify the success state renders; the setTimeout is tested implicitly
-      expect(mockAddItem).toHaveBeenCalledWith('list-1', {
+      expect(booklistService.addItem).toHaveBeenCalledWith('list-1', {
         chapterId: 'chap-1',
         notes: '',
       });
     });
 
     it('shows toast when chapter already in booklist', async () => {
-      mockGetMy.mockResolvedValue([
-        { id: 'list-1', title: '我的精选', description: '', isPublic: true },
-      ]);
-      mockAddItem.mockRejectedValue({
+      (booklistService.addItem as any).mockRejectedValue({
         response: { data: { message: 'Chapter already in booklist' } },
       });
 
@@ -196,10 +179,7 @@ describe('AddToBooklistModal', () => {
     });
 
     it('shows error toast on generic failure', async () => {
-      mockGetMy.mockResolvedValue([
-        { id: 'list-1', title: '我的精选', description: '', isPublic: true },
-      ]);
-      mockAddItem.mockRejectedValue(new Error('Network error'));
+      (booklistService.addItem as any).mockRejectedValue(new Error('Network error'));
 
       renderWithRouter(<AddToBooklistModal {...baseProps} />);
 
@@ -215,7 +195,7 @@ describe('AddToBooklistModal', () => {
     });
 
     it('shows empty booklists state', async () => {
-      mockGetMy.mockResolvedValue([]);
+      (booklistService.getMy as any).mockResolvedValue([]);
 
       renderWithRouter(<AddToBooklistModal {...baseProps} />);
 
@@ -225,7 +205,7 @@ describe('AddToBooklistModal', () => {
     });
 
     it('has link to create booklist when empty', async () => {
-      mockGetMy.mockResolvedValue([]);
+      (booklistService.getMy as any).mockResolvedValue([]);
 
       renderWithRouter(<AddToBooklistModal {...baseProps} />);
 
@@ -236,11 +216,10 @@ describe('AddToBooklistModal', () => {
     });
 
     it('shows loading spinner while fetching booklists', () => {
-      mockGetMy.mockReturnValue(new Promise(() => {}));
+      (booklistService.getMy as any).mockReturnValue(new Promise(() => {}));
 
       renderWithRouter(<AddToBooklistModal {...baseProps} />);
 
-      // 应该显示 loading spinner
       const spinner = document.querySelector('.animate-spin');
       expect(spinner).toBeInTheDocument();
     });
@@ -252,7 +231,7 @@ describe('AddToBooklistModal', () => {
     });
 
     it('submit button is disabled when no booklist exists', async () => {
-      mockGetMy.mockResolvedValue([]);
+      (booklistService.getMy as any).mockResolvedValue([]);
 
       renderWithRouter(<AddToBooklistModal {...baseProps} />);
 
@@ -265,11 +244,10 @@ describe('AddToBooklistModal', () => {
     });
 
     it('submit button shows loading text while submitting', async () => {
-      mockGetMy.mockResolvedValue([
+      (booklistService.getMy as any).mockResolvedValue([
         { id: 'list-1', title: '我的精选', description: '', isPublic: true },
       ]);
-      // Use a pending promise to test loading state
-      mockAddItem.mockReturnValue(new Promise(() => {}));
+      (booklistService.addItem as any).mockReturnValue(new Promise(() => {}));
 
       renderWithRouter(<AddToBooklistModal {...baseProps} />);
 

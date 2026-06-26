@@ -50,10 +50,10 @@ const SpinoffPage: React.FC = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {spinoffs.map((spinoff) => (
-            <div key={spinoff.id} className="group bg-ink-50 dark:bg-ink-700 rounded-3xl border border-ink-100 dark:border-ink-600 p-8 hover:border-indigo-300 dark:hover:border-accent-500 hover:shadow-2xl hover:shadow-accent-500/10 transition-all duration-300 flex flex-col">
+            <div key={spinoff.id} className="group bg-ink-50 dark:bg-ink-700 rounded-3xl border border-ink-100 dark:border-ink-600 p-8 hover:border-accent-300 dark:hover:border-accent-500 hover:shadow-2xl hover:shadow-accent-500/10 transition-all duration-300 flex flex-col">
               <div className="flex justify-between items-start mb-6">
                 <div className="flex gap-2">
-                  <span className="px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-accent-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-wider rounded-full">
+                  <span className="px-3 py-1 bg-accent-50 dark:bg-accent-800/30 text-accent-600 dark:text-accent-400 text-[10px] font-black uppercase tracking-wider rounded-full">
                     番外短篇
                   </span>
                   {spinoff.isOfficial && (
@@ -84,7 +84,7 @@ const SpinoffPage: React.FC = () => {
                       {spinoff.characters.slice(0, 4).map(char => (
                         <div
                           key={char.id}
-                          className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/50 border-2 border-white dark:border-ink-700 flex items-center justify-center text-[9px] font-black text-accent-600 dark:text-indigo-400"
+                          className="w-6 h-6 rounded-full bg-accent-100 dark:bg-accent-800/50 border-2 border-white dark:border-ink-700 flex items-center justify-center text-[9px] font-black text-accent-600 dark:text-accent-400"
                           title={`${char.name}（${char.role === 'protagonist' ? '主角' : char.role === 'antagonist' ? '反派' : '配角'}）`}
                         >
                           {char.name[0]}
@@ -102,7 +102,7 @@ const SpinoffPage: React.FC = () => {
 
               <div className="mt-8 pt-6 border-t border-ink-50 dark:border-ink-600 flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-accent-600 dark:text-indigo-400 font-bold text-xs">
+                  <div className="w-8 h-8 rounded-full bg-accent-100 dark:bg-accent-800/50 flex items-center justify-center text-accent-600 dark:text-accent-400 font-bold text-xs">
                     {spinoff.author?.username?.[0] || 'A'}
                   </div>
                   <div>
@@ -119,7 +119,7 @@ const SpinoffPage: React.FC = () => {
                     size="sm"
                     variant="ghost"
                   />
-                  <button onClick={() => navigate(`/spinoff/${spinoff.id}`)} className="p-3 bg-ink-50 dark:bg-ink-800 text-ink-400 hover:text-accent-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 rounded-xl transition-all">
+                  <button onClick={() => navigate(`/spinoff/${spinoff.id}`)} className="p-3 bg-ink-50 dark:bg-ink-800 text-ink-400 hover:text-accent-600 hover:bg-accent-50 dark:hover:bg-accent-800/20 rounded-xl transition-all">
                     <BookOpen size={20} />
                   </button>
                 </div>

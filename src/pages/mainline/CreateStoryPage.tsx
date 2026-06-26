@@ -49,9 +49,10 @@ const CreateStoryPage: React.FC = () => {
     e.preventDefault();
     try {
       const story = await createStoryMutation.mutateAsync(formData as any);
-      navigate(`/story/${story.id}`);
-    } catch (err) {
-      addToast('error', '创建失败，请检查网络连接');
+      if (story?.id) navigate(`/story/${story.id}`);
+    } catch (err: any) {
+      const msg = err?.response?.data?.error?.message || err?.response?.data?.message || err?.message || '创建失败，请检查网络连接';
+      addToast('error', msg);
     }
   };
 

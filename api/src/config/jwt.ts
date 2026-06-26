@@ -5,9 +5,16 @@
  * 测试环境自动使用占位密钥，不影响生产安全检查。
  */
 
+export interface JwtPayload {
+  id: string;
+  email: string;
+  role: string;
+  permissions?: string[];
+}
+
 const isTest = !!process.env.VITEST || process.env.NODE_ENV === 'test';
 
-const JWT_SECRET = (() => {
+export function JWT_SECRET(): string {
   const secret = process.env.JWT_SECRET;
 
   if (!secret) {
@@ -28,6 +35,4 @@ const JWT_SECRET = (() => {
   }
 
   return secret;
-})();
-
-export { JWT_SECRET };
+}

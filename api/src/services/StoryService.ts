@@ -2,6 +2,7 @@ import { prisma } from '../prisma';
 import { AppError } from '../utils/http';
 import { parsePagination, paginatedResponse, PaginatedResponse } from '../utils/pagination';
 import { Prisma } from '@prisma/client';
+import type { UpdateStoryDTO } from '../utils/validation';
 
 export interface StoryListQuery {
   isOfficial?: string;
@@ -28,7 +29,7 @@ export interface StoryListItem {
 }
 
 export class StoryService {
-  static async getAllStories(query: StoryListQuery): Promise<PaginatedResponse<StoryListItem>> {
+  static async getAllStories(query: Record<string, string>): Promise<PaginatedResponse<StoryListItem>> {
     const { isOfficial, tag, q } = query;
     const { page, limit } = parsePagination(query);
     const where: Prisma.StoryWhereInput = {};
@@ -190,7 +191,7 @@ export class StoryService {
     });
   }
 
-  static async updateStory(id: string, authorId: string, role: string, data: Prisma.StoryUpdateInput & { tags?: string[] }) {
+  static async updateStory(id: string, authorId: string, role: string, data: UpdateStoryDTO) {
     const { title, description, coverImage, status, metadata, tags } = data;
     const story = await prisma.story.findUnique({ where: { id } });
 
@@ -205,11 +206,11 @@ export class StoryService {
     return prisma.story.update({
       where: { id },
       data: {
-        title: title as string,
-        description: description as string,
-        coverImage: coverImage as string,
-        status: status as any,
-        metadata: metadata ? JSON.stringify(metadata) : story.metadata,
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(coverImage !== undefined && { coverImage }),
+        ...(status !== undefined && { status }),
+        metadata: metadata !== undefined ? JSON.stringify(metadata) : story.metadata,
         tags: tags ? {
           set: [],
           connectOrCreate: tags.map((tag: string) => ({

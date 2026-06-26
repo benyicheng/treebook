@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
-import { storyService, aiService, Character } from '../../api/storyService';
+import { characterService } from '../../api/characterService';
+import { aiService } from '../../api/aiService';
+import type { Character } from '../../api/types';
 import { useCharacters, useCreateCharacter, useUpdateCharacter } from '../../hooks/useCharacters';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -26,7 +28,7 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
   const updateCharMutation = useUpdateCharacter();
   const qc = useQueryClient();
   const deleteCharMutation = useMutation({
-    mutationFn: (id: string) => storyService.deleteCharacter(id),
+    mutationFn: (id: string) => characterService.deleteCharacter(id),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.characters.byStory(storyId) }),
   });
 
@@ -117,7 +119,7 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-ink-200 dark:bg-ink-600 overflow-hidden shrink-0">
                   {char.avatarUrl ? (
-                    <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" />
+                    <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-ink-400">
                       <User size={32} />
@@ -176,7 +178,7 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
               <label className="text-xs font-bold text-ink-500 uppercase">角色头像</label>
               <div className="w-24 h-24 bg-ink-100 dark:bg-ink-700 rounded-2xl flex items-center justify-center text-ink-400 shrink-0 border border-dashed border-ink-300 dark:border-ink-500 relative overflow-hidden group">
                 {editingChar?.avatarUrl ? (
-                  <img src={editingChar.avatarUrl} className="w-full h-full object-cover" />
+                  <img src={editingChar.avatarUrl} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 ) : (
                   <User size={32} />
                 )}

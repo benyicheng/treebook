@@ -317,7 +317,7 @@ const FollowPage: React.FC = () => {
                         className="flex items-center gap-3 p-3 rounded-2xl bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-700"
                       >
                         {u.avatarUrl ? (
-                          <img src={u.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" />
+                          <img src={u.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                         ) : (
                           <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center shrink-0">
                             <User size={16} className="text-white" />
@@ -363,7 +363,7 @@ const FollowPage: React.FC = () => {
                       {/* Author avatar */}
                       <div className="relative shrink-0">
                         {item.author?.avatarUrl ? (
-                          <img src={item.author.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-ink-800" />
+                          <img src={item.author.avatarUrl} alt="" className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-ink-800" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                         ) : (
                           <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${config.color} flex items-center justify-center`}>
                             <User size={16} className="text-white" />
@@ -440,7 +440,7 @@ const FollowPage: React.FC = () => {
                 <div key={u.id} className="flex items-center gap-3 p-4 rounded-2xl bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-700">
                   <Link to={`/user/${u.id}`} className="shrink-0">
                     {u.avatarUrl ? (
-                      <img src={u.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover" />
+                      <img src={u.avatarUrl} alt="" className="w-12 h-12 rounded-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                     ) : (
                       <div className="w-12 h-12 rounded-full bg-gradient-to-br from-pink-400 to-rose-500 flex items-center justify-center">
                         <User size={18} className="text-white" />

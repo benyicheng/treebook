@@ -18,6 +18,9 @@ export class InteractionRepository {
       case 'spinoff':
         exists = !!(await prisma.spinoff.findUnique({ where: { id: targetId }, select: { id: true } }));
         break;
+      case 'event':
+        exists = !!(await prisma.storyEvent.findUnique({ where: { id: targetId }, select: { id: true } }));
+        break;
     }
     if (!exists) throw new AppError(404, 'NOT_FOUND', `${targetType} not found`);
     return true;

@@ -46,7 +46,7 @@ const MergeRequestModal: React.FC<MergeRequestModalProps> = ({ storyId, branchId
         <div className="p-8">
           <div className="flex justify-between items-start mb-6">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-indigo-100 text-accent-600 rounded-2xl">
+              <div className="p-3 bg-accent-100 text-accent-600 rounded-2xl">
                 <GitPullRequest size={24} />
               </div>
               <div>
@@ -60,9 +60,9 @@ const MergeRequestModal: React.FC<MergeRequestModalProps> = ({ storyId, branchId
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="p-4 bg-indigo-50 border border-indigo-100 rounded-2xl">
+            <div className="p-4 bg-accent-50 border border-accent-100 rounded-2xl">
               <p className="text-sm font-bold text-accent-700">即将合并分支：</p>
-              <p className="text-lg font-black text-indigo-900 mt-1">{branchTitle}</p>
+              <p className="text-lg font-black text-accent-800 mt-1">{branchTitle}</p>
             </div>
 
             <div className="space-y-2">

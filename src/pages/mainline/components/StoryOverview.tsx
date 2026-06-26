@@ -295,7 +295,7 @@ const StoryOverview: React.FC<StoryOverviewProps> = ({
                       <span className={`px-1.5 py-0.5 rounded-full text-[9px] font-black uppercase shrink-0 ${
                         spinoff.type === 'biography' ? 'bg-accent-100 text-accent-500' :
                         spinoff.type === 'world_expansion' ? 'bg-accent-100 text-accent-500' :
-                        'bg-indigo-100 text-accent-600'
+                        'bg-accent-100 text-accent-600'
                       }`}>
                         {spinoff.type === 'biography' ? '传记' : spinoff.type === 'world_expansion' ? '设定' : '平行线'}
                       </span>

@@ -1,6 +1,7 @@
 import { prisma } from '../prisma';
 import { AppError } from '../utils/http';
 import { ensure } from '../utils/entity';
+import type { UpdateChapterDTO } from '../utils/validation';
 
 export class ChapterService {
   static async createChapter(authorId: string, userRole: string, data: any) {
@@ -35,7 +36,7 @@ export class ChapterService {
     });
   }
 
-  static async updateChapter(id: string, authorId: string, userRole: string, data: any) {
+  static async updateChapter(id: string, authorId: string, userRole: string, data: UpdateChapterDTO) {
     const { title, content, orderIndex, isBranchPoint, characterData } = data;
 
     const chapter = await ensure.exists<any>(prisma.chapter, id, 'Chapter', { story: true });

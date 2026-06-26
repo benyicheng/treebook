@@ -38,7 +38,7 @@ export const editorialService = {
 
   async applyChange(id: string) {
     const res = await client.post(`/editorial/changes/${id}/apply`);
-    return res.data as any;
+    return res.data as { ok: boolean };
   },
 };
 

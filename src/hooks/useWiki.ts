@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { wikiService, WikiPage } from '../api/wikiService';
+import { wikiService, WikiPage, WikiReferences } from '../api/wikiService';
 import { queryKeys } from '../lib/queryKeys';
 
 export function useWikiPages(params?: {
@@ -18,8 +18,11 @@ export function useWikiPages(params?: {
 
 export function useWikiPage(id: string | undefined) {
   return useQuery({
-    queryKey: queryKeys.wiki.detail(id!),
-    queryFn: () => wikiService.getById(id!),
+    queryKey: queryKeys.wiki.detail(id ?? ''),
+    queryFn: () => {
+      if (!id) throw new Error('useWikiPage: id is required');
+      return wikiService.getById(id);
+    },
     enabled: !!id,
   });
 }
@@ -94,5 +97,16 @@ export function useRemoveWikiLink(pageId: string) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.wiki.detail(pageId) });
     },
+  });
+}
+
+export function useWikiReferences(id: string | undefined) {
+  return useQuery({
+    queryKey: queryKeys.wiki.references(id ?? ''),
+    queryFn: () => {
+      if (!id) throw new Error('useWikiReferences: id is required');
+      return wikiService.getReferences(id);
+    },
+    enabled: !!id,
   });
 }

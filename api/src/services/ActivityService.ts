@@ -1,5 +1,6 @@
 import { prisma } from '../prisma';
 import { AppError } from '../utils/http';
+import { cursorPaginate } from '../utils/pagination';
 
 export class ActivityService {
   /**
@@ -58,15 +59,14 @@ export class ActivityService {
     }
 
     const activities = await prisma.activity.findMany(query);
-    const hasMore = activities.length > limit;
-    const items = hasMore ? activities.slice(0, limit) : activities;
+    const { data, nextCursor } = cursorPaginate(activities, limit);
 
     return {
-      data: items.map((a) => ({
+      data: data.map((a) => ({
         ...a,
         metadata: a.metadata ? JSON.parse(a.metadata) : null,
       })),
-      nextCursor: hasMore ? items[items.length - 1].id : null,
+      nextCursor,
     };
   }
 
@@ -95,15 +95,14 @@ export class ActivityService {
     }
 
     const activities = await prisma.activity.findMany(query);
-    const hasMore = activities.length > limit;
-    const items = hasMore ? activities.slice(0, limit) : activities;
+    const { data, nextCursor } = cursorPaginate(activities, limit);
 
     return {
-      data: items.map((a) => ({
+      data: data.map((a) => ({
         ...a,
         metadata: a.metadata ? JSON.parse(a.metadata) : null,
       })),
-      nextCursor: hasMore ? items[items.length - 1].id : null,
+      nextCursor,
     };
   }
 }

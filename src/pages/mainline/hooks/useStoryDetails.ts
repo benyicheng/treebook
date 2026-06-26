@@ -7,7 +7,6 @@ import { useCreateChapter, useUpdateChapter } from '../../../hooks/useChapters';
 import { useCreateBranch } from '../../../hooks/useBranches';
 import { useSavepoints } from '../../../hooks/useSavepoints';
 import { useReadingProgress } from '../../../hooks/useReadingProgress';
-import { useStoryReadingPaths } from '../../../hooks/useReadingPaths';
 import { revenueService } from '../../../api/revenueService';
 
 export const useStoryDetails = () => {
@@ -18,7 +17,7 @@ export const useStoryDetails = () => {
   const { addToast } = useToast();
   
   // ─── React Query: data fetching ───
-  const { data: currentStory, isLoading } = useStory(id || '');
+  const { data: currentStory, isLoading } = useStory(id);
   const { data: savepoints = [] } = useSavepoints(id || '');
   
   // ─── React Query: mutations ───
@@ -28,8 +27,8 @@ export const useStoryDetails = () => {
   const updateStory = useUpdateStory();
   
   // ─── Local UI state ───
-  const initialTab = (searchParams.get('tab') as 'overview' | 'tree' | 'chapters' | 'characters') || 'overview';
-  const [activeTab, setActiveTab] = useState<'overview' | 'tree' | 'chapters' | 'characters'>(initialTab);
+  const initialTab = (searchParams.get('tab') as 'overview' | 'tree' | 'chapters' | 'characters' | 'events') || 'overview';
+  const [activeTab, setActiveTab] = useState<'overview' | 'tree' | 'chapters' | 'characters' | 'events'>(initialTab);
   const [editingChapterId, setEditingChapterId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -55,10 +54,31 @@ export const useStoryDetails = () => {
   const [isMergeModalOpen, setIsMergeModalOpen] = useState(false);
   const [booklistTargetChapter, setBooklistTargetChapter] = useState<{ id: string; title: string } | null>(null);
 
-  const [newBranchData, setNewBranchData] = useState({
+  // 从事件详情页跳转来时，自动打开分支创建 Modal 并预填 parentEventId
+  const branchEventIdFromQuery = searchParams.get('branchEventId');
+  useEffect(() => {
+    if (branchEventIdFromQuery) {
+      setNewBranchData(prev => ({ ...prev, parentEventId: branchEventIdFromQuery }));
+      setIsBranchModalOpen(true);
+      // 清掉 query 参数，避免刷新时重复打开
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('branchEventId');
+        return next;
+      }, { replace: true });
+    }
+  }, [branchEventIdFromQuery, setSearchParams]);
+
+  const [newBranchData, setNewBranchData] = useState<{
+    title: string;
+    description: string;
+    parentChapterId: string;
+    parentEventId?: string;
+  }>({
     title: '',
     description: '',
     parentChapterId: '',
+    parentEventId: '',
   });
   
   const [newChapterData, setNewChapterData] = useState({
@@ -74,7 +94,6 @@ export const useStoryDetails = () => {
 
   // ─── Fetch reading progress for tree visualization ───
   const { data: readingProgressData = [] } = useReadingProgress();
-  const { data: storyReadingPaths = [] } = useStoryReadingPaths(id);
 
   // Map ReadingProgress[] → format StoryBranchTree expects ({ chapterId })
   const readingHistory = useMemo(() =>
@@ -82,14 +101,7 @@ export const useStoryDetails = () => {
     [readingProgressData]
   );
 
-  // Collect all content IDs from story reading paths for path highlighting
-  const pathIds = useMemo(() => {
-    const ids = new Set<string>();
-    storyReadingPaths.forEach((rp: any) => {
-      rp.nodes?.forEach((n: any) => { if (n.contentId) ids.add(n.contentId); });
-    });
-    return [...ids];
-  }, [storyReadingPaths]);
+  const pathIds: string[] = [];
 
   // ─── Derived state ───
   const isAuthor = user?.id === currentStory?.authorId;
@@ -124,10 +136,12 @@ export const useStoryDetails = () => {
       const branch = await createBranch.mutateAsync({
         ...newBranchData,
         parentStoryId: id,
+        parentEventId: newBranchData.parentEventId || null,
         branchType: 'parallel',
         isOfficial: isAuthor,
       });
       setIsBranchModalOpen(false);
+      setNewBranchData(prev => ({ ...prev, title: '', description: '', parentChapterId: '', parentEventId: '' }));
       navigate(`/branch/${branch.id}`);
     } catch (err) {
       addToast('error', '创建分支失败');

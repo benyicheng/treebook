@@ -45,9 +45,10 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ slides, bannerIndex, goBanner, 
         />
       </AnimatePresence>
 
-      {/* Dark uniform overlay for center readability — inspired by aurealife.asia */}
-      <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/70" />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/30 via-transparent to-black/30" />
+      {/* Top fade for nav readability */}
+      <div className="absolute inset-0 bg-gradient-to-b from-black/15 via-transparent to-transparent" />
+      {/* Bottom fade for text readability */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-transparent" />
 
       {/* Centered content */}
       <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">

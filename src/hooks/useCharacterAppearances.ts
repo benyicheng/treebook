@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { storyService } from '../api/storyService';
+import { characterService } from '../api/characterService';
 import { queryKeys } from '../lib/queryKeys';
 
 export function useCharacterAppearances(storyId: string) {
   return useQuery({
     queryKey: queryKeys.characterAppearances.byStory(storyId),
-    queryFn: () => storyService.getCharacterAppearances(storyId),
+    queryFn: () => characterService.getCharacterAppearances(storyId),
     enabled: !!storyId,
   });
 }
@@ -16,8 +16,8 @@ export function useBatchCharacterAppearances(storyId: string) {
     mutationFn: ({
       appearances,
     }: {
-      appearances: Parameters<typeof storyService.batchCharacterAppearances>[1];
-    }) => storyService.batchCharacterAppearances(storyId, appearances),
+      appearances: Parameters<typeof characterService.batchCharacterAppearances>[1];
+    }) => characterService.batchCharacterAppearances(storyId, appearances),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.characterAppearances.byStory(storyId) });
     },

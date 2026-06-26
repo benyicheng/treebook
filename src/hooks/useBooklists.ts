@@ -5,6 +5,7 @@ import { queryKeys } from '../lib/queryKeys';
 export function useBooklists(params?: {
   type?: string;
   tag?: string;
+  q?: string;
   sortBy?: string;
   limit?: number;
   page?: number;
@@ -59,11 +60,43 @@ export function useAddToBooklist() {
       data,
     }: {
       booklistId: string;
-      data: { chapterId: string; notes?: string };
+      data: { chapterId?: string; targetType?: string; targetId?: string; notes?: string; section?: string };
     }) => booklistService.addItem(booklistId, data),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.booklists.detail(vars.booklistId) });
       qc.invalidateQueries({ queryKey: queryKeys.booklists.all });
+    },
+  });
+}
+
+export function useBatchAddItems() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      booklistId,
+      payload,
+    }: {
+      booklistId: string;
+      payload: Parameters<typeof booklistService.batchAddItems>[1];
+    }) => booklistService.batchAddItems(booklistId, payload),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.booklists.detail(vars.booklistId) });
+    },
+  });
+}
+
+export function useReorderItems() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      booklistId,
+      items,
+    }: {
+      booklistId: string;
+      items: { id: string; orderIndex: number }[];
+    }) => booklistService.reorderItems(booklistId, items),
+    onSuccess: (_data, vars) => {
+      qc.invalidateQueries({ queryKey: queryKeys.booklists.detail(vars.booklistId) });
     },
   });
 }
@@ -122,7 +155,7 @@ export function useUpdateBooklistItem() {
     }: {
       booklistId: string;
       itemId: string;
-      data: { notes?: string; sortOrder?: number };
+      data: { notes?: string; orderIndex?: number };
     }) => booklistService.updateItem(booklistId, itemId, data),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.booklists.detail(vars.booklistId) });
@@ -168,20 +201,4 @@ export function useDeleteRelation() {
   });
 }
 
-export function useBooklistStoryLinks(booklistId: string) {
-  return useQuery({
-    queryKey: [...queryKeys.booklists.detail(booklistId), 'story-links'],
-    queryFn: () => booklistService.getStoryLinks(booklistId),
-    enabled: !!booklistId,
-  });
-}
 
-export function useSyncStoryLinks() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (booklistId: string) => booklistService.syncStoryLinks(booklistId),
-    onSuccess: (_data, booklistId) => {
-      qc.invalidateQueries({ queryKey: [...queryKeys.booklists.detail(booklistId), 'story-links'] });
-    },
-  });
-}

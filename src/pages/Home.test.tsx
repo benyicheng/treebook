@@ -1,10 +1,21 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Home from './Home';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSiteConfigStore } from '../stores/useSiteConfigStore';
 import '@testing-library/jest-dom';
+
+const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+
+function renderWithProviders(ui: React.ReactElement) {
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <MemoryRouter>{ui}</MemoryRouter>
+    </QueryClientProvider>,
+  );
+}
 
 vi.mock('../stores/useAuthStore');
 vi.mock('../stores/useSiteConfigStore');
@@ -22,7 +33,9 @@ vi.mock('../hooks/useBranches', () => ({
 }));
 vi.mock('../hooks/useDiscover', () => ({
   useHotReadingPaths: () => ({ data: [] }),
-  useUniverseFeed: () => ({ data: [] }),
+}));
+vi.mock('../hooks/useUniverseFeed', () => ({
+  useUniverseFeed: () => ({ items: [], loading: false, error: null, tab: 'hot', setTab: () => {}, page: 1, totalPages: 1, goToPage: () => {}, refresh: () => {} }),
 }));
 
 const mockNavigate = vi.fn();
@@ -87,11 +100,7 @@ describe('Home', () => {
       fetchConfig,
     });
 
-    render(
-      <MemoryRouter>
-        <Home />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<Home />);
 
     expect(fetchConfig).toHaveBeenCalled();
     // Home should render the hero banner
@@ -121,11 +130,7 @@ describe('Home', () => {
       fetchConfig: vi.fn(),
     });
 
-    render(
-      <MemoryRouter>
-        <Home />
-      </MemoryRouter>,
-    );
+    renderWithProviders(<Home />);
 
     fireEvent.click(screen.getByRole('button', { name: '探索全站' }));
     expect(mockNavigate).toHaveBeenCalledWith('/stories');

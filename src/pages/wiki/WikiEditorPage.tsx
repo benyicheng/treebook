@@ -138,7 +138,7 @@ const WikiEditorPage: React.FC = () => {
             <input
               type="text"
               required
-              className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-indigo-400 outline-none transition-all font-bold text-xl"
+              className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all font-bold text-xl"
               placeholder="页面的标题"
               value={form.title}
               onChange={e => handleTitleChange(e.target.value)}
@@ -149,7 +149,7 @@ const WikiEditorPage: React.FC = () => {
             <label className="text-sm font-bold text-ink-500">URL 标识 (slug)</label>
             <input
               type="text"
-              className="w-full px-6 py-3 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-indigo-400 outline-none transition-all font-mono text-sm"
+              className="w-full px-6 py-3 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all font-mono text-sm"
               placeholder="page-url-slug"
               value={form.slug}
               onChange={e => setForm(prev => ({ ...prev, slug: e.target.value }))}
@@ -169,13 +169,13 @@ const WikiEditorPage: React.FC = () => {
                 onClick={() => setForm(prev => ({ ...prev, contentType: ct.value }))}
                 className={`p-4 rounded-2xl border-2 text-center transition-all ${
                   form.contentType === ct.value
-                    ? 'border-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 shadow-lg shadow-indigo-400/10'
-                    : 'border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 hover:border-indigo-200 dark:hover:border-indigo-600'
+                    ? 'border-accent-400 bg-accent-50 dark:bg-accent-500/10 shadow-lg shadow-accent-400/10'
+                    : 'border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 hover:border-accent-200 dark:hover:border-accent-600'
                 }`}
               >
                 <div className="text-2xl mb-1">{ct.icon}</div>
                 <div className={`text-xs font-bold ${
-                  form.contentType === ct.value ? 'text-indigo-600 dark:text-indigo-400' : 'text-ink-500'
+                  form.contentType === ct.value ? 'text-accent-600 dark:text-accent-400' : 'text-ink-500'
                 }`}>
                   {ct.label}
                 </div>
@@ -188,7 +188,7 @@ const WikiEditorPage: React.FC = () => {
         <div className="bg-white dark:bg-ink-700 rounded-3xl border border-ink-100 dark:border-ink-600 p-8 space-y-4">
           <label className="text-sm font-bold text-ink-500">关联故事（可选）</label>
           <select
-            className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-indigo-400 outline-none transition-all font-bold"
+            className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all font-bold"
             value={form.storyId}
             onChange={e => setForm(prev => ({ ...prev, storyId: e.target.value }))}
           >
@@ -204,7 +204,7 @@ const WikiEditorPage: React.FC = () => {
           <label className="text-sm font-bold text-ink-500">摘要</label>
           <textarea
             rows={3}
-            className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-indigo-400 outline-none transition-all resize-none font-medium"
+            className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all resize-none font-medium"
             placeholder="简短的页面摘要..."
             value={form.summary}
             onChange={e => setForm(prev => ({ ...prev, summary: e.target.value }))}
@@ -222,7 +222,7 @@ const WikiEditorPage: React.FC = () => {
           </div>
           <textarea
             rows={20}
-            className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-indigo-400 outline-none transition-all font-mono text-sm leading-relaxed resize-y"
+            className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all font-mono text-sm leading-relaxed resize-y"
             placeholder="在此编写内容..."
             value={form.content}
             onChange={e => setForm(prev => ({ ...prev, content: e.target.value }))}
@@ -240,7 +240,7 @@ const WikiEditorPage: React.FC = () => {
                 onClick={() => setForm(prev => ({ ...prev, status: opt.value }))}
                 className={`px-6 py-3 rounded-xl font-bold text-sm transition-all ${
                   form.status === opt.value
-                    ? 'bg-indigo-500 text-white shadow-sm'
+                    ? 'bg-accent-500 text-white shadow-sm'
                     : 'bg-ink-50 dark:bg-ink-800 text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-700'
                 }`}
               >
@@ -254,7 +254,7 @@ const WikiEditorPage: React.FC = () => {
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full py-5 bg-indigo-500 text-white rounded-[2rem] font-black text-xl hover:bg-indigo-600 transition-all shadow-xl shadow-indigo-400/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+          className="w-full py-5 bg-accent-500 text-white rounded-[2rem] font-black text-xl hover:bg-accent-600 transition-all shadow-xl shadow-accent-400/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
         >
           <Save size={24} />
           {isSubmitting ? '保存中...' : isEditMode ? '保存修改' : '创建页面'}

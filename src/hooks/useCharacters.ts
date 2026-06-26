@@ -1,11 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { storyService } from '../api/storyService';
+import { characterService } from '../api/characterService';
 import { queryKeys } from '../lib/queryKeys';
 
 export function useCharacters(storyId: string) {
   return useQuery({
     queryKey: queryKeys.characters.byStory(storyId),
-    queryFn: () => storyService.getCharacters(storyId),
+    queryFn: () => characterService.getCharacters(storyId),
     enabled: !!storyId,
   });
 }
@@ -18,8 +18,8 @@ export function useCreateCharacter() {
       data,
     }: {
       storyId: string;
-      data: Parameters<typeof storyService.createCharacter>[1];
-    }) => storyService.createCharacter(storyId, data),
+      data: Parameters<typeof characterService.createCharacter>[1];
+    }) => characterService.createCharacter(storyId, data),
     onSuccess: (_data, vars) => {
       qc.invalidateQueries({ queryKey: queryKeys.characters.byStory(vars.storyId) });
     },
@@ -34,8 +34,8 @@ export function useUpdateCharacter() {
       data,
     }: {
       charId: string;
-      data: Parameters<typeof storyService.updateCharacter>[1];
-    }) => storyService.updateCharacter(charId, data),
+      data: Parameters<typeof characterService.updateCharacter>[1];
+    }) => characterService.updateCharacter(charId, data),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.characters.all });
     },

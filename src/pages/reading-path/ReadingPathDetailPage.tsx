@@ -13,6 +13,7 @@ import {
   Play,
   ChevronRight,
   Users,
+  Library,
 } from 'lucide-react';
 import client from '../../api/client';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -24,14 +25,19 @@ interface ReadingPathNode {
   nodeCategory: string;
   contentId: string;
   contentTitle: string;
+  introduction: string | null;
   note: string | null;
   estimatedMin: number | null;
 }
 
 interface ReadingPathDetail {
   id: string;
+  storyId?: string;
+  booklistId?: string;
+  booklist?: { id: string; title: string } | null;
   title: string;
   description: string | null;
+  guideType: string | null;
   origin: string;
   creator: { id: string; username: string; avatarUrl: string | null };
   viewCount: number;
@@ -41,6 +47,13 @@ interface ReadingPathDetail {
   createdAt: string;
   nodes: ReadingPathNode[];
 }
+
+const guideTypeLabels: Record<string, { label: string; color: string }> = {
+  chronological: { label: '按时间顺序', color: 'bg-blue-50 text-blue-600 border-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:border-blue-800' },
+  character_focus: { label: '聚焦角色', color: 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' },
+  theme_exploration: { label: '主题探索', color: 'bg-purple-50 text-purple-600 border-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:border-purple-800' },
+  completionist: { label: '完整通关', color: 'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:border-amber-800' },
+};
 
 interface CharacterBrief {
   id: string;
@@ -185,7 +198,7 @@ const ReadingPathDetailPage: React.FC = () => {
     setStartingRead(true);
     try {
       const res = await client.post(`/reading-paths/${id}/start`);
-      const trailId = res.data?.data?.id;
+      const trailId = res.data?.id;
       if (trailId) {
         navigate(`/reading-path/trail/${trailId}`);
       }
@@ -271,11 +284,16 @@ const ReadingPathDetailPage: React.FC = () => {
           <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/4" />
 
           <div className="relative z-10 space-y-6">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Route size={20} className="text-white/70" />
               <span className="text-xs font-bold text-white/70 uppercase tracking-wider">
                 阅读路径 · {path.origin === 'author' ? '作者原创' : '社区精选'}
               </span>
+              {path.guideType && guideTypeLabels[path.guideType] && (
+                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${guideTypeLabels[path.guideType].color} bg-opacity-80`}>
+                  {guideTypeLabels[path.guideType].label}
+                </span>
+              )}
             </div>
 
             <div>
@@ -304,6 +322,17 @@ const ReadingPathDetailPage: React.FC = () => {
                 {new Date(path.createdAt).toLocaleDateString('zh-CN')}
               </span>
             </div>
+
+            {/* Parent booklist link */}
+            {path.booklist && (
+              <div className="mt-3">
+                <Link to={`/booklist/${path.booklist.id}`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs font-medium transition-colors backdrop-blur-sm">
+                  <Library size={14} />
+                  来自书单：{path.booklist.title}
+                </Link>
+              </div>
+            )}
 
             {/* ── Hero CTA ── */}
             <div className="flex items-center gap-3 pt-2">
@@ -393,13 +422,42 @@ const ReadingPathDetailPage: React.FC = () => {
                   清除筛选
                 </button>
               </p>
-            )}
-          </div>
         )}
+        </div>
+      )}
 
-        {/* ── Nodes list ── */}
-        <div className="space-y-3">
-          <h2 className="text-lg font-bold text-ink-800 dark:text-white px-1">阅读顺序</h2>
+      </div> {/* ── end max-w-3xl hero section ── */}
+
+      {/* ── Two-column nodes section ── */}
+      <div className="max-w-5xl mx-auto px-4 pb-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Left sidebar: node map */}
+          <aside className="w-full lg:w-64 lg:shrink-0">
+            <div className="lg:sticky lg:top-24 space-y-3">
+              <h2 className="text-lg font-bold text-ink-800 dark:text-white">节点地图</h2>
+              <nav className="space-y-0.5 max-h-[calc(100vh-12rem)] overflow-y-auto pr-1">
+                {path.nodes.map((node, index) => {
+                  const Icon = getNodeIcon(node.nodeCategory);
+                  return (
+                    <Link key={node.id} to={getNodeLink(node)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-ink-500 hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors"
+                    >
+                      <span className="flex items-center justify-center w-5 h-5 rounded-full text-[10px] font-bold bg-ink-100 dark:bg-ink-600 text-ink-400 shrink-0">
+                        {index + 1}
+                      </span>
+                      <Icon size={12} className="shrink-0" />
+                      <span className="truncate flex-1">{node.contentTitle}</span>
+                    </Link>
+                  );
+                })}
+              </nav>
+            </div>
+          </aside>
+
+          {/* Right: detailed nodes */}
+          <div className="flex-1 min-w-0">
+            <div className="space-y-3">
+              <h2 className="text-lg font-bold text-ink-800 dark:text-white px-1">阅读顺序</h2>
           <div className="relative">
             {/* Timeline line */}
             <div className="absolute left-[23px] top-2 bottom-2 w-0.5 bg-ink-200 dark:bg-ink-600" />
@@ -426,7 +484,7 @@ const ReadingPathDetailPage: React.FC = () => {
                       className={`relative z-10 flex items-center justify-center w-12 h-12 rounded-full border-2 shrink-0 transition-all ${
                         isDimmed
                           ? 'bg-ink-100 dark:bg-ink-700 border-ink-200 dark:border-ink-600'
-                          : 'bg-ink-50 dark:bg-ink-800 border-ink-200 dark:border-ink-600 group-hover:border-indigo-400 dark:group-hover:border-accent-500'
+                          : 'bg-ink-50 dark:bg-ink-800 border-ink-200 dark:border-ink-600 group-hover:border-accent-400 dark:group-hover:border-accent-500'
                       }`}
                     >
                       <span
@@ -445,7 +503,7 @@ const ReadingPathDetailPage: React.FC = () => {
                       className={`flex-1 min-w-0 rounded-xl border p-4 transition-all ${
                         isDimmed
                           ? 'bg-ink-50/50 dark:bg-ink-800/30 border-ink-100 dark:border-ink-700'
-                          : 'bg-ink-50 dark:bg-ink-800 border-ink-100 dark:border-ink-700 group-hover:shadow-md group-hover:border-indigo-200 dark:group-hover:border-indigo-800'
+                          : 'bg-ink-50 dark:bg-ink-800 border-ink-100 dark:border-ink-700 group-hover:shadow-md group-hover:border-accent-200 dark:group-hover:border-indigo-800'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -466,6 +524,11 @@ const ReadingPathDetailPage: React.FC = () => {
                           <h4 className="text-sm font-bold text-ink-800 dark:text-white truncate">
                             {node.contentTitle}
                           </h4>
+                          {node.introduction && (
+                            <p className="mt-0.5 text-xs text-accent-500 dark:text-accent-400 line-clamp-2 italic">
+                              {node.introduction}
+                            </p>
+                          )}
                           {node.note && node.note !== node.contentTitle && (
                             <p className="mt-0.5 text-xs text-ink-400 line-clamp-1">
                               {node.note}
@@ -520,8 +583,10 @@ const ReadingPathDetailPage: React.FC = () => {
           </div>
         </div>
       </div>
+    </div>
+  </div>
 
-      {/* ── Mobile bottom bar ── */}
+  {/* ── Mobile bottom bar ── */}
       <div className="md:hidden fixed bottom-16 left-0 right-0 bg-ink-50/95 dark:bg-ink-800/95 backdrop-blur-xl border-t border-ink-100 dark:border-ink-700 z-40 px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="min-w-0">

@@ -67,7 +67,7 @@ const NodePreviewCard: React.FC<NodePreviewCardProps> = ({ node, position, onClo
       case 'branch':
         return <GitBranch size={14} className="text-purple-500" />;
       case 'spinoff':
-        return <Sparkles size={14} className="text-indigo-500" />;
+        return <Sparkles size={14} className="text-accent-500" />;
     }
   };
 
@@ -105,7 +105,7 @@ const NodePreviewCard: React.FC<NodePreviewCardProps> = ({ node, position, onClo
           </span>
           {node.status && (
             <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
-              node.status === 'completed' ? 'bg-accent-100 text-accent-600 dark:bg-accent-900/30 dark:text-accent-400' :
+              node.status === 'completed' ? 'bg-accent-100 text-accent-600 dark:bg-accent-800/30 dark:text-accent-400' :
               node.status === 'ongoing' ? 'bg-amber-100 text-amber-600 dark:bg-amber-900/30 dark:text-amber-400' :
               node.status === 'merged' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' :
               node.status === 'certified' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :

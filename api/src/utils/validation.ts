@@ -4,6 +4,8 @@ import {
   CHARACTER_ROLES, STORY_STATUSES,
   WIKI_CONTENT_TYPES, WIKI_PAGE_STATUSES,
   BOOKLIST_ITEM_RELATION_TYPES, WIKI_LINK_TYPES,
+  STORY_EVENT_TYPES, STORY_EVENT_NODE_TYPES,
+  SPINOFF_TYPES,
 } from './enums';
 
 const passwordSchema = z
@@ -69,6 +71,7 @@ export const characterSchema = z.object({
 export const branchSchema = z.object({
   parentStoryId: z.string().uuid('无效的父故事ID'),
   parentChapterId: z.string().uuid('无效的父章节ID'),
+  parentEventId: z.string().uuid('无效的父事件ID').optional().nullable(),
   title: z.string().min(1, '分支标题不能为空').max(100),
   description: z.string().min(1, '分支描述不能为空').max(500),
   branchType: z.enum(['parallel', 'alternative', 'if_timeline']).optional(),
@@ -81,7 +84,8 @@ export const updateSpinoffBody = z.object({
   title: z.string().min(1).max(200).optional(),
   summary: z.string().max(2000).optional(),
   content: z.string().optional(),
-  status: z.string().optional(),
+  type: z.enum(SPINOFF_TYPES).optional(),
+  status: z.enum(['ongoing', 'completed', 'merged']).optional(),
   isOfficial: z.boolean().optional(),
 });
 export type UpdateSpinoffDTO = z.infer<typeof updateSpinoffBody>;
@@ -91,11 +95,12 @@ export const createSpinoffBody = z.object({
   originalStoryId: z.string().uuid('无效的原作故事ID'),
   originalBranchId: z.string().uuid('无效的原作分支ID').optional().nullable(),
   originalChapterId: z.string().uuid('无效的原作章节ID').optional().nullable(),
+  originalEventId: z.string().uuid('无效的原作事件ID').optional().nullable(),
   title: z.string().min(1, '标题不能为空').max(200),
   summary: z.string().max(2000).optional().nullable(),
   content: z.string().optional().nullable(),
-  type: z.string().optional(),
-  status: z.string().optional(),
+  type: z.enum(SPINOFF_TYPES).optional(),
+  status: z.enum(['ongoing', 'completed', 'merged']).optional(),
   isOfficial: z.boolean().optional(),
   revenueShareRate: z.number().min(0).max(1).optional(),
 });
@@ -205,7 +210,7 @@ export const bulkDeleteRolesRequest = z.object({
 });
 
 const interactionTargetParamsSchema = z.object({
-  targetType: z.enum(['story', 'chapter', 'booklist', 'spinoff']),
+  targetType: z.enum(['story', 'chapter', 'booklist', 'spinoff', 'event']),
   targetId: z.string().uuid('无效的目标ID'),
 });
 
@@ -298,6 +303,36 @@ export const updateBooklistItemNotesRequest = z.object({
   }),
   body: z.object({
     notes: z.string().max(2000).optional().nullable(),
+  }),
+});
+
+export const batchAddBooklistItemsRequest = z.object({
+  params: z.object({
+    id: z.string().uuid(),
+  }),
+  body: z.object({
+    items: z.array(z.object({
+      targetType: z.enum(['story', 'branch', 'spinoff', 'chapter', 'event', 'wiki']).optional(),
+      targetId: z.string().uuid().optional(),
+      chapterId: z.string().uuid().optional(),
+      notes: z.string().max(2000).optional(),
+      section: z.string().max(50).optional(),
+      storyId: z.string().uuid().optional(),
+      parentItemId: z.string().uuid().optional(),
+    })).min(1, 'items 不能为空'),
+    notes: z.string().max(2000).optional(),
+  }),
+});
+
+export const reorderBooklistItemsRequest = z.object({
+  params: z.object({
+    id: z.string().uuid(),
+  }),
+  body: z.object({
+    items: z.array(z.object({
+      id: z.string().uuid(),
+      orderIndex: z.number().int(),
+    })).min(1, 'items 不能为空'),
   }),
 });
 
@@ -532,5 +567,53 @@ export const forkReadingPathRequest = z.object({
       .min(2, '至少需要 2 个分支选项')
       .max(5, '最多 5 个分支选项'),
     primary: z.string().uuid('无效的主选分支ID'),
+  }),
+});
+
+// ── StoryEvent 校验 ─────────────────────────────────────
+
+const eventNodeInputSchema = z.object({
+  targetType: z.enum(STORY_EVENT_NODE_TYPES),
+  targetId: z.string().uuid('无效的目标ID'),
+  sortOrder: z.number().int().optional(),
+  note: z.string().max(500, '备注最多 500 字').optional(),
+});
+
+export const createEventRequest = z.object({
+  body: z.object({
+    storyId: z.string().uuid('无效的故事ID'),
+    title: z.string().min(1, '事件标题不能为空').max(100, '标题最多 100 字'),
+    description: z.string().max(2000, '描述最多 2000 字').optional(),
+    type: z.enum(STORY_EVENT_TYPES).optional(),
+    importance: z.number().int().min(1, '重要性最小为 1').max(5, '重要性最大为 5').optional(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/, '颜色须为 #RRGGBB 格式').optional().nullable(),
+    sortOrder: z.number().int().optional(),
+    nodes: z.array(eventNodeInputSchema).optional(),
+  }),
+});
+
+export const updateEventRequest = z.object({
+  params: z.object({
+    id: z.string().uuid('无效的事件ID'),
+  }),
+  body: z.object({
+    title: z.string().min(1, '事件标题不能为空').max(100).optional(),
+    description: z.string().max(2000).optional().nullable(),
+    type: z.enum(STORY_EVENT_TYPES).optional(),
+    importance: z.number().int().min(1).max(5).optional(),
+    color: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional().nullable(),
+    sortOrder: z.number().int().optional(),
+  }),
+});
+
+export const addEventNodeRequest = z.object({
+  params: z.object({
+    eventId: z.string().uuid('无效的事件ID'),
+  }),
+  body: z.object({
+    targetType: z.enum(STORY_EVENT_NODE_TYPES),
+    targetId: z.string().uuid('无效的目标ID'),
+    note: z.string().max(500, '备注最多 500 字').optional(),
+    sortOrder: z.number().int().optional(),
   }),
 });

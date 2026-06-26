@@ -94,7 +94,7 @@ const MergeManagementModal: React.FC<MergeManagementModalProps> = ({ storyId, is
           ) : (
             <div className="space-y-6">
               {requests.map((req) => (
-                <div key={req.id} className="group bg-ink-50 dark:bg-ink-800 rounded-[2rem] border border-ink-100 dark:border-ink-600 hover:border-indigo-200 dark:hover:border-indigo-900 transition-all overflow-hidden">
+                <div key={req.id} className="group bg-ink-50 dark:bg-ink-800 rounded-[2rem] border border-ink-100 dark:border-ink-600 hover:border-accent-200 dark:hover:border-accent-800 transition-all overflow-hidden">
                   <div className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div className="space-y-2">
@@ -156,9 +156,9 @@ const MergeManagementModal: React.FC<MergeManagementModalProps> = ({ storyId, is
                     </div>
 
                     {reviewingId === req.id && (
-                      <div className="mt-6 p-6 bg-indigo-50/50 dark:bg-indigo-900/20 rounded-3xl border border-indigo-100 dark:border-indigo-900 space-y-4 animate-in slide-in-from-top-4 duration-300">
+                      <div className="mt-6 p-6 bg-accent-50/50 dark:bg-accent-800/20 rounded-3xl border border-accent-100 dark:border-accent-800 space-y-4 animate-in slide-in-from-top-4 duration-300">
                         <div className="space-y-2">
-                          <label className="text-sm font-black text-accent-700 dark:text-indigo-300 ml-1">审核批复 (给作者留言)</label>
+                          <label className="text-sm font-black text-accent-700 dark:text-accent-300 ml-1">审核批复 (给作者留言)</label>
                           <textarea
                             value={reviewComment}
                             onChange={(e) => setReviewComment(e.target.value)}

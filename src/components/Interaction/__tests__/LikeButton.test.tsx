@@ -1,8 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { LikeButton } from '../LikeButton';
 import { interactionService } from '../../../api/interactionService';
 import { useAuthStore } from '../../../stores/useAuthStore';
+
+function renderWithRouter(ui: React.ReactElement) {
+  return render(<MemoryRouter>{ui}</MemoryRouter>);
+}
 
 // Mock 依赖 — factory 模式确保方法可被 spy
 vi.mock('../../../api/interactionService', () => ({
@@ -16,8 +21,15 @@ vi.mock('../../../stores/useAuthStore', () => ({
   useAuthStore: vi.fn(),
 }));
 
+const { mockUseInteractionStore } = vi.hoisted(() => ({
+  mockUseInteractionStore: vi.fn((...args: any[]) => ({ showLoginPrompt: vi.fn() })),
+}));
+vi.mock('../../../stores/useInteractionStore', () => ({
+  useInteractionStore: (...args: any[]) => mockUseInteractionStore(...args),
+}));
+
 const mockAddToast = vi.fn();
-vi.mock('../../Toast', () => ({
+vi.mock('../../notifications/Toast', () => ({
   useToast: () => ({ addToast: mockAddToast }),
 }));
 
@@ -48,7 +60,7 @@ describe('LikeButton', () => {
   });
 
   it('renders with initial state', async () => {
-    render(
+    renderWithRouter(
       <LikeButton
         targetType="story"
         targetId="test-id"
@@ -64,7 +76,7 @@ describe('LikeButton', () => {
   });
 
   it('toggles like on click', async () => {
-    render(
+    renderWithRouter(
       <LikeButton
         targetType="story"
         targetId="test-id"
@@ -83,10 +95,10 @@ describe('LikeButton', () => {
 
   it('shows login prompt when not authenticated', () => {
     (useAuthStore as any).mockReturnValue({ isAuthenticated: false });
+    const showLoginPrompt = vi.fn();
+    mockUseInteractionStore.mockReturnValue({ showLoginPrompt });
 
-    const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent');
-
-    render(
+    renderWithRouter(
       <LikeButton
         targetType="story"
         targetId="test-id"
@@ -98,9 +110,7 @@ describe('LikeButton', () => {
     const button = screen.getByRole('button');
     fireEvent.click(button);
 
-    expect(dispatchEventSpy).toHaveBeenCalledWith(
-      expect.objectContaining({ type: 'show-login-prompt' }),
-    );
+    expect(showLoginPrompt).toHaveBeenCalled();
   });
 
   it('handles rate limit error', async () => {
@@ -108,7 +118,7 @@ describe('LikeButton', () => {
       response: { status: 429 },
     });
 
-    render(
+    renderWithRouter(
       <LikeButton
         targetType="story"
         targetId="test-id"
@@ -128,7 +138,7 @@ describe('LikeButton', () => {
   it('calls onLikeChange callback', async () => {
     const onLikeChange = vi.fn();
 
-    render(
+    renderWithRouter(
       <LikeButton
         targetType="story"
         targetId="test-id"
@@ -147,7 +157,7 @@ describe('LikeButton', () => {
   });
 
   it('shows count when showCount=true', async () => {
-    render(
+    renderWithRouter(
       <LikeButton
         targetType="story"
         targetId="test-id"
@@ -162,7 +172,7 @@ describe('LikeButton', () => {
   });
 
   it('hides count when showCount=false', async () => {
-    render(
+    renderWithRouter(
       <LikeButton
         targetType="story"
         targetId="test-id"
@@ -182,7 +192,7 @@ describe('LikeButton', () => {
       response: { status: 401 },
     });
 
-    render(
+    renderWithRouter(
       <LikeButton
         targetType="story"
         targetId="test-id"
@@ -204,7 +214,7 @@ describe('LikeButton', () => {
       response: { status: 500, data: { message: '服务器错误' } },
     });
 
-    render(
+    renderWithRouter(
       <LikeButton
         targetType="story"
         targetId="test-id"

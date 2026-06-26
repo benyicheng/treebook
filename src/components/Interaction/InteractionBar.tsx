@@ -6,6 +6,7 @@ import { RatingComponent } from './RatingComponent';
 import { ShareButton } from './ShareButton';
 import { interactionService, InteractionStats, TargetType } from '../../api/interactionService';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useInteractionStore } from '../../stores/useInteractionStore';
 
 interface InteractionBarProps {
   targetType: TargetType;
@@ -53,16 +54,12 @@ export const InteractionBar: React.FC<InteractionBarProps> = ({
 
   // 监听互动更新事件
   useEffect(() => {
-    const handleInteractionUpdate = (e: CustomEvent) => {
-      if (e.detail?.targetType === targetType && e.detail?.targetId === targetId) {
+    const unsub = useInteractionStore.getState().onInteractionUpdate((type, id) => {
+      if (type === targetType && id === targetId) {
         fetchStats();
       }
-    };
-
-    window.addEventListener('interaction-update', handleInteractionUpdate as EventListener);
-    return () => {
-      window.removeEventListener('interaction-update', handleInteractionUpdate as EventListener);
-    };
+    });
+    return unsub;
   }, [targetType, targetId, fetchStats]);
 
   const handleLikeChange = useCallback((liked: boolean, count: number) => {

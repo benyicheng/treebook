@@ -1,13 +1,21 @@
 import crypto from 'crypto';
+import type { Request } from 'express';
 import { AppError } from '../../utils/http';
 import { prisma } from '../../prisma';
 import { sanitizeSensitive, normalizeText } from './sensitive';
 import { EditorialRepository } from './EditorialRepository';
-import type { EditorialChangeDetail, EditorialField, EditorialTargetType } from './types';
+import type { EditorialChangeDetail, EditorialField, EditorialTargetType, EditorialChangeStatus } from './types';
+import type { ModerationTargetType, ModerationContentType } from '../moderation/types';
 import { ReviewWorkflowService } from '../reviewWorkflow/ReviewWorkflowService';
 import { ModerationGateway } from '../moderation/ModerationGateway';
 
-const getCurrentValue = async (targetType: EditorialTargetType, targetId: string, field: EditorialField) => {
+interface Actor {
+  id: string;
+  role: string;
+  permissions?: string[];
+}
+
+const getCurrentValue = async (targetType: EditorialTargetType, targetId: string, field: EditorialField): Promise<string | null> => {
   if (targetType === 'story') {
     const row = await prisma.story.findUnique({ where: { id: targetId }, select: { id: true, title: true, description: true, coverImage: true } });
     if (!row) return null;
@@ -24,10 +32,10 @@ const getCurrentValue = async (targetType: EditorialTargetType, targetId: string
     return null;
   }
   if (targetType === 'spinoff') {
-    const row = await prisma.spinoff.findUnique({ where: { id: targetId }, select: { id: true, title: true, content: true } as any });
+    const row = await prisma.spinoff.findUnique({ where: { id: targetId }, select: { id: true, title: true, content: true } });
     if (!row) return null;
-    if (field === 'title') return (row as any).title || '';
-    if (field === 'content') return (row as any).content || '';
+    if (field === 'title') return row.title || '';
+    if (field === 'content') return row.content || '';
     return null;
   }
   if (targetType === 'booklist') {
@@ -40,7 +48,7 @@ const getCurrentValue = async (targetType: EditorialTargetType, targetId: string
   return null;
 };
 
-const canPropose = (user: any) => {
+const canPropose = (user: Actor | null | undefined): boolean => {
   if (!user) return false;
   if (user.role === 'admin') return true;
   return Array.isArray(user.permissions) && user.permissions.includes('editorial:propose');
@@ -48,7 +56,7 @@ const canPropose = (user: any) => {
 
 export class EditorialService {
   static async createChange(input: {
-    actor: any;
+    actor: Actor | null;
     targetType: EditorialTargetType;
     targetId: string;
     field: EditorialField;
@@ -62,7 +70,7 @@ export class EditorialService {
     if (original === null) throw new AppError(404, 'NOT_FOUND', 'Target not found');
 
     let proposed = String(input.proposed || '');
-    const audit: any = {};
+    const audit: Record<string, unknown> = {};
     if (input.normalize !== false) {
       proposed = normalizeText(proposed);
       audit.normalized = true;
@@ -74,12 +82,12 @@ export class EditorialService {
     }
     if (!proposed.trim()) throw new AppError(400, 'BAD_REQUEST', 'proposed 不能为空');
 
-    const status = input.submit === false ? 'draft' : 'submitted';
+    const status: EditorialChangeStatus = input.submit === false ? 'draft' : 'submitted';
     const id = await EditorialRepository.createChange({
       targetType: input.targetType,
       targetId: input.targetId,
       field: input.field,
-      status: status as any,
+      status,
       original,
       proposed,
       createdBy: input.actor?.id || null,
@@ -91,21 +99,21 @@ export class EditorialService {
     return { id };
   }
 
-  static async listChanges(input: { actor: any; status?: string; targetType?: string; targetId?: string; limit: number; offset: number }) {
+  static async listChanges(input: { actor: Actor | null; status?: string; targetType?: string; targetId?: string; limit: number; offset: number }) {
     if (!input.actor) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
     const limit = Math.max(1, Math.min(200, input.limit));
     const offset = Math.max(0, input.offset);
     return EditorialRepository.listChanges({ status: input.status, targetType: input.targetType, targetId: input.targetId, limit, offset });
   }
 
-  static async getChangeById(input: { actor: any; id: string }): Promise<EditorialChangeDetail> {
+  static async getChangeById(input: { actor: Actor | null; id: string }): Promise<EditorialChangeDetail> {
     if (!input.actor) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
     const row = await EditorialRepository.getChangeById(input.id);
     if (!row) throw new AppError(404, 'NOT_FOUND', 'Not found');
     return row;
   }
 
-  static async applyChange(input: { actor: any; id: string; traceReq?: any }) {
+  static async applyChange(input: { actor: Actor; id: string; traceReq?: Request }) {
     if (!input.actor) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
     const row = await EditorialRepository.getChangeById(input.id);
     if (!row) throw new AppError(404, 'NOT_FOUND', 'Not found');
@@ -150,9 +158,9 @@ export class EditorialService {
     void ReviewWorkflowService.onContentUpdated({
       actorUserId: input.actor.id,
       businessLine,
-      targetType: row.targetType as any,
+      targetType: row.targetType as ModerationTargetType,
       targetId: row.targetId,
-      contentType: contentType as any,
+      contentType: contentType as ModerationContentType,
       field: row.field,
       snapshot,
     }).catch(() => {});
@@ -161,22 +169,22 @@ export class EditorialService {
       if (contentType === 'text') {
         void ModerationGateway.enqueueText(input.traceReq, {
           businessLine,
-          targetType: row.targetType as any,
+          targetType: row.targetType as ModerationTargetType,
           targetId: row.targetId,
           field: row.field,
           text: row.proposed,
           userId: input.actor.id,
-        } as any);
+        });
       } else {
         void ModerationGateway.enqueueMediaUrl(input.traceReq, {
           businessLine,
-          targetType: row.targetType as any,
+          targetType: row.targetType as ModerationTargetType,
           targetId: row.targetId,
           field: row.field,
           contentType: 'image',
           mediaUrl: row.proposed,
           userId: input.actor.id,
-        } as any);
+        });
       }
     }
 

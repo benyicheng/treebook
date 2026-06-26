@@ -1,4 +1,5 @@
 import { prisma } from '../prisma';
+import { AppError } from '../utils/http';
 
 export interface CreateNotificationInput {
   userId: string;
@@ -70,10 +71,10 @@ export class NotificationService {
     });
 
     if (!notification) {
-      throw new Error('NOTIFICATION_NOT_FOUND');
+      throw new AppError(404, 'NOT_FOUND', '通知不存在');
     }
     if (notification.userId !== userId) {
-      throw new Error('FORBIDDEN');
+      throw new AppError(403, 'FORBIDDEN', '没有权限');
     }
 
     return prisma.notification.update({

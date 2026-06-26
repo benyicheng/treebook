@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Character } from '../../../api/storyService';
+import type { Character } from '../../../api/types';
 import { useCharacters } from '../../../hooks/useCharacters';
 import { useCharacterAppearances, useBatchCharacterAppearances } from '../../../hooks/useCharacterAppearances';
 import { useToast } from '../../../components/notifications';
@@ -215,7 +215,7 @@ const AppearanceManager: React.FC<AppearanceManagerProps> = ({
                   >
                     <div className="flex items-center gap-2">
                       {char.avatarUrl ? (
-                        <img src={char.avatarUrl} alt="" className="w-6 h-6 rounded-lg object-cover shrink-0" />
+                        <img src={char.avatarUrl} alt="" className="w-6 h-6 rounded-lg object-cover shrink-0" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                       ) : (
                         <User size={16} className="shrink-0 text-ink-400" />
                       )}

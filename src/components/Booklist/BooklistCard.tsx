@@ -1,7 +1,12 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Eye, Heart, Layers, ChevronRight } from 'lucide-react';
+import { Eye, Heart, BookOpen, Globe, UserSearch, Sparkles, Route, ChevronRight } from 'lucide-react';
 import { Booklist } from '../../api/storyService';
+
+const TYPE_MAP: Record<string, { label: string; color: string }> = {
+  TIMELINE:   { label: '时空导览', color: 'bg-accent-600' },
+  COLLECTION: { label: '精选合集', color: 'bg-accent-500' },
+};
 
 interface BooklistCardProps {
   booklist: Booklist;
@@ -9,6 +14,7 @@ interface BooklistCardProps {
 
 const BooklistCard: React.FC<BooklistCardProps> = ({ booklist }) => {
   const navigate = useNavigate();
+  const t = TYPE_MAP[(booklist as any).type || ''] || TYPE_MAP.COLLECTION;
 
   return (
     <div 
@@ -20,14 +26,13 @@ const BooklistCard: React.FC<BooklistCardProps> = ({ booklist }) => {
         <img 
           src={(booklist as any).coverImage || 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&q=80&w=800'} 
           alt={booklist.title}
+          onError={(e) => { e.currentTarget.src = 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?auto=format&fit=crop&q=80&w=800' }}
           className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
         <div className="absolute top-4 left-4 flex gap-2">
-          <span className={`px-3 py-1 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg ${
-            (booklist as any).type === 'TIMELINE' ? 'bg-accent-600' : 'bg-accent-500'
-          }`}>
-            {(booklist as any).type === 'TIMELINE' ? '时空导览' : '精选合集'}
+          <span className={`px-3 py-1 text-white text-[10px] font-black rounded-full uppercase tracking-widest shadow-lg ${t.color}`}>
+            {t.label}
           </span>
         </div>
         <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between">
@@ -52,9 +57,14 @@ const BooklistCard: React.FC<BooklistCardProps> = ({ booklist }) => {
       
       <div className="p-8 space-y-4 flex-1 flex flex-col">
         <div className="flex flex-wrap gap-2">
-          {(booklist as any).tags?.split(',').filter(Boolean).map((tag: string) => (
-            <span key={tag} className="text-[10px] font-black text-accent-500 dark:text-accent-400 uppercase tracking-widest">
-              #{tag.trim()}
+          {(typeof (booklist as any).tags === 'string'
+            ? (booklist as any).tags.split(',').filter(Boolean)
+            : Array.isArray((booklist as any).tags)
+              ? (booklist as any).tags
+              : []
+          ).map((tag: any) => (
+            <span key={tag.id || tag} className="text-[10px] font-black text-accent-500 dark:text-accent-400 uppercase tracking-widest">
+              #{tag.name || tag}
             </span>
           ))}
         </div>
@@ -62,15 +72,21 @@ const BooklistCard: React.FC<BooklistCardProps> = ({ booklist }) => {
           {booklist.title}
         </h3>
         <p className="text-ink-500 dark:text-ink-400 font-light leading-relaxed text-sm line-clamp-3 italic">
-          "{booklist.description || '暂无描述'}"
+          &ldquo;{booklist.description || '暂无描述'}&rdquo;
         </p>
         <div className="pt-6 mt-auto flex items-center justify-between border-t border-ink-50 dark:border-ink-600/50">
-          <div className="flex items-center gap-2 text-xs font-bold text-ink-400">
-            <Layers size={14} />
-            <span>{booklist._count?.items || 0} 站旅程</span>
+          <div className="flex items-center gap-3 text-xs font-bold text-ink-400">
+            <span className="flex items-center gap-1">
+              <BookOpen size={14} />
+              {(booklist as any)._count?.items ?? 0} 项
+            </span>
+            <span className="flex items-center gap-1">
+              <Route size={14} />
+              {(booklist as any).paths?.length || 0} 路径
+            </span>
           </div>
           <div className="flex items-center gap-1 text-xs font-black text-accent-500 group-hover:gap-2 transition-all">
-            进入时空
+            进入导读
             <ChevronRight size={14} />
           </div>
         </div>

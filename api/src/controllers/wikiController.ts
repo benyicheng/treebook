@@ -3,19 +3,20 @@ import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { WikiService } from '../services/WikiService';
 import { AppError } from '../utils/http';
+import { getCurrentUser } from '../utils/authHelpers';
+import { qsFlat } from '../utils/pagination';
 
 // ── WikiPage CRUD ────────────────────────────────────
 
 export const createWikiPage = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId } = getCurrentUser(req);
 
   const page = await WikiService.createWikiPage(authorId, req.body);
   res.status(201).json({ success: true, data: page });
 });
 
 export const listWikiPages = catchAsync(async (req: Request, res: Response) => {
-  const result = await WikiService.getWikiPages(req.query as any);
+  const result = await WikiService.getWikiPages(qsFlat(req.query));
   res.json({ success: true, ...result });
 });
 
@@ -25,18 +26,14 @@ export const getWikiPage = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const updateWikiPage = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!authorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: userRole } = getCurrentUser(req);
 
   const updatedPage = await WikiService.updateWikiPage(req.params.id, authorId, userRole, req.body);
   res.json({ success: true, data: updatedPage });
 });
 
 export const deleteWikiPage = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!authorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: userRole } = getCurrentUser(req);
 
   const result = await WikiService.deleteWikiPage(req.params.id, authorId, userRole);
   res.json({ success: true, data: result });
@@ -51,19 +48,25 @@ export const lookupWikis = catchAsync(async (req: Request, res: Response) => {
   res.json({ success: true, data: results });
 });
 
+// ── Cross-Reference Queries ─────────────────────────
+
+export const getWikiReferences = catchAsync(async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const result = await WikiService.getWikiReferences(id);
+  res.json({ success: true, data: result });
+});
+
 // ── Alias Management ─────────────────────────────────
 
 export const addAlias = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId } = getCurrentUser(req);
 
   const alias = await WikiService.addAlias(req.params.id, req.body);
   res.status(201).json({ success: true, data: alias });
 });
 
 export const removeAlias = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId } = getCurrentUser(req);
 
   const result = await WikiService.removeAlias(req.params.id, req.params.aliasId);
   res.json({ success: true, data: result });
@@ -77,16 +80,14 @@ export const getLinks = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const createLink = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId } = getCurrentUser(req);
 
   const link = await WikiService.createLink(req.params.id, req.body);
   res.status(201).json({ success: true, data: link });
 });
 
 export const removeLink = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId } = getCurrentUser(req);
 
   const result = await WikiService.removeLink(req.params.id, req.params.linkId);
   res.json({ success: true, data: result });

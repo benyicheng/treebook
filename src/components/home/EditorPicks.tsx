@@ -60,6 +60,7 @@ const EditorPicks: React.FC<EditorPicksProps> = ({ displayedPicks, storiesLoadin
                   src={pick.coverImage || coverFallback}
                   alt={pick.title}
                   loading="lazy"
+                  onError={(e) => { e.currentTarget.src = coverFallback }}
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                 />
               </div>

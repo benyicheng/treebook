@@ -3,11 +3,13 @@ import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { StoryService } from '../services/StoryService';
 import { AppError } from '../utils/http';
+import { getCurrentUser } from '../utils/authHelpers';
+import { qsFlat } from '../utils/pagination';
 import { moderateText, moderateMedia, reviewContent } from '../utils/contentModeration';
 import { ModerationVisibilityService } from '../domains/moderation/ModerationVisibilityService';
 
 export const getAllStories = catchAsync(async (req: Request, res: Response) => {
-  const result = await StoryService.getAllStories(req.query as any);
+  const result = await StoryService.getAllStories(qsFlat(req.query));
   res.json({ success: true, ...result });
 });
 
@@ -21,8 +23,7 @@ export const getStoryById = catchAsync(async (req: Request, res: Response) => {
 });
 
 export const createStory = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId } = getCurrentUser(req);
 
   const story = await StoryService.createStory(authorId, req.body);
   moderateText(req, 'stories', 'story', story.id, 'title', story.title, authorId);
@@ -32,9 +33,7 @@ export const createStory = catchAsync(async (req: AuthRequest, res: Response) =>
 });
 
 export const updateStory = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const role = req.user?.role;
-  if (!authorId || !role) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: role } = getCurrentUser(req);
 
   const story = await StoryService.updateStory(req.params.id, authorId, role, req.body);
   reviewContent(authorId, 'stories', 'story', story.id, 'text', 'title', { text: story.title, field: 'title' });
@@ -47,9 +46,7 @@ export const updateStory = catchAsync(async (req: AuthRequest, res: Response) =>
 });
 
 export const deleteStory = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const role = req.user?.role;
-  if (!authorId || !role) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: role } = getCurrentUser(req);
 
   const result = await StoryService.deleteStory(req.params.id, authorId, role);
   res.json({ success: true, data: result });
@@ -64,10 +61,9 @@ export const getRecentReads = catchAsync(async (req: AuthRequest, res: Response)
 });
 
 export const getMyStories = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId } = getCurrentUser(req);
 
-  const result = await StoryService.getMyStories(authorId, req.query as any);
+  const result = await StoryService.getMyStories(authorId, qsFlat(req.query));
   res.json({ success: true, ...result });
 });
 
@@ -77,9 +73,7 @@ export const getStoryCharacters = catchAsync(async (req: Request, res: Response)
 });
 
 export const createCharacter = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const role = req.user?.role;
-  if (!authorId || !role) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: role } = getCurrentUser(req);
 
   const character = await StoryService.createCharacter(req.params.id, authorId, role, req.body);
   moderateText(req, 'stories', 'character', character.id, 'name', character.name, authorId);
@@ -89,9 +83,7 @@ export const createCharacter = catchAsync(async (req: AuthRequest, res: Response
 });
 
 export const updateCharacter = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const role = req.user?.role;
-  if (!authorId || !role) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: role } = getCurrentUser(req);
 
   const character = await StoryService.updateCharacter(req.params.charId, authorId, role, req.body);
   moderateText(req, 'stories', 'character', character.id, 'name', character.name, authorId);
@@ -101,9 +93,7 @@ export const updateCharacter = catchAsync(async (req: AuthRequest, res: Response
 });
 
 export const deleteCharacter = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const role = req.user?.role;
-  if (!authorId || !role) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: role } = getCurrentUser(req);
 
   const result = await StoryService.deleteCharacter(req.params.charId, authorId, role);
   res.json({ success: true, data: result });
@@ -120,9 +110,7 @@ export const getStoryCharacterAppearances = catchAsync(async (req: Request, res:
 });
 
 export const batchCharacterAppearances = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const role = req.user?.role;
-  if (!authorId || !role) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: role } = getCurrentUser(req);
 
   const result = await StoryService.batchUpdateCharacterAppearances(
     req.params.id,
@@ -134,9 +122,7 @@ export const batchCharacterAppearances = catchAsync(async (req: AuthRequest, res
 });
 
 export const certifyBranch = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  const role = req.user?.role;
-  if (!userId || !role) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId, role: role } = getCurrentUser(req);
 
   const updated = await StoryService.certifyBranch(req.params.branchId, userId, role, req.body);
   res.json({ success: true, data: updated });

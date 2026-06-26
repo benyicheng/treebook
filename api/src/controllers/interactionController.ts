@@ -3,12 +3,13 @@ import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { InteractionService, TargetType } from '../services/InteractionService';
 import { AppError } from '../utils/http';
+import { getCurrentUser } from '../utils/authHelpers';
 import { RATING_REASON_TAGS } from '../utils/interaction';
 import { recordInteractionEvent } from '../observability/events/interactionEvents';
 
-export const getInteractionStats = catchAsync(async (req: Request, res: Response) => {
+export const getInteractionStats = catchAsync(async (req: AuthRequest, res: Response) => {
   const { targetType, targetId } = req.params;
-  const userId = (req as any).user?.id;
+  const userId = req.user?.id;
 
   if (!InteractionService.isTargetType(targetType)) {
     throw new AppError(400, 'VALIDATION_ERROR', 'Invalid targetType');
@@ -20,8 +21,7 @@ export const getInteractionStats = catchAsync(async (req: Request, res: Response
 
 export const toggleLike = catchAsync(async (req: AuthRequest, res: Response) => {
   const { targetType, targetId } = req.params;
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   if (!InteractionService.isTargetType(targetType)) {
     throw new AppError(400, 'VALIDATION_ERROR', 'Invalid targetType');
@@ -39,10 +39,9 @@ export const toggleLike = catchAsync(async (req: AuthRequest, res: Response) => 
 
 export const updateRating = catchAsync(async (req: AuthRequest, res: Response) => {
   const { targetType, targetId } = req.params;
-  const userId = req.user?.id;
+  const { id: userId } = getCurrentUser(req);
   const { score, reasonTags } = req.body;
   
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
   if (!InteractionService.isTargetType(targetType)) {
     throw new AppError(400, 'VALIDATION_ERROR', 'Invalid targetType');
   }
@@ -59,9 +58,10 @@ export const updateRating = catchAsync(async (req: AuthRequest, res: Response) =
   res.json({ success: true, data });
 });
 
-export const recordShare = catchAsync(async (req: Request, res: Response) => {
+export const recordShare = catchAsync(async (req: AuthRequest, res: Response) => {
   const { targetType, targetId } = req.params;
-  const { platform } = (req as any).body || {};
+  const { id: userId } = getCurrentUser(req);
+  const { platform } = req.body || {};
 
   if (!InteractionService.isTargetType(targetType)) {
     throw new AppError(400, 'VALIDATION_ERROR', 'Invalid targetType');
@@ -72,6 +72,7 @@ export const recordShare = catchAsync(async (req: Request, res: Response) => {
     type: 'share',
     targetType: targetType as TargetType,
     targetId,
+    userId,
     platform,
   });
   res.json({ success: true, data: result });

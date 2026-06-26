@@ -19,7 +19,7 @@ vi.mock('../../stores/useAuthStore', () => ({
   useAuthStore: vi.fn(() => ({ user: null, isAuthenticated: false })),
 }));
 
-vi.mock('../../components/Toast', () => ({
+vi.mock('../../components/notifications', () => ({
   useToast: () => ({ addToast: vi.fn() }),
 }));
 

@@ -1,8 +1,10 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { interactionService, TargetType } from '../../api/interactionService';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { useInteractionStore } from '../../stores/useInteractionStore';
 import { useToast } from '../notifications/Toast';
 
 interface LikeButtonProps {
@@ -24,21 +26,24 @@ const sizeClasses = {
 export const LikeButton: React.FC<LikeButtonProps> = ({
   targetType,
   targetId,
-  initialLiked = false,
-  initialCount = 0,
+  initialLiked,
+  initialCount,
   onLikeChange,
   size = 'md',
   showCount = true,
 }) => {
   const { isAuthenticated } = useAuthStore();
+  const { showLoginPrompt } = useInteractionStore();
   const { addToast } = useToast();
-  const [liked, setLiked] = useState(initialLiked);
-  const [count, setCount] = useState(initialCount);
+  const navigate = useNavigate();
+  const [liked, setLiked] = useState(initialLiked ?? false);
+  const [count, setCount] = useState(initialCount ?? 0);
   const [isLoading, setIsLoading] = useState(false);
   const [showParticles, setShowParticles] = useState(false);
 
-  // 获取初始状态
+  // 仅在独立使用（无父组件传入初始值）时获取初始状态
   useEffect(() => {
+    if (initialLiked !== undefined) return;
     const fetchStats = async () => {
       try {
         const data = await interactionService.getStats(targetType, targetId);
@@ -51,12 +56,12 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
     if (isAuthenticated) {
       fetchStats();
     }
-  }, [targetType, targetId, isAuthenticated]);
+  }, [targetType, targetId, isAuthenticated, initialLiked]);
 
   const handleClick = useCallback(async () => {
     if (!isAuthenticated) {
-      // 触发登录提示
-      window.dispatchEvent(new CustomEvent('show-login-prompt'));
+      showLoginPrompt();
+      navigate('/login');
       return;
     }
 
@@ -94,7 +99,6 @@ export const LikeButton: React.FC<LikeButtonProps> = ({
       setCount(count);
       
       const status = error.response?.status;
-      const errorCode = error.response?.data?.code;
       const errorMsg = error.response?.data?.message;
       
       if (status === 401) {

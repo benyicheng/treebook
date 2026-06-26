@@ -6,6 +6,21 @@ import { MessageSquare, Send, Clock } from 'lucide-react';
 import { useToast } from '../../components/notifications';
 import { useNavigate } from 'react-router-dom';
 
+const CommentAvatar: React.FC<{ author: { avatarUrl?: string | null; username: string } }> = ({ author }) => {
+  const [imgFailed, setImgFailed] = useState(false);
+  if (author.avatarUrl && !imgFailed) {
+    return (
+      <img
+        src={author.avatarUrl}
+        alt={author.username}
+        className="w-full h-full object-cover rounded-2xl"
+        onError={() => setImgFailed(true)}
+      />
+    );
+  }
+  return <>{author.username[0]}</>;
+};
+
 interface CommentSectionProps {
   chapterId: string;
 }
@@ -96,11 +111,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ chapterId }) => {
           comments.map((comment: Comment) => (
             <div key={comment.id} className="flex gap-5 group">
               <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-accent-100 to-accent-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center text-accent-500 font-black text-lg shrink-0 shadow-sm">
-                {comment.author.avatarUrl ? (
-                  <img src={comment.author.avatarUrl} alt={comment.author.username} className="w-full h-full object-cover rounded-2xl" />
-                ) : (
-                  comment.author.username[0]
-                )}
+                <CommentAvatar author={comment.author} />
               </div>
               <div className="flex-1 space-y-2">
                 <div className="flex items-center justify-between">
@@ -115,7 +126,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({ chapterId }) => {
                     {new Date(comment.createdAt).toLocaleDateString()}
                   </div>
                 </div>
-                <div className="p-5 bg-ink-50 dark:bg-ink-800 rounded-2xl border border-ink-50 dark:border-ink-700 shadow-sm group-hover:border-accent-100 dark:group-hover:border-accent-900/30 transition-all">
+                <div className="p-5 bg-ink-50 dark:bg-ink-800 rounded-2xl border border-ink-50 dark:border-ink-700 shadow-sm group-hover:border-accent-100 dark:group-hover:border-accent-800/30 transition-all">
                   <p className="text-sm text-ink-500 dark:text-ink-300 leading-relaxed font-medium">
                     {comment.content}
                   </p>

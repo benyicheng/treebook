@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { activityService, ActivityItem } from '../../api/activityService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { timeAgo } from '../../lib/utils';
+import { Avatar } from '../ui';
 import {
   Loader2,
   BookOpen,
@@ -30,7 +31,7 @@ const activityConfig: Record<string, { icon: React.ElementType; label: string; c
   chapter_update: { icon: Edit3, label: '更新了章节', color: 'text-green-600 bg-green-50 dark:bg-green-900/20' },
   merge_request: { icon: GitMerge, label: '发起了合并请求', color: 'text-orange-600 bg-orange-50 dark:bg-orange-900/20' },
   merge_approved: { icon: CheckCircle, label: '合并已通过', color: 'text-accent-500 bg-accent-50 dark:bg-accent-500/10' },
-  follow: { icon: UserPlus, label: '关注了用户', color: 'text-accent-600 bg-indigo-50 dark:bg-indigo-900/20' },
+  follow: { icon: UserPlus, label: '关注了用户', color: 'text-accent-600 bg-accent-50 dark:bg-accent-800/20' },
 };
 
 const defaultConfig = { icon: FileText, label: '执行了操作', color: 'text-ink-500 bg-ink-50 dark:bg-ink-700' };
@@ -155,7 +156,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
             {meta.username && (
               <Link
                 to={`/profile/${activity.targetId}`}
-                className="font-bold text-accent-600 dark:text-indigo-400 hover:underline ml-1"
+                className="font-bold text-accent-600 dark:text-accent-400 hover:underline ml-1"
               >
                 {meta.username}
               </Link>
@@ -209,12 +210,8 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
                 className="shrink-0"
               >
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 p-0.5">
-                  <div className="w-full h-full rounded-full bg-ink-50 dark:bg-ink-800 flex items-center justify-center text-accent-500 font-bold text-xs overflow-hidden">
-                    {activity.actor.avatarUrl ? (
-                      <img src={activity.actor.avatarUrl} alt="" className="w-full h-full object-cover" />
-                    ) : (
-                      activity.actor.username?.[0]?.toUpperCase() || '?'
-                    )}
+                  <div className="w-full h-full rounded-full overflow-hidden">
+                    <Avatar src={activity.actor.avatarUrl} alt={activity.actor.username} fallback={activity.actor.username?.[0]} size="sm" className="w-full h-full" />
                   </div>
                 </div>
               </Link>

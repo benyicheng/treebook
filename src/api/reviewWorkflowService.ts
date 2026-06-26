@@ -40,8 +40,8 @@ export const reviewWorkflowService = {
     return res.data as ReviewCaseDetail;
   },
 
-  async addAction(id: string, input: { action: string; payload?: any }) {
+  async addAction(id: string, input: { action: string; payload?: unknown }) {
     const res = await client.post(`/review-workflow/cases/${id}/actions`, input);
-    return res.data as any;
+    return res.data as { ok: boolean };
   },
 };

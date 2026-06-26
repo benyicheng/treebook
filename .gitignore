@@ -79,4 +79,4 @@ Thumbs.db
 # Generated artifacts
 edge_output.txt
 product-audit.zip
-test-results/
+test-results/nul

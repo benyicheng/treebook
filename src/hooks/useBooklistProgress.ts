@@ -1,6 +1,8 @@
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../stores/useAuthStore';
 import { booklistService } from '../api/storyService';
+import { queryKeys } from '../lib/queryKeys';
 
 const STORAGE_PREFIX = 'booklist_progress_';
 
@@ -16,134 +18,105 @@ interface UseBooklistProgressOptions {
   totalItems: number;
 }
 
+function loadLocal(booklistId: string): BooklistProgress | null {
+  try {
+    const stored = localStorage.getItem(STORAGE_PREFIX + booklistId);
+    if (stored) return JSON.parse(stored) as BooklistProgress;
+  } catch { /* corrupted data */ }
+  return null;
+}
+
+function saveLocal(progress: BooklistProgress) {
+  try {
+    localStorage.setItem(STORAGE_PREFIX + progress.booklistId, JSON.stringify(progress));
+  } catch { /* localStorage full */ }
+}
+
 export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgressOptions) {
   const { user } = useAuthStore();
-  const [progress, setProgress] = useState<BooklistProgress>(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_PREFIX + booklistId);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return parsed;
-      }
-    } catch {
-      // corrupted data, start fresh
-    }
-    return {
-      booklistId,
-      currentItemIndex: -1,
-      completedItemIds: [],
-      updatedAt: Date.now(),
-    };
+  const qc = useQueryClient();
+
+  const localInitial = loadLocal(booklistId);
+
+  const fallbackRef = useRef<BooklistProgress>({
+    booklistId,
+    currentItemIndex: -1,
+    completedItemIds: [],
+    updatedAt: Date.now(),
   });
 
-  const syncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const isInitialLoadDone = useRef(false);
-
-  // D4: On mount, load progress from backend and merge with local
-  useEffect(() => {
-    if (!user || !booklistId) {
-      isInitialLoadDone.current = true;
-      return;
-    }
-
-    const fetchBackendProgress = async () => {
+  const { data: progress = localInitial ?? fallbackRef.current } = useQuery({
+    queryKey: queryKeys.readingProgress.byBooklist(booklistId),
+    queryFn: async () => {
       try {
-        const backendProgress = await booklistService.getProgress(booklistId);
-        if (backendProgress && backendProgress.updatedAt) {
-          const backendTs = new Date(backendProgress.updatedAt).getTime();
-          const localProgress = localStorage.getItem(STORAGE_PREFIX + booklistId);
-          
-          if (localProgress) {
-            const local = JSON.parse(localProgress);
-            // Use whichever version is newer
-            if (backendTs > local.updatedAt) {
-              const merged: BooklistProgress = {
-                booklistId,
-                currentItemIndex: backendProgress.currentItemIndex ?? -1,
-                completedItemIds: backendProgress.completedItemIds ?? [],
-                updatedAt: backendTs,
-              };
-              setProgress(merged);
-            }
-          } else {
-            // No local progress, use backend
-            setProgress({
-              booklistId,
-              currentItemIndex: backendProgress.currentItemIndex ?? -1,
-              completedItemIds: backendProgress.completedItemIds ?? [],
-              updatedAt: backendTs,
-            });
-          }
+        const backend = await booklistService.getProgress(booklistId);
+        if (backend?.updatedAt) {
+          const backendTs = new Date(backend.updatedAt).getTime();
+          const local = loadLocal(booklistId);
+          if (local && local.updatedAt >= backendTs) return local;
+          const merged: BooklistProgress = {
+            booklistId,
+            currentItemIndex: backend.currentItemIndex ?? -1,
+            completedItemIds: backend.completedItemIds ?? [],
+            updatedAt: backendTs,
+          };
+          saveLocal(merged);
+          return merged;
         }
-      } catch {
-        // Backend unavailable, use local-only
-      } finally {
-        isInitialLoadDone.current = true;
-      }
-    };
+      } catch { /* backend unavailable */ }
+      return loadLocal(booklistId) ?? fallbackRef.current;
+    },
+    staleTime: 30_000,
+    enabled: !!booklistId,
+  });
 
-    fetchBackendProgress();
-  }, [user, booklistId]);
-
-  // Persist to localStorage whenever progress changes
-  useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_PREFIX + booklistId, JSON.stringify(progress));
-    } catch {
-      // localStorage full or unavailable
-    }
-  }, [progress, booklistId]);
-
-  // D4: Sync to backend with debounce (only when initial load is done)
-  useEffect(() => {
-    if (!user || !booklistId || !isInitialLoadDone.current) return;
-
-    if (syncTimerRef.current) {
-      clearTimeout(syncTimerRef.current);
-    }
-
-    syncTimerRef.current = setTimeout(() => {
+  const syncMutation = useMutation({
+    mutationFn: (p: BooklistProgress) =>
       booklistService.updateProgress(booklistId, {
-        currentItemIndex: progress.currentItemIndex,
-        completedItemIds: progress.completedItemIds,
-      }).catch(() => {
-        // Silent fail - localStorage is the primary source
-      });
+        currentItemIndex: p.currentItemIndex,
+        completedItemIds: p.completedItemIds,
+      }),
+  });
+
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const scheduleSync = useCallback((p: BooklistProgress) => {
+    if (!user || !booklistId) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      syncMutation.mutate(p);
     }, 1000);
+  }, [user, booklistId, syncMutation]);
 
-    return () => {
-      if (syncTimerRef.current) {
-        clearTimeout(syncTimerRef.current);
-      }
-    };
-  }, [progress, user, booklistId]);
-
-  const markCompleted = useCallback((itemId: string) => {
-    setProgress(prev => {
-      if (prev.completedItemIds.includes(itemId)) return prev;
-      return {
-        ...prev,
-        completedItemIds: [...prev.completedItemIds, itemId],
+  const update = useCallback((partial: Partial<BooklistProgress>) => {
+    qc.setQueryData(queryKeys.readingProgress.byBooklist(booklistId), (prev: BooklistProgress | undefined) => {
+      const next: BooklistProgress = {
+        ...(prev ?? fallbackRef.current),
+        ...partial,
         updatedAt: Date.now(),
       };
+      saveLocal(next);
+      scheduleSync(next);
+      return next;
     });
-  }, []);
+  }, [booklistId, qc, scheduleSync]);
+
+  const markCompleted = useCallback((itemId: string) => {
+    if (progress.completedItemIds.includes(itemId)) return;
+    update({
+      completedItemIds: [...progress.completedItemIds, itemId],
+    });
+  }, [progress.completedItemIds, update]);
 
   const markUncompleted = useCallback((itemId: string) => {
-    setProgress(prev => ({
-      ...prev,
-      completedItemIds: prev.completedItemIds.filter(id => id !== itemId),
-      updatedAt: Date.now(),
-    }));
-  }, []);
+    update({
+      completedItemIds: progress.completedItemIds.filter(id => id !== itemId),
+    });
+  }, [progress.completedItemIds, update]);
 
   const setCurrentItem = useCallback((index: number) => {
-    setProgress(prev => ({
-      ...prev,
-      currentItemIndex: index,
-      updatedAt: Date.now(),
-    }));
-  }, []);
+    update({ currentItemIndex: index });
+  }, [update]);
 
   const continueReading = useCallback((): number => {
     if (progress.currentItemIndex >= 0 && progress.currentItemIndex < totalItems) {
@@ -153,13 +126,11 @@ export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgr
   }, [progress.currentItemIndex, totalItems]);
 
   const resetProgress = useCallback(() => {
-    setProgress({
-      booklistId,
+    update({
       currentItemIndex: -1,
       completedItemIds: [],
-      updatedAt: Date.now(),
     });
-  }, [booklistId]);
+  }, [update]);
 
   const isCompleted = useCallback((itemId: string): boolean => {
     return progress.completedItemIds.includes(itemId);
@@ -169,13 +140,10 @@ export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgr
     ? Math.round((progress.completedItemIds.length / totalItems) * 100)
     : 0;
 
+  const scrollPositionRef = useRef<number>(0);
+
   const saveProgressOnUnload = useCallback(() => {
-    if (!booklistId) return;
-    try {
-      localStorage.setItem(STORAGE_PREFIX + booklistId, JSON.stringify(progress));
-    } catch {
-      // localStorage full
-    }
+    saveLocal(progress);
     if (user && booklistId) {
       booklistService.updateProgress(booklistId, {
         currentItemIndex: progress.currentItemIndex,
@@ -183,8 +151,6 @@ export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgr
       }).catch(() => {});
     }
   }, [progress, booklistId, user]);
-
-  const scrollPositionRef = useRef<number>(0);
 
   const setScrollPosition = useCallback((pos: number) => {
     scrollPositionRef.current = pos;
@@ -195,13 +161,9 @@ export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgr
   }, []);
 
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      saveProgressOnUnload();
-    };
+    const handleBeforeUnload = () => { saveProgressOnUnload(); };
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'hidden') {
-        saveProgressOnUnload();
-      }
+      if (document.visibilityState === 'hidden') saveProgressOnUnload();
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -210,6 +172,11 @@ export function useBooklistProgress({ booklistId, totalItems }: UseBooklistProgr
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [saveProgressOnUnload]);
+
+  // Persist to localStorage on every progress change
+  useEffect(() => {
+    saveLocal(progress);
+  }, [progress]);
 
   return {
     progress,

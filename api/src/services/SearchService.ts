@@ -26,6 +26,87 @@ export class SearchService {
   private static readonly TIMEOUT_MS = 500;
 
   /**
+   * LIKE-based fallback search when FTS5 table is unavailable.
+   * Uses Prisma.sql tagged templates for type-safe parameterized queries.
+   */
+  private static async searchByLike(
+    query: string,
+    type?: string | null,
+    limit: number = 20,
+    offset: number = 0,
+  ): Promise<SearchResponse> {
+    const likePattern = `%${query.replace(/[%_]/g, '\\$&')}%`;
+    const safeLimit = Math.min(Math.max(1, limit), 50);
+    const likeParam = Prisma.sql`${likePattern}`;
+
+    const queries: Prisma.Sql[] = [];
+
+    const addUnion = (sql: Prisma.Sql) => {
+      queries.push(sql);
+    };
+
+    if (!type || type === 'all' || type === 'story') {
+      addUnion(
+        Prisma.sql`SELECT id as sourceId, title, 'story' as type, IFNULL(description, '') as content, json_object('storyId', id, 'authorId', authorId) as metadata, 0 as rank FROM stories WHERE title LIKE ${likeParam} OR description LIKE ${likeParam}`,
+      );
+    }
+    if (!type || type === 'all' || type === 'chapter') {
+      addUnion(
+        Prisma.sql`SELECT id as sourceId, title, 'chapter' as type, content, json_object('storyId', storyId, 'chapterId', id) as metadata, 0 as rank FROM chapters WHERE title LIKE ${likeParam} OR content LIKE ${likeParam}`,
+      );
+    }
+    if (!type || type === 'all' || type === 'branch') {
+      addUnion(
+        Prisma.sql`SELECT id as sourceId, title, 'branch' as type, IFNULL(description, '') as content, json_object('storyId', parentStoryId, 'authorId', authorId, 'branchId', id) as metadata, 0 as rank FROM branches WHERE title LIKE ${likeParam} OR description LIKE ${likeParam}`,
+      );
+    }
+    if (!type || type === 'all' || type === 'spinoff') {
+      addUnion(
+        Prisma.sql`SELECT id as sourceId, title, 'spinoff' as type, IFNULL(summary, '') as content, json_object('storyId', originalStoryId, 'authorId', authorId, 'spinoffId', id) as metadata, 0 as rank FROM spinoffs WHERE title LIKE ${likeParam} OR summary LIKE ${likeParam}`,
+      );
+    }
+
+    if (queries.length === 0) {
+      return { results: [], total: 0, query, type: type || null };
+    }
+
+    const unionAll = queries.reduce((acc, q) => Prisma.sql`${acc} UNION ALL ${q}`);
+    const countSql = Prisma.sql`SELECT count(*) as cnt FROM (${unionAll})`;
+    const dataSql = Prisma.sql`SELECT * FROM (${unionAll}) ORDER BY rank LIMIT ${safeLimit} OFFSET ${offset}`;
+
+    try {
+      const countRows = await prisma.$queryRaw<Array<{ cnt: bigint }>>(countSql);
+      const total = Number(countRows[0]?.cnt ?? 0n);
+
+      if (total === 0) {
+        return { results: [], total: 0, query, type: type || null };
+      }
+
+      const rows = await prisma.$queryRaw<
+        Array<{ sourceId: string; title: string; type: string; content: string; metadata: string; rank: number }>
+      >(dataSql);
+
+      const results: SearchResult[] = rows.map((row) => {
+        let metadata: Record<string, string> = {};
+        try { metadata = JSON.parse(row.metadata || '{}'); } catch { /* ignore */ }
+        return {
+          title: row.title,
+          type: row.type as SearchResult['type'],
+          sourceId: row.sourceId,
+          highlight: this.extractHighlight(row.content, query),
+          metadata,
+          rank: row.rank,
+        };
+      });
+
+      return { results, total, query, type: type || null };
+    } catch (err: unknown) {
+      console.error('[Search] LIKE fallback also failed:', err instanceof Error ? err.message : String(err));
+      return { results: [], total: 0, query, type: type || null };
+    }
+  }
+
+  /**
    * FTS5 全文搜索
    * - 支持类型过滤：story / branch / spinoff / chapter / author
    * - 按 relevance rank 排序
@@ -78,7 +159,8 @@ export class SearchService {
       const total = Number(countRows[0]?.cnt ?? 0);
 
       if (total === 0) {
-        return this.getHotRecommendations(safeLimit, offset, type);
+        // No FTS5 matches, try LIKE-based fallback before giving up
+        return this.searchByLike(safeQuery, type, safeLimit, offset);
       }
 
       const results: SearchResult[] = rows.map((row) => {
@@ -104,8 +186,8 @@ export class SearchService {
 
       return { results, total, query: safeQuery, type: type || null };
     } catch (err: unknown) {
-      console.error('FTS5 search error:', err instanceof Error ? err.message : String(err));
-      return this.getHotRecommendations(safeLimit, offset, type);
+      console.warn('[FTS5] Search failed, using LIKE fallback:', err instanceof Error ? err.message : String(err));
+      return this.searchByLike(safeQuery, type, safeLimit, offset);
     }
   }
 

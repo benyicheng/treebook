@@ -145,7 +145,6 @@ export const register = catchAsync(async (req: Request, res: Response) => {
         role: user.role,
       },
       token,
-      refreshToken,
     }
   });
 });
@@ -179,7 +178,6 @@ export const login = catchAsync(async (req: Request, res: Response) => {
         permissions
       },
       token,
-      refreshToken,
     }
   });
 });
@@ -189,7 +187,8 @@ export const login = catchAsync(async (req: Request, res: Response) => {
 export const refresh = catchAsync(async (req: Request, res: Response) => {
   const rawToken = req.cookies?.[REFRESH_COOKIE_NAME] || req.body?.refreshToken;
   if (!rawToken || typeof rawToken !== 'string') {
-    throw new AppError(400, 'MISSING_REFRESH_TOKEN', 'refreshToken is required');
+    res.status(204).end();
+    return;
   }
 
   // The refresh token's DB record is the trust root for user identity here.

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import notificationService, { NotificationItem } from '../api/notificationService';
+import { getToken } from '../lib/tokenStore';
 
 interface NotificationState {
   unreadCount: number;
@@ -23,15 +24,17 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   isOpen: false,
 
   fetchUnreadCount: async () => {
+    if (!getToken()) return;
     try {
       const count = await notificationService.getUnreadCount();
       set({ unreadCount: count });
     } catch {
-      // 静默失败，不打扰用户
+      // 静默失败
     }
   },
 
   fetchNotifications: async (page = 1) => {
+    if (!getToken()) return;
     set({ isLoading: true });
     try {
       const result = await notificationService.getNotifications(page, 20);
@@ -73,14 +76,16 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   toggleOpen: () => {
     const { isOpen } = get();
     set({ isOpen: !isOpen });
-    if (!isOpen) {
+    if (!isOpen && getToken()) {
       get().fetchNotifications();
     }
   },
 
   close: () => {
     set({ isOpen: false });
-    get().fetchUnreadCount();
+    if (getToken()) {
+      get().fetchUnreadCount();
+    }
   },
 
   startPolling: () => {

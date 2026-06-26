@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, Link, Outlet, useLocation } from 'react-router-dom';
-import { GitBranch, Home, Layout, LogOut, Star, User, Users, Shield, ShieldCheck, Settings2, Search, BookMarked, Plus, Coins, Crown, Zap, Edit3, ClipboardCheck, Compass, Route, ChevronDown, BookOpen, FileText, FileEdit, BarChart3 } from 'lucide-react';
+import { GitBranch, Home, Layout, LogOut, Star, User, Users, Shield, ShieldCheck, Settings2, Search, BookMarked, Plus, Coins, Crown, Zap, Edit3, ClipboardCheck, Compass, ChevronDown, BookOpen, FileText, FileEdit, BarChart3 } from 'lucide-react';
 import { useAuthStore } from '../stores/useAuthStore';
 import { useSiteConfigStore } from '../stores/useSiteConfigStore';
 import { useModeStore } from '../stores/useModeStore';
@@ -9,6 +9,7 @@ import { ReadingDrawer } from '../components/Booklist';
 import { NotificationDropdown } from '../components/notifications';
 import { motion, AnimatePresence } from 'framer-motion';
 import { PermissionGate } from '../components/auth';
+import { Avatar } from '../components/ui';
 import searchService, { type SearchSuggestItem } from '../api/searchService';
 
 
@@ -122,17 +123,24 @@ const MainLayout: React.FC = () => {
   // 浏览导航
   const browseItems = [
     { name: '首页', path: '/', icon: Home },
-    { name: '主线', path: '/stories', icon: Crown },
-    { name: '分支', path: '/branches', icon: GitBranch },
     {
       name: '发现',
       path: '/discover',
       icon: Compass,
       children: [
+        { name: '主线', path: '/stories', icon: Crown },
+        { name: '分支', path: '/branches', icon: GitBranch },
+        { name: '番外', path: '/spinoff', icon: FileText },
         { name: '发现', path: '/discover', icon: Compass },
+      ],
+    },
+    {
+      name: '社区',
+      path: '/follow',
+      icon: Users,
+      children: [
         { name: '关注', path: '/follow', icon: Users },
         { name: '书单', path: '/booklist', icon: BookMarked },
-        { name: '阅读路径', path: '/reading-paths', icon: Route },
       ],
     },
     { name: '推荐', path: '/recommendations', icon: Star },
@@ -184,20 +192,17 @@ const MainLayout: React.FC = () => {
     <div className="min-h-screen bg-ink-50 dark:bg-ink-800 flex flex-col transition-colors duration-page">
       
       {/* ══════ 顶部主导航 (Fixed Top - Single Row) ══════ */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-ink-50 dark:bg-ink-800 backdrop-blur-xl border-b border-ink-100 dark:border-ink-700 shadow-sm">
+      <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300 bg-ink-50/95 dark:bg-ink-800/95 backdrop-blur-xl border-b border-ink-100 dark:border-ink-700 shadow-sm">
         <div className="max-w-[1600px] mx-auto h-20 flex items-center justify-between px-6 gap-8">
           
           {/* 左侧：Logo */}
           <Link to="/" className="flex items-center gap-3 group shrink-0">
-            <div className="w-10 h-10 bg-gradient-to-br from-accent-400 to-accent-600 rounded-xl flex items-center justify-center shadow-md shadow-accent-500/20 group-hover:scale-110 transition-transform duration-fast ease-out-expo">
-              {config.logoUrl
-                ? <img src={config.logoUrl} alt="logo" className="w-full h-full object-contain" />
-                : <Layout size={22} className="text-ink-50" />
-              }
+            <div className="flex items-center gap-2">
+              {config.logoUrl && <img src={config.logoUrl} alt="logo" className="h-8 w-auto rounded-lg" />}
+              <span className="text-xl font-black tracking-tight font-display text-ink-800 dark:text-ink-50">
+                {config.siteName || '平行宇宙'}
+              </span>
             </div>
-            <span className="text-xl font-black tracking-tight text-ink-800 dark:text-ink-50 hidden lg:block font-display">
-              {config.siteName || '平行宇宙'}
-            </span>
           </Link>
 
           {/* 中间：主导航（浏览项） */}
@@ -216,17 +221,17 @@ const MainLayout: React.FC = () => {
                     onMouseEnter={() => showMenu(item.name)}
                     onMouseLeave={hideMenu}
                   >
-                    <Link
-                      to={typed.path || '#'}
-                      className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm font-black transition-all duration-fast whitespace-nowrap shrink-0
-                        ${groupActive
-                          ? 'bg-accent-50 dark:bg-accent-500/15 text-accent-600 dark:text-accent-400'
-                          : 'text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-700/50'
-                        }`}
-                    >
-                      <item.icon size={16} className={groupActive ? 'text-accent-600 dark:text-accent-400' : 'opacity-60'} />
+                        <Link
+                          to={typed.path || '#'}
+                          className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition-all duration-fast whitespace-nowrap shrink-0
+                            ${groupActive
+                              ? 'text-ink-900 dark:text-ink-50 font-black'
+                              : 'text-ink-900 hover:text-black dark:text-ink-50 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-ink-700/50 font-medium'
+                            }`}
+                        >
+                          <item.icon size={16} className={groupActive ? '' : 'opacity-70'} />
                       {item.name}
-                      <ChevronDown size={12} className={`transition-transform duration-fast ${isOpen ? 'rotate-180' : ''} ${groupActive ? 'text-accent-600 dark:text-accent-400' : 'opacity-40'}`} />
+                      <ChevronDown size={12} className={`transition-transform duration-fast ${isOpen ? 'rotate-180' : ''} ${groupActive ? '' : 'opacity-40'}`} />
                     </Link>
                   </div>
                 );
@@ -239,13 +244,13 @@ const MainLayout: React.FC = () => {
                 <Link
                   key={regItem.name}
                   to={regItem.path}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-black transition-all duration-fast whitespace-nowrap shrink-0
+                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all duration-fast whitespace-nowrap shrink-0
                     ${active
-                      ? 'bg-accent-50 dark:bg-accent-500/15 text-accent-600 dark:text-accent-400'
-                      : 'text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-700/50'
+                      ? 'text-ink-900 dark:text-ink-50 font-black'
+                      : 'text-ink-900 hover:text-black dark:text-ink-50 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-ink-700/50 font-medium'
                     }`}
                 >
-                  <regItem.icon size={16} className={active ? 'text-accent-600 dark:text-accent-400' : 'opacity-60'} />
+                  <regItem.icon size={16} className={active ? '' : 'opacity-70'} />
                   {regItem.name}
                 </Link>
               );
@@ -270,13 +275,13 @@ const MainLayout: React.FC = () => {
                       key={child.path}
                       to={child.path}
                       onClick={() => setOpenDropdown(null)}
-                      className={`flex items-center gap-3 px-4 py-2.5 text-sm font-black transition-colors whitespace-nowrap
+                      className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors whitespace-nowrap
                         ${childActive
-                          ? 'bg-accent-50 dark:bg-accent-500/15 text-accent-600 dark:text-accent-400'
-                          : 'text-ink-400 hover:text-ink-700 dark:hover:text-ink-200 hover:bg-ink-100 dark:hover:bg-ink-700/50'
+                          ? 'text-ink-900 dark:text-ink-50 font-black'
+                          : 'text-ink-900 hover:text-black dark:text-ink-50 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-ink-700/50 font-medium'
                         }`}
                     >
-                      <child.icon size={16} className={childActive ? 'text-accent-600 dark:text-accent-400' : 'opacity-60'} />
+                      <child.icon size={16} className={childActive ? '' : 'opacity-70'} />
                       {child.name}
                     </Link>
                   );
@@ -290,13 +295,13 @@ const MainLayout: React.FC = () => {
             {/* Mobile search icon */}
             <button
               onClick={() => {/* Mobile search would toggle a fullscreen overlay */}}
-              className="flex xl:hidden p-2.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-500 transition-colors min-w-[44px] min-h-[44px] items-center justify-center"
+              className="flex xl:hidden p-2.5 rounded-lg transition-colors min-w-[44px] min-h-[44px] items-center justify-center text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-700"
               aria-label="搜索"
             >
               <Search size={20} />
             </button>
             <form onSubmit={handleSearch} ref={searchRef} className="relative hidden xl:flex items-center group">
-              <button type="submit" className="absolute left-4 text-ink-400 group-focus-within:text-accent-500 transition-colors duration-instant z-10" aria-label="搜索">
+              <button type="submit" className="absolute left-4 transition-colors duration-instant z-10 text-ink-400 group-focus-within:text-accent-500" aria-label="搜索">
                 <Search size={16} />
               </button>
               <input 
@@ -322,7 +327,7 @@ const MainLayout: React.FC = () => {
                     setSuggestOpen(false);
                   }
                 }}
-                className="w-48 h-10 bg-ink-100 dark:bg-ink-700 border-none rounded-full pl-11 pr-4 text-sm font-medium focus:ring-2 focus:ring-accent-500/20 focus:bg-ink-50 dark:focus:bg-ink-700 focus:w-64 transition-all duration-normal ease-out-expo outline-none text-ink-700 dark:text-ink-200 placeholder:text-ink-400"
+                className="w-48 h-10 border-none rounded-full pl-11 pr-4 text-sm font-medium focus:ring-2 focus:ring-accent-500/20 focus:w-64 transition-all duration-normal ease-out-expo outline-none bg-ink-100 dark:bg-ink-700 text-ink-700 dark:text-ink-200 placeholder:text-ink-400 focus:bg-ink-50 dark:focus:bg-ink-700"
               />
               <AnimatePresence>
                 {suggestOpen && suggestions.length > 0 && (
@@ -372,23 +377,17 @@ const MainLayout: React.FC = () => {
               {isAuthenticated ? (
                 <>
                   <NotificationDropdown />
-                  <div className="w-px h-8 bg-ink-200 dark:bg-ink-600 mx-1" />
+                  <div className="w-px h-8 mx-1 bg-ink-200 dark:bg-ink-600" />
                   <button onClick={() => navigate('/profile')} className="w-11 h-11 md:w-10 md:h-10 rounded-full bg-gradient-to-br from-accent-400 to-accent-600 p-0.5 shadow-sm hover:ring-2 hover:ring-accent-500 transition-all duration-fast overflow-hidden min-w-[44px] min-h-[44px] md:min-w-0 md:min-h-0">
-                    <div className="w-full h-full rounded-full bg-ink-50 dark:bg-ink-800 flex items-center justify-center text-accent-600 font-black text-sm overflow-hidden">
-                      {user?.avatarUrl ? (
-                        <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
-                      ) : (
-                        user?.username?.[0]?.toUpperCase() || 'U'
-                      )}
-                    </div>
+                    <Avatar src={user?.avatarUrl} alt={user?.username} fallback={user?.username?.[0]} size="sm" className="w-full h-full" />
                   </button>
                 </>
               ) : (
                 <div className="flex items-center gap-4">
-                  <Link to="/register" className="text-sm font-black text-ink-400 hover:text-accent-600 transition-colors duration-instant hidden sm:block">
+                  <Link to="/register" className={`text-sm font-black transition-colors duration-instant hidden sm:block text-ink-900 hover:text-accent-600 dark:text-ink-50`}>
                     注册账号
                   </Link>
-                   <Link to="/login" className="px-6 py-2.5 bg-ink-800 dark:bg-ink-50 text-ink-50 dark:text-ink-800 rounded-full text-sm font-black hover:opacity-90 transition-all duration-instant shadow-md min-h-[44px] flex items-center">
+                   <Link to="/login" className="px-6 py-2.5 rounded-full text-sm font-black hover:opacity-90 transition-all duration-instant shadow-md min-h-[44px] flex items-center bg-ink-800 dark:bg-ink-50 text-ink-50 dark:text-ink-800">
                     立即登录
                   </Link>
                 </div>

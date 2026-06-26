@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpen, Edit3, Coins, GitPullRequest, GitBranch, MessageSquare, Users } from 'lucide-react';
+import { BookOpen, Edit3, Coins, GitPullRequest, GitBranch, MessageSquare, Users, Calendar } from 'lucide-react';
 import { useToast } from '../../../components/notifications';
 import { FollowButton } from '../../../components/Interaction';
 
@@ -97,7 +97,7 @@ const StoryHeader: React.FC<StoryHeaderProps> = ({
             {isAuthor && (
               <button 
                 onClick={() => setIsMergeModalOpen(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-indigo-100 text-accent-600 rounded-2xl font-bold hover:bg-indigo-200 transition-all shadow-lg active:scale-95"
+                className="flex items-center gap-2 px-6 py-3 bg-accent-100 text-accent-600 rounded-2xl font-bold hover:bg-indigo-200 transition-all shadow-lg active:scale-95"
               >
                 <GitPullRequest size={18} />
                 合并管理
@@ -114,6 +114,7 @@ const StoryHeader: React.FC<StoryHeaderProps> = ({
           { id: 'tree', label: '平行宇宙树', icon: GitBranch },
           { id: 'chapters', label: '章节目录', icon: MessageSquare },
           { id: 'characters', label: '角色档案', icon: Users },
+          { id: 'events', label: '大事件', icon: Calendar },
         ].map(tab => (
           <button
             key={tab.id}

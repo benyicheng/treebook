@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { authenticate, optionalAuthenticate } from '../middleware/auth';
+import { validateRequest } from '../middleware/validate';
 import {
   createEvent,
   listEvents,
@@ -12,6 +13,16 @@ import {
   reorderNodes,
 } from '../controllers/storyEventController';
 import { getEventConnectors, getBranchComparison } from '../controllers/eventConnectorController';
+import {
+  getEventComments,
+  createEventComment,
+  deleteEventComment,
+} from '../controllers/eventCommentController';
+import {
+  createEventRequest,
+  updateEventRequest,
+  addEventNodeRequest,
+} from '../utils/validation';
 
 const router = Router();
 
@@ -22,14 +33,17 @@ router.get('/story/:storyId', getEventsByStory);
 router.get('/connectors', optionalAuthenticate, getEventConnectors);
 // Phase 4：分支对比（同样必须在 /:id 之前，否则 /:id 会吞掉 /:eventId/branches/compare）
 router.get('/:eventId/branches/compare', optionalAuthenticate, getBranchComparison);
+router.get('/:eventId/comments', getEventComments);
 router.get('/:id', getEventById);
 
 router.use(authenticate);
-router.post('/', createEvent);
-router.put('/:id', updateEvent);
+router.post('/', validateRequest(createEventRequest), createEvent);
+router.put('/:id', validateRequest(updateEventRequest), updateEvent);
 router.delete('/:id', deleteEvent);
-router.post('/:eventId/nodes', addNode);
+router.post('/:eventId/nodes', validateRequest(addEventNodeRequest), addNode);
 router.delete('/:eventId/nodes/:nodeId', removeNode);
 router.put('/:eventId/nodes/reorder', reorderNodes);
+router.post('/:eventId/comments', createEventComment);
+router.delete('/:eventId/comments/:commentId', deleteEventComment);
 
 export default router;

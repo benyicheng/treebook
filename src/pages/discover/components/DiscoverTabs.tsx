@@ -1,5 +1,5 @@
 import React from 'react';
-import { DiscoverTab } from '../hooks/useUniverseFeed';
+import type { DiscoverTab } from '../../../hooks/useUniverseFeed';
 import { Flame, Clock } from 'lucide-react';
 
 interface DiscoverTabsProps {
@@ -15,17 +15,17 @@ const tabs: { key: DiscoverTab; label: string; icon: React.ElementType }[] = [
 
 const DiscoverTabs: React.FC<DiscoverTabsProps> = ({ activeTab, onTabChange, total }) => {
   return (
-    <div className="flex items-center gap-2 mb-6">
+    <div className="flex items-center gap-2 mb-6 bg-ink-50/50 dark:bg-ink-800/50 p-1.5 rounded-2xl">
       {tabs.map((tab) => {
         const active = activeTab === tab.key;
         return (
           <button
             key={tab.key}
             onClick={() => onTabChange(tab.key)}
-            className={`flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-bold transition-all ${
+            className={`flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-bold transition-all duration-fast ${
               active
-                ? 'bg-accent-500 text-white shadow-lg shadow-accent-400/30'
-                : 'bg-ink-100 dark:bg-ink-700 text-ink-500 dark:text-ink-400 hover:bg-ink-200 dark:hover:bg-ink-600'
+                ? 'bg-white dark:bg-ink-700 text-ink-800 dark:text-white shadow-sm'
+                : 'text-ink-500 dark:text-ink-400 hover:text-ink-700 dark:hover:text-ink-200'
             }`}
           >
             <tab.icon size={16} />
@@ -33,7 +33,7 @@ const DiscoverTabs: React.FC<DiscoverTabsProps> = ({ activeTab, onTabChange, tot
           </button>
         );
       })}
-      <span className="ml-auto text-sm text-ink-400 dark:text-ink-500">共 {total} 个宇宙</span>
+      <span className="ml-auto text-sm text-ink-400 dark:text-ink-500 px-2">共 {total} 个宇宙</span>
     </div>
   );
 };

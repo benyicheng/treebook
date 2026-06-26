@@ -10,6 +10,7 @@ import StoryHeader from './components/StoryHeader';
 import StoryOverview from './components/StoryOverview';
 import StoryChapterList from './components/StoryChapterList';
 import StoryModals from './components/StoryModals';
+import StoryEventsTab from './components/StoryEventsTab';
 
 const MainlinePage: React.FC = () => {
   const navigate = useNavigate();
@@ -182,6 +183,15 @@ const MainlinePage: React.FC = () => {
               spinoffs={currentStory.spinoffs}
             />
           </div>
+        )}
+
+        {activeTab === 'events' && (
+          <StoryEventsTab
+            storyId={id!}
+            storyAuthorId={currentStory.authorId}
+            isAuthor={isAuthor}
+            storyTitle={currentStory.title}
+          />
         )}
       </div>
 

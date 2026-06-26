@@ -3,14 +3,14 @@ import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { prisma } from '../prisma';
 import { AppError } from '../utils/http';
+import { getCurrentUser } from '../utils/authHelpers';
 
 /**
  * 批量获取当前用户对指定章节的阅读进度
  * GET /api/reading-progress?chapterIds=id1,id2,id3
  */
 export const getReadingProgress = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const chapterIds = (req.query.chapterIds as string)?.split(',').filter(Boolean);
 
@@ -40,8 +40,7 @@ export const getReadingProgress = catchAsync(async (req: AuthRequest, res: Respo
  * GET /api/reading-progress/stats
  */
 export const getReadingStats = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const [total, completed, inProgress] = await Promise.all([
     prisma.readingProgress.count({ where: { userId } }),
@@ -61,8 +60,7 @@ export const getReadingStats = catchAsync(async (req: AuthRequest, res: Response
  * Body: { status?, progress?, currentPage?, source?, sourceId? }
  */
 export const upsertReadingProgress = catchAsync(async (req: AuthRequest, res: Response) => {
-  const userId = req.user?.id;
-  if (!userId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: userId } = getCurrentUser(req);
 
   const { chapterId } = req.params;
   const { status, progress, currentPage, source, sourceId } = req.body;

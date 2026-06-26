@@ -22,13 +22,6 @@ export function useSpinoff(id: string) {
   });
 }
 
-export function useMySpinoffs() {
-  return useQuery({
-    queryKey: queryKeys.spinoffs.my,
-    queryFn: () => spinoffService.getMy(),
-  });
-}
-
 export function useCreateSpinoff() {
   const qc = useQueryClient();
   return useMutation({
@@ -40,25 +33,4 @@ export function useCreateSpinoff() {
   });
 }
 
-export function useUpdateSpinoff() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Parameters<typeof spinoffService.update>[1] }) =>
-      spinoffService.update(id, data),
-    onSuccess: (_data, vars) => {
-      qc.invalidateQueries({ queryKey: queryKeys.spinoffs.detail(vars.id) });
-      qc.invalidateQueries({ queryKey: queryKeys.spinoffs.all });
-    },
-  });
-}
 
-export function useDeleteSpinoff() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: (id: string) => spinoffService.delete(id),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: queryKeys.spinoffs.all });
-      qc.invalidateQueries({ queryKey: queryKeys.stories.all });
-    },
-  });
-}

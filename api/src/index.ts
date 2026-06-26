@@ -184,7 +184,7 @@ app.use(express.static(distPath));
 const globalLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: process.env.NODE_ENV === 'production' ? 100 : 500,
-  message: { error: 'TOO_MANY_REQUESTS', message: 'Too many requests, please slow down' },
+  message: { success: false, error: { code: 'TOO_MANY_REQUESTS', message: 'Too many requests, please slow down' } },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -252,7 +252,7 @@ app.get('/api/health', async (req: Request, res: Response) => {
 
 // 404 handler for API routes
 app.use('/api/*', (req: Request, res: Response) => {
-  res.status(404).json({ error: 'API Route not found' });
+  res.status(404).json({ success: false, error: { code: 'NOT_FOUND', message: 'API Route not found' } });
 });
 
 // Error handling middleware (必须在 SPA fallback 之前注册)

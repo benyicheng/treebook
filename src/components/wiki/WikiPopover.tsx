@@ -138,7 +138,7 @@ const WikiPopover: React.FC<WikiPopoverProps> = ({
             setIsOpen(false);
           }
         }}
-        className="cursor-help border-b border-dashed border-indigo-300 dark:border-indigo-600 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors"
+        className="cursor-help border-b border-dashed border-accent-300 dark:border-accent-600 hover:text-accent-600 dark:hover:text-accent-400 transition-colors"
       >
         {children}
       </span>
@@ -196,7 +196,7 @@ const WikiPopover: React.FC<WikiPopoverProps> = ({
                     <h4 className="font-bold text-sm text-ink-800 dark:text-ink-100 truncate">
                       {item.title}
                     </h4>
-                    <span className="shrink-0 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300">
+                    <span className="shrink-0 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded-full bg-accent-100 dark:bg-accent-800 text-accent-600 dark:text-accent-300">
                       {contentTypeLabels[item.contentType] || item.contentType}
                     </span>
                   </div>

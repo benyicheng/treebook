@@ -45,7 +45,13 @@ export interface WikiLookupResult {
   summary: string | null;
   contentType: string;
   storyId: string | null;
+  matchedTerm?: 'id' | 'title' | 'content' | 'alias';
   _count: { outgoingLinks: number; incomingLinks: number };
+}
+
+export interface WikiReferences {
+  booklists: { id: string; title: string }[];
+  readingPaths: { id: string; title: string }[];
 }
 
 export const wikiService = {
@@ -106,6 +112,16 @@ export const wikiService = {
     const { data } = await client.get<WikiLookupResult[]>('/wiki-pages/lookup', {
       params: { q, limit },
     });
+    return data;
+  },
+
+  getReferences: async (id: string): Promise<WikiReferences> => {
+    const { data } = await client.get<WikiReferences>(`/wiki-pages/${id}/references`);
+    return data;
+  },
+
+  getByBooklist: async (booklistId: string) => {
+    const { data } = await client.get<any>(`/booklists/${booklistId}/wiki-pages`);
     return data;
   },
 };

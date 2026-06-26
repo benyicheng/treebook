@@ -2,37 +2,27 @@ import { Request, Response } from 'express';
 import { AuthRequest } from '../middleware/auth';
 import { catchAsync } from '../utils/catchAsync';
 import { SpinoffService } from '../services/SpinoffService';
-import { NotificationService } from '../services/NotificationService';
-import { prisma } from '../prisma';
 import { AppError } from '../utils/http';
+import { getCurrentUser } from '../utils/authHelpers';
+import { notifyStoryAuthor } from '../utils/notifications';
+import { qsFlat } from '../utils/pagination';
 import { moderateText, reviewContent } from '../utils/contentModeration';
 import { ModerationVisibilityService } from '../domains/moderation/ModerationVisibilityService';
 
 export const createSpinoff = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId } = getCurrentUser(req);
 
   const spinoff = await SpinoffService.createSpinoff(authorId, req.body);
 
   // 通知故事原作者：有人为你的故事发布了番外
-  try {
-    const story = await prisma.story.findUnique({
-      where: { id: spinoff.originalStoryId },
-      select: { authorId: true, title: true },
-    });
-    if (story && story.authorId !== authorId) {
-      await NotificationService.createNotification({
-        userId: story.authorId,
-        actorId: authorId,
-        type: 'spinoff_published',
-        targetType: 'spinoff',
-        targetId: spinoff.id,
-        message: `有人为你的故事「${story.title}」发布了番外「${spinoff.title}」`,
-      });
-    }
-  } catch (err) {
-    console.error('Failed to create spinoff notification:', err);
-  }
+  await notifyStoryAuthor(
+    spinoff.originalStoryId,
+    authorId,
+    'spinoff_published',
+    'spinoff',
+    spinoff.id,
+    (title) => `有人为你的故事「${title}」发布了番外「${spinoff.title}」`,
+  );
 
   moderateText(req, 'spinoffs', 'spinoff', spinoff.id, 'title', spinoff.title, authorId);
   moderateText(req, 'spinoffs', 'spinoff', spinoff.id, 'summary', spinoff.summary, authorId);
@@ -56,9 +46,7 @@ export const getAllSpinoffs = catchAsync(async (req: Request, res: Response) => 
 });
 
 export const updateSpinoff = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!authorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: userRole } = getCurrentUser(req);
 
   const spinoff = await SpinoffService.updateSpinoff(req.params.id, authorId, userRole, req.body);
   reviewContent(authorId, 'spinoffs', 'spinoff', spinoff.id, 'text', 'title', { text: spinoff.title, field: 'title' });
@@ -71,17 +59,14 @@ export const updateSpinoff = catchAsync(async (req: AuthRequest, res: Response) 
 });
 
 export const getMySpinoffs = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  if (!authorId) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId } = getCurrentUser(req);
 
-  const result = await SpinoffService.getMySpinoffs(authorId, req.query as any);
+  const result = await SpinoffService.getMySpinoffs(authorId, qsFlat(req.query));
   res.json({ success: true, ...result });
 });
 
 export const deleteSpinoff = catchAsync(async (req: AuthRequest, res: Response) => {
-  const authorId = req.user?.id;
-  const userRole = req.user?.role;
-  if (!authorId || !userRole) throw new AppError(401, 'UNAUTHORIZED', 'Unauthorized');
+  const { id: authorId, role: userRole } = getCurrentUser(req);
 
   const result = await SpinoffService.deleteSpinoff(req.params.id, authorId, userRole);
   res.json({ success: true, data: result });

@@ -67,7 +67,7 @@ const WikiListPage: React.FC = () => {
         {isAuthenticated && (
           <Link
             to="/wiki/new"
-            className="flex items-center gap-2 px-5 py-2.5 bg-indigo-500 text-white rounded-xl font-bold text-sm hover:bg-indigo-600 transition-all shadow-lg active:scale-95"
+            className="flex items-center gap-2 px-5 py-2.5 bg-accent-500 text-white rounded-xl font-bold text-sm hover:bg-accent-600 transition-all shadow-lg active:scale-95"
           >
             <PlusCircle size={18} />
             创建百科页面
@@ -81,7 +81,7 @@ const WikiListPage: React.FC = () => {
           <button
             onClick={() => { setContentType(''); setPage(1); }}
             className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-              !contentType ? 'bg-indigo-500 text-white shadow-sm' : 'text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-600'
+              !contentType ? 'bg-accent-500 text-white shadow-sm' : 'text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-600'
             }`}
           >
             全部
@@ -92,7 +92,7 @@ const WikiListPage: React.FC = () => {
               onClick={() => { setContentType(key); setPage(1); }}
               className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
                 contentType === key
-                  ? 'bg-indigo-500 text-white shadow-sm'
+                  ? 'bg-accent-500 text-white shadow-sm'
                   : 'text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-600'
               }`}
             >
@@ -107,7 +107,7 @@ const WikiListPage: React.FC = () => {
             <input
               type="text"
               placeholder="搜索页面..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-indigo-400 outline-none transition-all text-sm font-medium"
+              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all text-sm font-medium"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
             />
@@ -131,7 +131,7 @@ const WikiListPage: React.FC = () => {
       {/* Content */}
       {isLoading ? (
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500" />
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent-500" />
         </div>
       ) : pages.length === 0 ? (
         <div className="py-32 text-center bg-ink-50 dark:bg-ink-800/30 rounded-[3rem] border-2 border-dashed border-ink-200 dark:border-ink-700">
@@ -146,7 +146,7 @@ const WikiListPage: React.FC = () => {
               <div
                 key={page.id}
                 onClick={() => navigate(`/wiki/${page.id}`)}
-                className="group bg-white dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 p-6 hover:shadow-lg hover:border-indigo-200 dark:hover:border-indigo-600 transition-all cursor-pointer active:scale-[0.98]"
+                className="group bg-white dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 p-6 hover:shadow-lg hover:border-accent-200 dark:hover:border-accent-600 transition-all cursor-pointer active:scale-[0.98]"
               >
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-2 px-3 py-1.5 bg-ink-50 dark:bg-ink-800 rounded-xl text-xs font-bold text-ink-500">
@@ -157,7 +157,7 @@ const WikiListPage: React.FC = () => {
                     {statusLabels[page.status]?.label || page.status}
                   </span>
                 </div>
-                <h3 className="text-lg font-black text-ink-800 dark:text-white mb-2 group-hover:text-indigo-500 transition-colors">
+                <h3 className="text-lg font-black text-ink-800 dark:text-white mb-2 group-hover:text-accent-500 transition-colors">
                   {page.title}
                 </h3>
                 {page.summary && (
@@ -174,7 +174,7 @@ const WikiListPage: React.FC = () => {
                       {new Date(page.updatedAt).toLocaleDateString('zh-CN')}
                     </span>
                   </div>
-                  <ChevronRight size={16} className="text-ink-300 group-hover:text-indigo-400 group-hover:translate-x-1 transition-all" />
+                  <ChevronRight size={16} className="text-ink-300 group-hover:text-accent-400 group-hover:translate-x-1 transition-all" />
                 </div>
               </div>
             ))}
@@ -189,7 +189,7 @@ const WikiListPage: React.FC = () => {
                   onClick={() => setPage(p)}
                   className={`w-10 h-10 rounded-xl text-sm font-bold transition-all ${
                     p === page
-                      ? 'bg-indigo-500 text-white'
+                      ? 'bg-accent-500 text-white'
                       : 'bg-ink-50 dark:bg-ink-700 text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-600'
                   }`}
                 >

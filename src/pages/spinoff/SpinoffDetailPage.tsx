@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { spinoffService, Spinoff, storyService, Character } from '../../api/storyService';
+import { spinoffService } from '../../api/storyService';
+import type { Spinoff, Character } from '../../api/types';
 import { mergeService, MergeRequest } from '../../api/mergeService';
 import { ArrowLeft, BookOpen, Star, Users, History, Sparkles, Layout, Info, Edit3, ShieldCheck, Send, GitBranch } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -70,7 +71,7 @@ const SpinoffDetailPage: React.FC = () => {
     switch (type) {
       case 'biography': return { label: '人物传记', color: 'bg-accent-100 text-accent-500', icon: Users };
       case 'world_expansion': return { label: '世界补完', color: 'bg-accent-100 text-accent-500', icon: Sparkles };
-      default: return { label: 'IF 平行线', color: 'bg-indigo-100 text-accent-600', icon: History };
+      default: return { label: 'IF 平行线', color: 'bg-accent-100 text-accent-600', icon: History };
     }
   };
 
@@ -165,7 +166,7 @@ const SpinoffDetailPage: React.FC = () => {
                   )}
                   <button 
                     onClick={() => navigate(`/spinoff/edit/${spinoff.id}`)}
-                    className="flex items-center gap-2 px-4 py-2 bg-ink-100 dark:bg-ink-700 text-ink-500 dark:text-ink-400 rounded-xl text-sm font-bold hover:bg-indigo-50 dark:hover:bg-indigo-900/20 hover:text-accent-600 transition-all"
+                    className="flex items-center gap-2 px-4 py-2 bg-ink-100 dark:bg-ink-700 text-ink-500 dark:text-ink-400 rounded-xl text-sm font-bold hover:bg-accent-50 dark:hover:bg-accent-800/20 hover:text-accent-600 transition-all"
                   >
                     <Edit3 size={16} />
                     编辑番外
@@ -192,7 +193,7 @@ const SpinoffDetailPage: React.FC = () => {
               {spinoff.title}
             </h1>
             <div className="flex flex-wrap items-center gap-3 text-sm text-ink-500 dark:text-ink-400 font-bold">
-              <Link to={`/story/${spinoff.originalStoryId}`} className="inline-flex items-center gap-2 hover:text-accent-600 transition-colors">
+              <Link to={`/story/${spinoff.originalStoryId || '#'}`} className="inline-flex items-center gap-2 hover:text-accent-600 transition-colors">
                 <Star size={16} className="text-amber-400 fill-amber-400" />
                 原著：{spinoff.originalStory?.title || '未知'}
               </Link>
@@ -238,7 +239,7 @@ const SpinoffDetailPage: React.FC = () => {
               <Layout size={14} />
               世界观基石
             </div>
-            <Link to={`/story/${spinoff.originalStoryId}`} className="group block space-y-3">
+            <Link to={`/story/${spinoff.originalStoryId || '#'}`} className="group block space-y-3">
               {spinoff.originalStory?.coverImage ? (
                 <div className="aspect-video rounded-2xl overflow-hidden">
                   <img
@@ -248,7 +249,7 @@ const SpinoffDetailPage: React.FC = () => {
                   />
                 </div>
               ) : (
-                <div className="aspect-video bg-indigo-100 dark:bg-indigo-900/30 rounded-2xl flex items-center justify-center overflow-hidden">
+                <div className="aspect-video bg-accent-100 dark:bg-accent-800/30 rounded-2xl flex items-center justify-center overflow-hidden">
                   <BookOpen size={32} className="text-accent-600 group-hover:scale-110 transition-transform" />
                 </div>
               )}
@@ -273,7 +274,7 @@ const SpinoffDetailPage: React.FC = () => {
                     </span>
                   )}
                   {spinoff.originalStory?.tags?.slice(0, 3).map((tag: { id: string; name: string }) => (
-                    <span key={tag.id} className="px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/20 text-accent-600 dark:text-indigo-400 rounded-full text-[9px] font-bold">
+                    <span key={tag.id} className="px-2 py-0.5 bg-accent-50 dark:bg-accent-800/20 text-accent-600 dark:text-accent-400 rounded-full text-[9px] font-bold">
                       #{tag.name}
                     </span>
                   ))}
@@ -310,7 +311,7 @@ const SpinoffDetailPage: React.FC = () => {
               <div className="grid grid-cols-1 gap-3">
                 {characters.map(char => (
                   <div key={char.id} className="p-3 bg-ink-50 dark:bg-ink-700/50 rounded-2xl border border-ink-100 dark:border-ink-600 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center text-accent-600 dark:text-indigo-400 font-bold">
+                    <div className="w-10 h-10 rounded-full bg-accent-100 dark:bg-accent-800/50 flex items-center justify-center text-accent-600 dark:text-accent-400 font-bold">
                       {char.name[0]}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -324,12 +325,12 @@ const SpinoffDetailPage: React.FC = () => {
           )}
 
           {/* Copyright Info */}
-          <section className="p-5 bg-indigo-50 dark:bg-indigo-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800 space-y-3">
-            <div className="flex items-center gap-2 text-accent-600 dark:text-indigo-400">
+          <section className="p-5 bg-accent-50 dark:bg-accent-800/20 rounded-2xl border border-accent-100 dark:border-accent-800 space-y-3">
+            <div className="flex items-center gap-2 text-accent-600 dark:text-accent-400">
               <Info size={16} />
               <h5 className="text-xs font-black">版权声明</h5>
             </div>
-            <p className="text-[10px] text-accent-700 dark:text-indigo-300 leading-relaxed font-medium">
+            <p className="text-[10px] text-accent-700 dark:text-accent-300 leading-relaxed font-medium">
               本作品已向原著作者缴纳 IP 授权费。禁止任何未经授权的转载或二次商业开发。
             </p>
           </section>
@@ -337,7 +338,7 @@ const SpinoffDetailPage: React.FC = () => {
         
         <button
           onClick={() => navigate('/spinoff')}
-          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-ink-800 dark:bg-white text-white dark:text-ink-800 rounded-[2rem] font-black hover:bg-accent-600 dark:hover:bg-indigo-50 transition-all active:scale-95"
+          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-ink-800 dark:bg-white text-white dark:text-ink-800 rounded-[2rem] font-black hover:bg-accent-600 dark:hover:bg-accent-50 transition-all active:scale-95"
         >
           <BookOpen size={20} />
           发现更多平行时空
