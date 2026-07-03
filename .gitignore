@@ -80,3 +80,6 @@ Thumbs.db
 edge_output.txt
 product-audit.zip
 test-results/nul
+
+# Windows reserved names
+nul
