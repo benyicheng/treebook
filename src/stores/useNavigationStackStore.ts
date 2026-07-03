@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { BooklistItem } from '../api/types';
 
 const STORAGE_KEY = 'nav-stack';
 
@@ -32,14 +33,14 @@ export interface NavigationStackStore {
   currentReadingId: string | null;
   currentBooklistId: string | null;
   currentIndex: number;
-  booklistItems: any[];
+  booklistItems: BooklistItem[];
 
   push: (entry: NavigationEntry) => void;
   pop: () => NavigationEntry | undefined;
   peek: () => NavigationEntry | undefined;
   updateCurrent: (updates: Partial<NavigationEntry>) => void;
   clear: () => void;
-  openDrawer: (entry: NavigationEntry, options?: { booklistId?: string; initialIndex?: number; items?: any[] }) => void;
+  openDrawer: (entry: NavigationEntry, options?: { booklistId?: string; initialIndex?: number; items?: BooklistItem[] }) => void;
   closeDrawer: () => void;
   setCurrentIndex: (index: number) => void;
   setCurrentReadingId: (id: string) => void;

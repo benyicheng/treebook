@@ -1,28 +1,6 @@
 import client from './client';
-
-export interface Chapter {
-  id: string;
-  storyId: string;
-  branchId?: string;
-  title: string;
-  content: string;
-  orderIndex: number;
-  isBranchPoint: boolean;
-  createdAt: string;
-}
-
-export interface Comment {
-  id: string;
-  content: string;
-  authorId: string;
-  chapterId: string;
-  createdAt: string;
-  author: {
-    username: string;
-    avatarUrl?: string;
-    role: string;
-  };
-}
+import type { Chapter, ChapterExtended, Comment } from './types';
+export type { Chapter, ChapterExtended, Comment };
 
 export const chapterService = {
   search: async (query: string) => {
@@ -40,7 +18,7 @@ export const chapterService = {
   },
 
   getByStory: async (storyId: string, branchId?: string, includeBranches?: boolean) => {
-    const params: any = {};
+    const params: Record<string, string> = {};
     if (branchId) params.branchId = branchId;
     if (includeBranches) params.includeBranches = 'true';
     const { data } = await client.get<any>(`/chapters/stories/${storyId}`, { params });

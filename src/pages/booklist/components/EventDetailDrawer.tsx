@@ -21,6 +21,7 @@ import { useToast } from '../../../components/notifications';
 import { useNavigate } from 'react-router-dom';
 import EventEditModal from './EventEditModal';
 import { EVENT_TYPE_LABELS } from './eventConstants';
+import ConfirmDialog from '../../../components/ui/ConfirmDialog';
 
 interface EventDetailDrawerProps {
   eventId: string;
@@ -102,6 +103,7 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({ eventId, onClose,
   const [addSearchQuery, setAddSearchQuery] = useState('');
   const [addNote, setAddNote] = useState('');
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const { data: event, isLoading } = useQuery({
     queryKey: ['event', eventId],
@@ -157,7 +159,7 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({ eventId, onClose,
   });
 
   const addNodeMutation = useMutation({
-    mutationFn: (input: { targetType: string; targetId: string; note?: string }) =>
+    mutationFn: (input: { targetType: 'chapter' | 'branch' | 'spinoff'; targetId: string; note?: string }) =>
       storyEventService.addNode(eventId, input),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event', eventId] });
@@ -170,6 +172,19 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({ eventId, onClose,
     mutationFn: (nodeIds: string[]) => storyEventService.reorderNodes(eventId, nodeIds),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+    },
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: () => storyEventService.delete(eventId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['story-events'] });
+      queryClient.invalidateQueries({ queryKey: ['event', eventId] });
+      addToast('success', '大事件已删除');
+      onClose();
+    },
+    onError: () => {
+      addToast('error', '删除大事件失败');
     },
   });
 
@@ -266,13 +281,22 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({ eventId, onClose,
           </h3>
           <div className="flex items-center gap-2">
             {canEdit && (
-              <button
-                onClick={() => setIsEditModalOpen(true)}
-                className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-accent-500 hover:text-accent-600 hover:bg-accent-50 dark:hover:bg-accent-900/20 rounded-full transition-colors"
-              >
-                <Edit3 size={14} />
-                <span>编辑</span>
-              </button>
+              <>
+                <button
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-accent-500 hover:text-accent-600 hover:bg-accent-50 dark:hover:bg-accent-900/20 rounded-full transition-colors"
+                >
+                  <Edit3 size={14} />
+                  <span>编辑</span>
+                </button>
+                <button
+                  onClick={() => setIsDeleteConfirmOpen(true)}
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors"
+                >
+                  <Trash2 size={14} />
+                  <span>删除</span>
+                </button>
+              </>
             )}
             <button
               onClick={onClose}
@@ -501,16 +525,16 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({ eventId, onClose,
                 <p className="text-sm text-ink-400 text-center">加载中...</p>
               ) : commentList.length > 0 ? (
                 commentList.map((c: EventComment) => {
-                  const canDeleteComment = !!user && (user.id === c.authorId || user.role === 'admin' || canEdit);
+                  const canDeleteComment = !!user && (user.id === c.userId || user.role === 'admin' || canEdit);
                   return (
                     <div key={c.id} className="flex gap-3 group">
                       <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-accent-100 to-accent-100 dark:from-blue-900/30 dark:to-purple-900/30 flex items-center justify-center text-accent-500 font-bold text-sm shrink-0">
-                        <CommentAvatar author={c.author} />
+                        <CommentAvatar author={c.user} />
                       </div>
                       <div className="flex-1 space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-ink-700 dark:text-ink-300">{c.author.username}</span>
-                          {c.author.role === 'author' && (
+                          <span className="text-xs font-bold text-ink-700 dark:text-ink-300">{c.user.username}</span>
+                          {c.user.role === 'author' && (
                             <span className="px-1.5 py-0.5 bg-accent-400 text-white text-[8px] font-black rounded-full">官方</span>
                           )}
                           <span className="text-[10px] text-ink-400 ml-auto">
@@ -548,6 +572,17 @@ const EventDetailDrawer: React.FC<EventDetailDrawerProps> = ({ eventId, onClose,
           event={evt}
         />
       )}
+
+      {/* 删除确认对话框 */}
+      <ConfirmDialog
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={() => deleteEventMutation.mutate()}
+        title="删除大事件"
+        message={`确定要删除「${evt.title}」吗？此操作不可撤销。`}
+        confirmText="删除"
+        danger
+      />
     </div>,
     document.body
   );

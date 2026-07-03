@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import Modal from '../ui/Modal';
+import { Button } from '../ui';
 import { useThemeStore, type ThemeMode } from '../../stores/useThemeStore';
 
 export type FontMode = 'serif' | 'sans';
@@ -45,16 +46,18 @@ const SettingsControls: React.FC<{
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-ink-400 uppercase tracking-wider">字号</span>
+        <span className="eyebrow">字号</span>
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => onUpdate({ fontSize: Math.max(FONT_SIZE_RANGE.min, settings.fontSize - FONT_SIZE_RANGE.step) })}
             disabled={settings.fontSize <= FONT_SIZE_RANGE.min}
-            className="w-8 h-8 rounded-md border border-ink-200 flex items-center justify-center text-sm text-ink-500 hover:bg-ink-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-instant"
+            className="w-8 h-8 rounded-md px-0"
             aria-label="缩小字号"
           >
             A−
-          </button>
+          </Button>
           <div className="flex-1 h-1.5 bg-ink-100 rounded-full relative">
             <div
               className="absolute top-0 left-0 h-full bg-accent-500 rounded-full transition-all duration-normal ease-out-expo"
@@ -63,20 +66,22 @@ const SettingsControls: React.FC<{
               }}
             />
           </div>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={() => onUpdate({ fontSize: Math.min(FONT_SIZE_RANGE.max, settings.fontSize + FONT_SIZE_RANGE.step) })}
             disabled={settings.fontSize >= FONT_SIZE_RANGE.max}
-            className="w-8 h-8 rounded-md border border-ink-200 flex items-center justify-center text-sm text-ink-500 hover:bg-ink-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors duration-instant"
+            className="w-8 h-8 rounded-md px-0"
             aria-label="放大字号"
           >
             A+
-          </button>
+          </Button>
           <span className="text-xs text-ink-400 w-8 text-right tabular-nums">{settings.fontSize}px</span>
         </div>
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-ink-400 uppercase tracking-wider">主题</span>
+        <span className="eyebrow">主题</span>
         <div className="flex gap-2">
           {([
             { value: 'light' as ThemeMode, label: '浅色', icon: '☀️' },
@@ -102,7 +107,7 @@ const SettingsControls: React.FC<{
       </div>
 
       <div className="flex flex-col gap-2">
-        <span className="text-xs font-medium text-ink-400 uppercase tracking-wider">字体</span>
+        <span className="eyebrow">字体</span>
         <div className="flex gap-2">
           {([
             { value: 'serif' as FontMode, label: '衬线', preview: 'font-reading' },

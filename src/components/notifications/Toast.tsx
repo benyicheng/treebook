@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { X, CheckCircle, AlertTriangle, Info } from 'lucide-react';
+import { X, CheckCircle, AlertTriangle, AlertCircle, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { IconButton } from '../ui';
 
 interface Toast {
   id: string;
@@ -58,7 +59,7 @@ const typeStyles = {
 
 const typeIcons = {
   success: CheckCircle,
-  error: AlertTriangle,
+  error: AlertCircle,
   warning: AlertTriangle,
   info: Info,
 };
@@ -79,9 +80,9 @@ function ToastContainer({ toasts, onRemove }: { toasts: Toast[]; onRemove: (id: 
             >
               <Icon size={16} />
               <span className="flex-1">{toast.message}</span>
-              <button onClick={() => onRemove(toast.id)} className="hover:opacity-70">
+              <IconButton aria-label="关闭提示" onClick={() => onRemove(toast.id)} className="hover:opacity-70 text-white" size="sm">
                 <X size={14} />
-              </button>
+              </IconButton>
             </motion.div>
           );
         })}

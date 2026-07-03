@@ -1,14 +1,6 @@
 import client from './client';
-
-export type UploadedMedia = {
-  id: string;
-  kind: 'image' | 'audio' | 'video';
-  mimeType: string;
-  sizeBytes: number;
-  url: string;
-  status: string;
-  resolvedUrl: string;
-};
+import type { UploadedMedia } from './types';
+export type { UploadedMedia };
 
 const resolveApiUrl = (path: string) => {
   const baseURL = client.defaults.baseURL;
@@ -33,4 +25,3 @@ export const mediaService = {
     };
   },
 };
-

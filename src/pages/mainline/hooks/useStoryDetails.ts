@@ -117,14 +117,18 @@ export const useStoryDetails = () => {
   }, [currentStory]);
 
   // ─── Handlers ───
-  const handleSaveChapter = async (content: string) => {
+  const handleSaveChapter = async (content: string, meta?: { auto?: boolean }) => {
     if (!editingChapterId) return;
     try {
       await updateChapter.mutateAsync({ id: editingChapterId, data: { content } });
-      addToast('success', '章节已保存');
-      setEditingChapterId(null);
+      if (!meta?.auto) {
+        addToast('success', '章节已保存');
+        setEditingChapterId(null);
+      }
     } catch (err) {
-      addToast('error', '保存失败');
+      // 自动保存失败不弹 toast，仅由编辑器内状态提示；手动保存才提示
+      if (!meta?.auto) addToast('error', '保存失败');
+      throw err; // 抛出以便编辑器显示「保存失败」并保留未保存状态
     }
   };
 
@@ -157,7 +161,7 @@ export const useStoryDetails = () => {
       await createChapter.mutateAsync({
         ...newChapterData,
         storyId: id,
-        content: '<p>新章节内容...</p>',
+        content: '',
       });
       setIsChapterModalOpen(false);
       setNewChapterData({ title: '', orderIndex: (currentStory?.chapters?.length || 0) + 2 });

@@ -1,27 +1,8 @@
 import client from './client';
+import type { UniverseFeedItem } from './types';
+export type { UniverseFeedItem };
 
-export interface UniverseFeedItem {
-  id: string;
-  title: string;
-  description: string | null;
-  coverImage: string | null;
-  status: string;
-  author: {
-    id: string;
-    username: string;
-    avatarUrl: string | null;
-  };
-  branchCount: number;
-  chapterCount: number;
-  spinoffCount: number;
-  readingPathCount: number;
-  activeReaders: number;
-  hotPathsCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface UniverseFeedResult {
+export interface UniverseFeedResponse {
   items: UniverseFeedItem[];
   total: number;
   page: number;
@@ -30,8 +11,18 @@ export interface UniverseFeedResult {
 }
 
 export const discoverService = {
-  getUniverseFeed: async (tab: 'hot' | 'latest' = 'hot', page = 1, limit = 20) => {
-    const { data } = await client.get<UniverseFeedResult>('/discover/universes', {
+  async getFeed(params?: { sortBy?: string; limit?: number; page?: number }) {
+    const { data } = await client.get<any>('/discover/feed', { params });
+    return data;
+  },
+
+  async getByStory(storyId: string) {
+    const { data } = await client.get<any>(`/discover/story/${storyId}`);
+    return data;
+  },
+
+  async getUniverseFeed(tab: string, page: number, limit: number): Promise<UniverseFeedResponse> {
+    const { data } = await client.get<UniverseFeedResponse>('/discover/universes', {
       params: { tab, page, limit },
     });
     return data;

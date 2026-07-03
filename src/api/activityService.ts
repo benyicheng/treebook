@@ -1,19 +1,6 @@
 import client from './client';
-
-export interface ActivityItem {
-  id: string;
-  actorId: string;
-  actor: {
-    id: string;
-    username: string;
-    avatarUrl?: string;
-  };
-  type: string;
-  targetType: string;
-  targetId: string;
-  metadata: Record<string, any> | null;
-  createdAt: string;
-}
+import type { ActivityItem } from './types';
+export type { ActivityItem };
 
 export const activityService = {
   getFeed: async (cursor?: string, limit = 30) => {

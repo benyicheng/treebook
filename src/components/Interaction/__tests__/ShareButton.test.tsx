@@ -15,6 +15,12 @@ vi.mock('../../../api/interactionService', () => ({
   },
 }));
 
+// Mock useToast
+const mockAddToast = vi.fn();
+vi.mock('../../notifications/Toast', () => ({
+  useToast: () => ({ addToast: mockAddToast }),
+}));
+
 // Mock Modal — 直接渲染 children
 vi.mock('../../Modal', () => ({
   default: ({ children, isOpen, title }: any) =>

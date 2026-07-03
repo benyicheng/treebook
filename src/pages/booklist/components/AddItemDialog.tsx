@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, BookOpen, Library, Calendar, Check, type LucideIcon } from 'lucide-react';
-import { Modal } from '../../../components/ui';
+import { Modal, Button, Input, Textarea } from '../../../components/ui';
 import { chapterService, storyService } from '../../../api/storyService';
 import { storyEventService, StoryEvent } from '../../../api/storyEventService';
 
@@ -135,9 +135,9 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
       <div className="space-y-4 max-h-96 overflow-y-auto">
         <div className="flex items-center justify-between">
           <span className="text-xs text-ink-400">{selectedChapterIds.size} 个已选</span>
-          <button onClick={toggleAll} className="text-xs font-bold text-accent-600 hover:text-accent-700">
+          <Button variant="ghost" size="sm" onClick={toggleAll} className="text-accent-600 hover:text-accent-700 h-auto py-0">
             {chapterResults.filter((ch: any) => !existingChapterIds.has(ch.id)).every((ch: any) => selectedChapterIds.has(ch.id)) ? '取消全选' : '全选'}
-          </button>
+          </Button>
         </div>
         {groupByStory(chapterResults).map((group: any) => (
           <div key={group.storyId}>
@@ -221,10 +221,10 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
       <div className="text-center py-8 space-y-3">
         <p className="text-sm text-ink-400">未找到匹配的事件</p>
         {onOpenCreateEvent && (
-          <button onClick={() => { onOpenCreateEvent(); onClose(); }}
-            className="text-sm font-bold text-rose-600 hover:text-rose-700 underline underline-offset-2">
+          <Button variant="ghost" size="sm" onClick={() => { onOpenCreateEvent(); onClose(); }}
+            className="text-rose-600 hover:text-rose-700 underline underline-offset-2 h-auto py-0">
             创建新大事件
-          </button>
+          </Button>
         )}
       </div>
     );
@@ -285,24 +285,21 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
         </div>
 
         {/* Search input */}
-        <div className="relative">
-          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-400" />
-          <input
-            className="w-full pl-10 pr-4 py-3 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-700 outline-none focus:ring-2 focus:ring-accent-500"
-            value={activeTab === 'chapter' ? chapterQuery : activeTab === 'story' ? storyQuery : eventQuery}
-            onChange={e => {
-              const val = e.target.value;
-              if (activeTab === 'chapter') {
-                setChapterQuery(val);
-              } else if (activeTab === 'story') {
-                setStoryQuery(val);
-              } else {
-                setEventQuery(val);
-              }
-            }}
-            placeholder={activeTab === 'chapter' ? '搜索章节...' : activeTab === 'story' ? '搜索故事...' : '搜索事件...'}
-          />
-        </div>
+        <Input
+          leftIcon={<Search size={16} />}
+          value={activeTab === 'chapter' ? chapterQuery : activeTab === 'story' ? storyQuery : eventQuery}
+          onChange={e => {
+            const val = e.target.value;
+            if (activeTab === 'chapter') {
+              setChapterQuery(val);
+            } else if (activeTab === 'story') {
+              setStoryQuery(val);
+            } else {
+              setEventQuery(val);
+            }
+          }}
+          placeholder={activeTab === 'chapter' ? '搜索章节...' : activeTab === 'story' ? '搜索故事...' : '搜索事件...'}
+        />
 
         {/* Tab content */}
         {activeTab === 'chapter' && renderChapterTab()}
@@ -312,20 +309,24 @@ const AddItemDialog: React.FC<AddItemDialogProps> = ({
         {/* Submit */}
         {selectedCount > 0 && (
           <>
-            <textarea
-              className="w-full px-4 py-3 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-700 outline-none focus:ring-2 focus:ring-accent-500 resize-none"
+            <Textarea
               rows={2}
               value={notes}
               onChange={e => setNotes(e.target.value)}
               placeholder="批量添加导游点评（可选）"
+              className="resize-none"
             />
-            <button
+            <Button
+              variant="primary"
+              size="md"
+              fullWidth
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="w-full py-3 bg-accent-600 text-white rounded-xl font-black disabled:opacity-50 hover:bg-accent-700 transition-colors"
+              loading={isSubmitting}
+              className="py-3 bg-accent-600 hover:bg-accent-700"
             >
               {isSubmitting ? '添加中...' : `添加 ${selectedCount} 个${activeTab === 'chapter' ? '章节' : activeTab === 'story' ? '故事' : '事件'}`}
-            </button>
+            </Button>
           </>
         )}
       </div>

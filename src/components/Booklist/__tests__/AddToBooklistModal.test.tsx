@@ -239,7 +239,7 @@ describe('AddToBooklistModal', () => {
         expect(screen.getByText('你还没有创建过书单')).toBeInTheDocument();
       });
 
-      const submitBtn = screen.getByText('确认加入');
+      const submitBtn = screen.getByRole('button', { name: '确认加入' });
       expect(submitBtn).toBeDisabled();
     });
 

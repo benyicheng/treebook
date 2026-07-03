@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import Modal from '../ui/Modal';
+import { Select, Textarea, Button, buttonVariants, Spinner } from '../ui';
 import { booklistService, Booklist } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useToast } from '../notifications/Toast';
@@ -85,7 +86,7 @@ const AddToBooklistModal: React.FC<AddToBooklistModalProps> = ({
           <p className="text-ink-500 font-medium">请先登录后再加入书单</p>
           <Link
             to="/login"
-            className="inline-block px-6 py-2 bg-accent-500 text-white rounded-xl font-bold text-sm hover:bg-accent-600 transition-all"
+            className={buttonVariants({ variant: 'primary' })}
           >
             去登录
           </Link>
@@ -107,7 +108,7 @@ const AddToBooklistModal: React.FC<AddToBooklistModalProps> = ({
         <form onSubmit={handleSubmit} className="space-y-6">
           {chapterTitle && (
             <div className="p-3 bg-ink-50 dark:bg-ink-800 rounded-xl">
-              <p className="text-xs font-black uppercase tracking-widest text-ink-400 mb-1">章节</p>
+              <p className="eyebrow text-ink-400 mb-1">章节</p>
               <p className="text-sm font-bold text-ink-600 dark:text-ink-300 line-clamp-2">{chapterTitle}</p>
             </div>
           )}
@@ -116,11 +117,10 @@ const AddToBooklistModal: React.FC<AddToBooklistModalProps> = ({
             <label className="text-sm font-bold text-ink-500">选择书单</label>
             {isLoadingBooklists ? (
               <div className="flex items-center justify-center py-6">
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-accent-500"></div>
+                <Spinner size={24} />
               </div>
             ) : myBooklists.length > 0 ? (
-              <select
-                className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all"
+              <Select
                 value={selectedBooklistId}
                 onChange={e => setSelectedBooklistId(e.target.value)}
               >
@@ -129,7 +129,7 @@ const AddToBooklistModal: React.FC<AddToBooklistModalProps> = ({
                     {list.title}
                   </option>
                 ))}
-              </select>
+              </Select>
             ) : (
               <div className="p-4 bg-ink-50 dark:bg-ink-800 rounded-xl text-center">
                 <p className="text-sm text-ink-500 mb-2">你还没有创建过书单</p>
@@ -145,9 +145,9 @@ const AddToBooklistModal: React.FC<AddToBooklistModalProps> = ({
 
           <div className="space-y-2">
             <label className="text-sm font-bold text-ink-500">导游点评（可选）</label>
-            <textarea
+            <Textarea
               rows={3}
-              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all resize-none"
+              className="resize-none"
               placeholder="为这一站写点推荐语，告诉读者为什么要读这一章..."
               value={booklistNote}
               onChange={e => setBooklistNote(e.target.value)}
@@ -155,20 +155,22 @@ const AddToBooklistModal: React.FC<AddToBooklistModalProps> = ({
           </div>
 
           <div className="flex gap-3">
-            <button
+            <Button
               type="button"
+              variant="subtle"
               onClick={onClose}
-              className="flex-1 py-3 bg-ink-100 text-ink-600 rounded-xl font-bold hover:bg-ink-200 transition-all"
+              className="flex-1 py-3"
             >
               取消
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isAdding || !selectedBooklistId}
-              className="flex-1 py-3 bg-accent-500 text-white rounded-2xl font-black hover:bg-accent-600 transition-all shadow-lg active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+              loading={isAdding}
+              className="flex-1 py-3"
             >
               {isAdding ? '正在加入...' : '确认加入'}
-            </button>
+            </Button>
           </div>
         </form>
       )}

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import analytics from '../../lib/analytics';
 import { SearchResultItem } from '../../api/searchService';
+import { Button, Input } from '../../components/ui';
 
 const TYPE_TABS = [
   { key: 'all', label: '全部', icon: Search },
@@ -183,16 +184,13 @@ const SearchResultsPage: React.FC = () => {
 
         {/* Search Input */}
         <form onSubmit={handleSubmit} className="relative">
-          <Search
-            size={20}
-            className="absolute left-5 top-1/2 -translate-y-1/2 text-ink-400"
-          />
-          <input
+          <Input
             type="text"
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="搜索故事、分支、番外、作者..."
-            className="w-full h-14 bg-ink-100 dark:bg-ink-700 border-2 border-transparent focus:border-accent-400 rounded-2xl pl-14 pr-5 text-base font-medium placeholder:text-ink-400 outline-none transition-all"
+            size="lg"
+            className="rounded-2xl h-14 text-base"
           />
         </form>
       </div>
@@ -328,12 +326,12 @@ const SearchResultsPage: React.FC = () => {
               <p className="text-sm text-ink-400 dark:text-ink-500 mt-1">
                 试试其他关键词或浏览热门推荐
               </p>
-              <button
+              <Button
                 onClick={handleClearSearch}
-                className="mt-4 px-5 py-2 bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-400 rounded-full text-sm font-bold hover:bg-violet-200 dark:hover:bg-violet-900/50 transition-colors"
+                className="mt-4 rounded-full"
               >
                 查看热门推荐
-              </button>
+              </Button>
             </div>
           )}
 
@@ -341,7 +339,7 @@ const SearchResultsPage: React.FC = () => {
           {!query && !isFetching && accumulatedResults.length === 0 && (
             <div className="py-16 text-center">
               <Sparkles size={48} className="mx-auto text-amber-400 dark:text-amber-500 mb-4" />
-              <p className="text-ink-800 dark:text-ink-200 font-black text-lg">搜索你感兴趣的内容</p>
+              <p className="text-ink-800 dark:text-ink-200 font-bold text-lg">搜索你感兴趣的内容</p>
               <p className="text-sm text-ink-400 dark:text-ink-500 mt-1 max-w-md mx-auto">
                 输入关键词搜索故事、分支、番外、作者，或按类型筛选
               </p>
@@ -362,23 +360,14 @@ const SearchResultsPage: React.FC = () => {
           {/* Load More */}
           {hasMore && (
             <div className="flex justify-center py-6">
-              <button
+              <Button
                 onClick={handleLoadMore}
-                disabled={isFetching}
-                className="px-8 py-3 bg-ink-100 dark:bg-ink-700 text-ink-700 dark:text-ink-200 rounded-full text-sm font-bold hover:bg-ink-200 dark:hover:bg-ink-600 transition-all disabled:opacity-50 flex items-center gap-2"
+                loading={isFetching}
+                className="rounded-full"
+                leftIcon={!isFetching ? <Search size={16} /> : undefined}
               >
-                {isFetching ? (
-                  <>
-                    <Loader2 size={16} className="animate-spin" />
-                    加载中...
-                  </>
-                ) : (
-                  <>
-                    <Search size={16} />
-                    加载更多 ({accumulatedResults.length}/{total})
-                  </>
-                )}
-              </button>
+                {isFetching ? '加载中...' : `加载更多 (${accumulatedResults.length}/${total})`}
+              </Button>
             </div>
           )}
         </div>

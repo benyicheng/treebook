@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import { Calendar, Plus, Star } from 'lucide-react';
 import { storyEventService, StoryEvent } from '../../../api/storyEventService';
 import { EmptyState } from '../../../components/ui';
@@ -23,6 +24,19 @@ const StoryEventsTab: React.FC<StoryEventsTabProps> = ({ storyId, storyAuthorId,
   const { addToast } = useToast();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [detailEventId, setDetailEventId] = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  useEffect(() => {
+    const eventIdFromUrl = searchParams.get('eventId');
+    if (eventIdFromUrl) {
+      setDetailEventId(eventIdFromUrl);
+      setSearchParams(prev => {
+        const next = new URLSearchParams(prev);
+        next.delete('eventId');
+        return next;
+      }, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['story-events', storyId],

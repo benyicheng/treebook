@@ -33,6 +33,7 @@ const Home: React.FC = () => {
   const recentReadsQuery = useRecentReads();
   const hotBooklistsQuery = useHotBooklists();
   const hotReadingPathsQuery = useHotReadingPaths();
+
   const newBranchesQuery = useNewBranches();
 
   // Redirect legacy ?search= queries to the dedicated search page
@@ -53,7 +54,8 @@ const Home: React.FC = () => {
   }, [fetchConfig]);
 
   // Banner slides
-  let bannerSlides: any[] = [];
+  interface BannerSlide { imageUrl: string; title: string; description: string; buttonText: string; link: string }
+  let bannerSlides: BannerSlide[] = [];
   try { bannerSlides = JSON.parse(config.bannerSlides || '[]'); } catch { /* ignore */ }
   const slides = bannerSlides.length > 0 ? bannerSlides : [{
     imageUrl: 'https://images.unsplash.com/photo-1516979187457-637abb4f9353?w=1200&h=400&fit=crop',
@@ -77,7 +79,8 @@ const Home: React.FC = () => {
   }, []);
 
   // Editor picks
-  let editorPicks: any[] = [];
+  interface EditorPick { id?: string; title?: string; author?: string; cover?: string; description?: string }
+  let editorPicks: EditorPick[] = [];
   try { editorPicks = JSON.parse(config.editorPicks || '[]'); } catch { /* ignore */ }
   const displayedPicks = editorPicks.length > 0 ? editorPicks : stories.slice(0, 4);
 
@@ -163,6 +166,8 @@ const Home: React.FC = () => {
           storiesLoading={storiesLoading}
           hotBooklists={hotBooklists}
           hotReadingPaths={hotReadingPaths}
+          booklistsLoading={hotBooklistsQuery.isLoading}
+          readingPathsLoading={hotReadingPathsQuery.isLoading}
         />
       </div>
 

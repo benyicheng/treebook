@@ -1,19 +1,20 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { moderationService, type ModerationMetrics, type ModerationDecision } from '../../api/moderationService';
+import { Button, Input, Select, Badge } from '../../components/ui';
 
 const StatCard: React.FC<{ title: string; value: string }> = ({ title, value }) => (
   <div className="p-5 rounded-2xl border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800">
-    <div className="text-xs text-ink-400 uppercase tracking-widest font-bold">{title}</div>
-    <div className="mt-2 text-2xl font-black text-ink-800 dark:text-white">{value}</div>
+    <div className="text-xs text-ink-400 uppercase tracking-widest font-semibold">{title}</div>
+    <div className="mt-2 text-2xl font-bold text-ink-800 dark:text-white">{value}</div>
   </div>
 );
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
-  const colors: Record<string, string> = {
-    approved: 'bg-accent-100 text-accent-600 dark:bg-accent-500/15 dark:text-accent-300',
-    rejected: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
-    pending: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
-    failed: 'bg-ink-100 text-ink-600 dark:bg-ink-700 dark:text-ink-300',
+  const tones: Record<string, 'accent' | 'danger' | 'warning' | 'neutral'> = {
+    approved: 'accent',
+    rejected: 'danger',
+    pending: 'warning',
+    failed: 'neutral',
   };
   const labels: Record<string, string> = {
     approved: '已通过',
@@ -22,9 +23,9 @@ const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
     failed: '失败',
   };
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-bold ${colors[status] || colors.failed}`}>
+    <Badge tone={tones[status] || 'neutral'} size="sm">
       {labels[status] || status}
-    </span>
+    </Badge>
   );
 };
 
@@ -134,22 +135,22 @@ const ModerationDashboard: React.FC = () => {
           <p className="text-sm text-ink-400 mt-2">聚合审核结果与来源分布</p>
         </div>
         <div className="flex items-center gap-3">
-          <button
+          <Button
+            variant="primary"
             onClick={() => setManualModalOpen(true)}
-            className="px-4 py-2 rounded-xl bg-accent-600 text-white text-sm font-bold hover:bg-accent-700 transition-colors"
           >
             + 手动审核
-          </button>
-          <select
+          </Button>
+          <Select
+            size="md"
             value={sinceMinutes}
             onChange={(e) => setSinceMinutes(Number(e.target.value))}
-            className="px-4 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm"
           >
             <option value={60}>近 1 小时</option>
             <option value={360}>近 6 小时</option>
             <option value={1440}>近 24 小时</option>
             <option value={10080}>近 7 天</option>
-          </select>
+          </Select>
         </div>
       </div>
 
@@ -168,7 +169,7 @@ const ModerationDashboard: React.FC = () => {
       {metrics && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="p-6 rounded-2xl border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800">
-            <h2 className="text-lg font-black text-ink-800 dark:text-white mb-4">按状态</h2>
+            <h2 className="text-lg font-bold text-ink-800 dark:text-white mb-4">按状态</h2>
             <div className="space-y-2">
               {(metrics.byStatus || []).map((r: any) => (
                 <div key={r.status} className="flex items-center justify-between text-sm">
@@ -180,7 +181,7 @@ const ModerationDashboard: React.FC = () => {
           </div>
 
           <div className="p-6 rounded-2xl border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800">
-            <h2 className="text-lg font-black text-ink-800 dark:text-white mb-4">按提供方</h2>
+            <h2 className="text-lg font-bold text-ink-800 dark:text-white mb-4">按提供方</h2>
             <div className="space-y-2">
               {(metrics.byProvider || []).map((r: any) => (
                 <div key={r.provider} className="flex items-center justify-between text-sm">
@@ -192,12 +193,12 @@ const ModerationDashboard: React.FC = () => {
           </div>
 
           <div className="p-6 rounded-2xl border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 lg:col-span-2">
-            <h2 className="text-lg font-black text-ink-800 dark:text-white mb-4">按业务对象</h2>
+            <h2 className="text-lg font-bold text-ink-800 dark:text-white mb-4">按业务对象</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {(metrics.byTargetType || []).map((r: any) => (
                 <div key={r.targetType} className="p-4 rounded-xl bg-ink-50 dark:bg-ink-700">
-                  <div className="text-xs text-ink-400 uppercase tracking-widest font-bold">{r.targetType}</div>
-                  <div className="mt-1 text-lg font-black text-ink-800 dark:text-white">{Number(r.count || 0).toLocaleString()}</div>
+                  <div className="text-xs text-ink-400 uppercase tracking-widest font-semibold">{r.targetType}</div>
+                  <div className="mt-1 text-lg font-bold text-ink-800 dark:text-white">{Number(r.count || 0).toLocaleString()}</div>
                 </div>
               ))}
             </div>
@@ -208,23 +209,23 @@ const ModerationDashboard: React.FC = () => {
       {/* 审核决策列表 */}
       <div className="rounded-2xl border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 overflow-hidden">
         <div className="px-6 py-4 border-b border-ink-100 dark:border-ink-700 flex items-center justify-between flex-wrap gap-3">
-          <h2 className="text-lg font-black text-ink-800 dark:text-white">审核决策列表</h2>
+          <h2 className="text-lg font-bold text-ink-800 dark:text-white">审核决策列表</h2>
           <div className="flex items-center gap-2">
-            <select
+            <Select
+              size="sm"
               value={decisionsFilter.status || ''}
               onChange={(e) => setDecisionsFilter(f => ({ ...f, status: e.target.value || undefined }))}
-              className="px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm"
             >
               <option value="">全部状态</option>
               <option value="pending">待审核</option>
               <option value="approved">已通过</option>
               <option value="rejected">已拒绝</option>
               <option value="failed">失败</option>
-            </select>
-            <select
+            </Select>
+            <Select
+              size="sm"
               value={decisionsFilter.targetType || ''}
               onChange={(e) => setDecisionsFilter(f => ({ ...f, targetType: e.target.value || undefined }))}
-              className="px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm"
             >
               <option value="">全部类型</option>
               <option value="story">故事</option>
@@ -233,13 +234,14 @@ const ModerationDashboard: React.FC = () => {
               <option value="spinoff">番外</option>
               <option value="booklist">书单</option>
               <option value="user">用户</option>
-            </select>
-            <button
+            </Select>
+            <Button
+              variant="subtle"
+              size="sm"
               onClick={() => loadDecisions(0)}
-              className="px-3 py-2 rounded-lg bg-ink-100 dark:bg-ink-700 text-sm font-bold hover:bg-ink-200 dark:hover:bg-ink-600 transition-colors"
             >
               刷新
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -275,40 +277,43 @@ const ModerationDashboard: React.FC = () => {
 
         {/* 分页 */}
         <div className="px-6 py-4 border-t border-ink-100 dark:border-ink-700 flex items-center justify-between">
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             disabled={decisionsPage === 0 || decisionsLoading}
             onClick={() => loadDecisions(decisionsPage - 1)}
-            className="px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-600 text-sm disabled:opacity-50"
           >
             上一页
-          </button>
+          </Button>
           <span className="text-sm text-ink-400">第 {decisionsPage + 1} 页</span>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             disabled={decisions.length < decisionsLimit || decisionsLoading}
             onClick={() => loadDecisions(decisionsPage + 1)}
-            className="px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-600 text-sm disabled:opacity-50"
           >
             下一页
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* 手动审核弹窗 */}
       {manualModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 scrim">
           <div className="w-full max-w-lg rounded-2xl bg-ink-50 dark:bg-ink-800 border border-ink-200 dark:border-ink-700 shadow-xl">
             <div className="px-6 py-4 border-b border-ink-100 dark:border-ink-700">
-              <h3 className="text-lg font-black text-ink-800 dark:text-white">手动审核</h3>
+              <h3 className="text-lg font-bold text-ink-800 dark:text-white">手动审核</h3>
               <p className="text-xs text-ink-400 mt-1">对指定内容进行人工审核决策</p>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-bold text-ink-500 mb-1">目标类型</label>
-                  <select
+                  <label className="block text-xs font-semibold text-ink-500 mb-1">目标类型</label>
+                  <Select
+                    size="md"
+                    wrapperClassName="w-full"
                     value={manualForm.targetType}
                     onChange={(e) => setManualForm(f => ({ ...f, targetType: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm"
                   >
                     <option value="story">故事</option>
                     <option value="chapter">章节</option>
@@ -319,42 +324,46 @@ const ModerationDashboard: React.FC = () => {
                     <option value="character">角色</option>
                     <option value="ai_asset">AI资源</option>
                     <option value="media_asset">媒体资源</option>
-                  </select>
+                  </Select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-ink-500 mb-1">审核结果</label>
-                  <select
+                  <label className="block text-xs font-semibold text-ink-500 mb-1">审核结果</label>
+                  <Select
+                    size="md"
+                    wrapperClassName="w-full"
                     value={manualForm.status}
                     onChange={(e) => setManualForm(f => ({ ...f, status: e.target.value as 'approved' | 'rejected' }))}
-                    className="w-full px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm"
                   >
                     <option value="approved">通过</option>
                     <option value="rejected">拒绝</option>
-                  </select>
+                  </Select>
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-bold text-ink-500 mb-1">目标ID</label>
-                <input
+                <label className="block text-xs font-semibold text-ink-500 mb-1">目标ID</label>
+                <Input
                   type="text"
+                  size="md"
+                  wrapperClassName="w-full"
+                  className="font-mono"
                   value={manualForm.targetId}
                   onChange={(e) => setManualForm(f => ({ ...f, targetId: e.target.value }))}
                   placeholder="输入目标内容的UUID"
-                  className="w-full px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-ink-500 mb-1">标签（可选，逗号分隔）</label>
-                <input
+                <label className="block text-xs font-semibold text-ink-500 mb-1">标签（可选，逗号分隔）</label>
+                <Input
                   type="text"
+                  size="md"
+                  wrapperClassName="w-full"
                   value={manualForm.labels}
                   onChange={(e) => setManualForm(f => ({ ...f, labels: e.target.value }))}
                   placeholder="如: spam, advertising"
-                  className="w-full px-3 py-2 rounded-lg border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm"
                 />
               </div>
               <div>
-                <label className="block text-xs font-bold text-ink-500 mb-1">原因（可选，每行一条）</label>
+                <label className="block text-xs font-semibold text-ink-500 mb-1">原因（可选，每行一条）</label>
                 <textarea
                   value={manualForm.reasons}
                   onChange={(e) => setManualForm(f => ({ ...f, reasons: e.target.value }))}
@@ -365,19 +374,20 @@ const ModerationDashboard: React.FC = () => {
               </div>
             </div>
             <div className="px-6 py-4 border-t border-ink-100 dark:border-ink-700 flex items-center justify-end gap-3">
-              <button
+              <Button
+                variant="ghost"
                 onClick={() => setManualModalOpen(false)}
-                className="px-4 py-2 rounded-lg text-sm font-bold text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-700 transition-colors"
               >
                 取消
-              </button>
-              <button
-                disabled={manualSubmitting || !manualForm.targetId.trim()}
+              </Button>
+              <Button
+                variant="primary"
+                loading={manualSubmitting}
+                disabled={!manualForm.targetId.trim()}
                 onClick={submitManualDecision}
-                className="px-4 py-2 rounded-lg bg-accent-600 text-white text-sm font-bold hover:bg-accent-700 disabled:opacity-50 transition-colors"
               >
                 {manualSubmitting ? '提交中...' : '确认审核'}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

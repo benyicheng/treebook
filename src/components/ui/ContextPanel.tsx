@@ -1,16 +1,12 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { X, PanelRight, ChevronRight, ChevronLeft } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { X, PanelRight } from 'lucide-react';
 import { Chapter, Branch, Spinoff } from '../../api/storyService';
 import AddToBooklistModal from '../Booklist/AddToBooklistModal';
 import ContextPanelContent from './ContextPanelContent';
+import type { ReadingContextValue } from '../../hooks/useReadingContext';
 
-type PanelState = 'expanded' | 'mini' | 'collapsed';
-
-const STORAGE_KEY = 'context-panel-state';
-const EXPANDED_WIDTH = 320;
-const MINI_WIDTH = 64;
+const STORAGE_KEY = 'context-panel-open';
+const PANEL_WIDTH = 320;
 
 interface ContextPanelProps {
   storyId?: string;
@@ -19,36 +15,19 @@ interface ContextPanelProps {
   chapters?: Chapter[];
   branches?: Branch[];
   spinoffs?: Spinoff[];
+  /** 阅读上下文，由 ReadPage 注入以避免重复调用 useReadingContext */
+  readingCtx?: ReadingContextValue;
 }
 
-function getInitialState(): PanelState {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === 'expanded' || stored === 'mini') return stored;
-  return 'collapsed';
-}
-
-const ContextPanel: React.FC<ContextPanelProps> = ({ storyId, chapterId, branchId, chapters, branches, spinoffs }) => {
-  const location = useLocation();
-  const isReadingPage = location.pathname.startsWith('/read/');
-  const [state, setState] = useState<PanelState>(() => {
-    return isReadingPage ? 'expanded' : getInitialState();
-  });
+const ContextPanel: React.FC<ContextPanelProps> = ({ storyId, chapterId, branchId, chapters, branches, spinoffs, readingCtx }) => {
+  const [open, setOpen] = useState(() => localStorage.getItem(STORAGE_KEY) === 'true');
   const [booklistModalOpen, setBooklistModalOpen] = useState(false);
 
   useEffect(() => {
-    if (isReadingPage && state === 'collapsed') {
-      setState('expanded');
-    }
-  }, [isReadingPage]);
+    localStorage.setItem(STORAGE_KEY, String(open));
+  }, [open]);
 
-  const persistAndSet = useCallback((newState: PanelState) => {
-    setState(newState);
-    localStorage.setItem(STORAGE_KEY, newState);
-  }, []);
-
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== 'undefined' ? window.innerWidth < 768 : false
-  );
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
@@ -56,8 +35,14 @@ const ContextPanel: React.FC<ContextPanelProps> = ({ storyId, chapterId, branchI
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const effectiveState = isMobile && state === 'mini' ? 'expanded' : state;
-  const width = effectiveState === 'expanded' ? EXPANDED_WIDTH : effectiveState === 'mini' ? MINI_WIDTH : 0;
+  useEffect(() => {
+    if (isMobile && open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobile, open]);
 
   const sharedContent = (
     <ContextPanelContent
@@ -67,120 +52,92 @@ const ContextPanel: React.FC<ContextPanelProps> = ({ storyId, chapterId, branchI
       chapters={chapters}
       branches={branches}
       spinoffs={spinoffs}
+      readingCtx={readingCtx}
       onAddToBooklist={() => setBooklistModalOpen(true)}
     />
   );
 
   return (
     <>
-      {/* Mobile: bottom drawer */}
-      {isMobile && effectiveState === 'expanded' && (
-        <div
-          className="fixed inset-0 bg-black/30 z-40"
-          onClick={() => persistAndSet('collapsed')}
-        />
+      {/* Mobile: FAB */}
+      {isMobile && !open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-accent-500 text-white rounded-full shadow-xl hover:bg-accent-600 active:scale-95 transition-all flex items-center justify-center"
+          aria-label="打开上下文"
+        >
+          <PanelRight size={22} />
+        </button>
       )}
-      {isMobile ? (
-        <motion.div
-          animate={{
-            y: effectiveState === 'collapsed' ? 'calc(100% - 60px)' : '0%',
-          }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-ink-800 border-t border-ink-200 dark:border-ink-700 shadow-2xl rounded-t-2xl overflow-hidden"
-          style={{ height: '70vh', maxHeight: '70vh' }}
-        >
-          {effectiveState === 'collapsed' && (
-            <button
-              onClick={() => persistAndSet('expanded')}
-              className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-bold text-ink-500 hover:text-ink-700 dark:hover:text-ink-200 transition-colors min-h-[48px]"
-              aria-label="展开面板"
-            >
-              <PanelRight size={18} />
-              打开上下文
-            </button>
+
+      {/* Mobile: bottom drawer */}
+      {isMobile && (
+        <>
+          {open && (
+            <div className="fixed inset-0 scrim z-40" onClick={() => setOpen(false)} />
           )}
-          <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-ink-100 dark:border-ink-700 shrink-0 min-h-[48px]">
-              <span className="text-sm font-bold text-ink-800 dark:text-white">上下文</span>
-              <button
-                onClick={() => persistAndSet('collapsed')}
-                className="p-2.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-500 hover:text-ink-700 dark:hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                aria-label="收起面板"
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {sharedContent}
-            </div>
-          </div>
-        </motion.div>
-      ) : (
-        /* Desktop: right sidebar */
-        <motion.aside
-          animate={{ width }}
-          transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-          className="fixed right-0 top-0 h-full bg-white dark:bg-ink-800 border-l border-ink-200 dark:border-ink-700 shadow-2xl z-40 overflow-hidden"
-        >
-          <div style={{ width: EXPANDED_WIDTH }} className="flex flex-col h-full">
-            <div className="flex items-center justify-between px-3 py-3 border-b border-ink-100 dark:border-ink-700 shrink-0">
-              {effectiveState === 'expanded' && (
+          <div
+            className={`fixed bottom-0 left-0 right-0 z-50 bg-white dark:bg-ink-800 border-t border-ink-200 dark:border-ink-700 shadow-2xl rounded-t-2xl overflow-hidden transition-transform duration-300 ease-out ${
+              open ? 'translate-y-0' : 'translate-y-full'
+            }`}
+            style={{ height: '70vh', maxHeight: '70vh' }}
+          >
+            <div className="flex flex-col h-full">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-ink-100 dark:border-ink-700 shrink-0 min-h-[48px]">
                 <span className="text-sm font-bold text-ink-800 dark:text-white">上下文</span>
-              )}
-              <div className="flex items-center gap-1 ml-auto">
-                {effectiveState === 'expanded' && (
-                  <button
-                    onClick={() => persistAndSet('mini')}
-                    className="p-2.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-500 hover:text-ink-700 dark:hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    aria-label="切换到迷你模式"
-                  >
-                    <ChevronRight size={18} />
-                  </button>
-                )}
-                {effectiveState !== 'collapsed' && (
-                  <button
-                    onClick={() => persistAndSet('collapsed')}
-                    className="p-2.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-500 hover:text-ink-700 dark:hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                    aria-label="收起面板"
-                  >
-                    <X size={18} />
-                  </button>
-                )}
-              </div>
-            </div>
-
-            {effectiveState === 'expanded' && (
-              <div className="flex-1 overflow-y-auto p-3 space-y-3">
-                {sharedContent}
-              </div>
-            )}
-
-            {effectiveState === 'mini' && (
-              <div className="flex-1 flex flex-col items-center gap-4 py-4">
-                <div className="w-8 h-8 rounded-full bg-accent-100 dark:bg-accent-800/30 flex items-center justify-center">
-                  <PanelRight size={16} className="text-accent-500" />
-                </div>
                 <button
-                  onClick={() => persistAndSet('expanded')}
+                  onClick={() => setOpen(false)}
                   className="p-2.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-500 hover:text-ink-700 dark:hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-                  aria-label="展开面板"
+                  aria-label="收起面板"
                 >
-                  <ChevronLeft size={18} />
+                  <X size={18} />
                 </button>
               </div>
-            )}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {sharedContent}
+              </div>
+            </div>
           </div>
+        </>
+      )}
 
-          {effectiveState === 'collapsed' && (
+      {/* Desktop: floating open button — 注意：open 为 false 时才可见（translate-x-full 时 side panel 移出屏幕） */}
+      {!isMobile && !open && (
+        <button
+          onClick={() => setOpen(true)}
+          className="fixed right-0 top-1/2 -translate-y-1/2 z-40 bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 border-r-0 rounded-l-lg p-2.5 shadow-lg hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+          aria-label="打开面板"
+        >
+          <PanelRight size={18} className="text-ink-500" />
+        </button>
+      )}
+
+      {/* Desktop: backdrop — 右侧面板展开时，点击空白区域收起面板 */}
+      {!isMobile && open && (
+        <div className="fixed inset-0 z-30" onClick={() => setOpen(false)} />
+      )}
+
+      {/* Desktop: sidebar panel — 始终渲染，CSS 控制隐藏/显示，避免条件挂载导致事件丢失 */}
+      {!isMobile && (
+        <aside
+          className={`fixed right-0 top-0 h-full w-[320px] bg-white dark:bg-ink-800 border-l border-ink-200 dark:border-ink-700 shadow-2xl z-40 flex flex-col transition-transform duration-300 ease-out ${
+            open ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          <div className="flex items-center justify-between px-3 py-3 border-b border-ink-100 dark:border-ink-700 shrink-0">
+            <span className="text-sm font-bold text-ink-800 dark:text-white">上下文</span>
             <button
-              onClick={() => persistAndSet('mini')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full bg-white dark:bg-ink-800 border border-ink-200 dark:border-ink-700 border-r-0 rounded-l-lg p-2.5 shadow-lg hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
-              aria-label="打开面板"
+              onClick={() => setOpen(false)}
+              className="p-2.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-500 hover:text-ink-700 dark:hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
+              aria-label="收起面板"
             >
-              <PanelRight size={18} className="text-ink-500" />
+              <X size={18} />
             </button>
-          )}
-        </motion.aside>
+          </div>
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {sharedContent}
+          </div>
+        </aside>
       )}
 
       <AddToBooklistModal

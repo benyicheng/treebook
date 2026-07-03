@@ -1,95 +1,45 @@
 import React, { useState, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   Play,
   ArrowRight,
   ArrowLeft,
   CheckCircle,
   BookOpen,
-  GitBranch,
-  Sparkles,
   Clock,
-  User,
   Route,
 } from 'lucide-react';
 import client from '../../api/client';
 import { useTrail } from '../../hooks/useReadingPaths';
 import { useToast } from '../../components/notifications';
-import { TrailData, TrailNode } from '../../hooks/useReadingPaths';
+import { TrailNode } from '../../hooks/useReadingPaths';
+import { getNodeIcon, getNodeColor, getCategoryLabel } from '../../utils/nodeMeta';
+import { buildNodeUrl } from '../../hooks/useReadingContext';
 
-const getNodeLink = (node: TrailNode): string => {
-  switch (node.nodeCategory) {
-    case 'chapter':
-      return `/read/${node.contentId}`;
-    case 'branch':
-      return `/branch/${node.contentId}`;
-    case 'spinoff':
-      return `/spinoff/${node.contentId}`;
-    default:
-      return '#';
-  }
-};
+// 薄包装：适配 buildNodeUrl 的 (category, contentId, ctx) 签名，供调用点传 node 对象。
+const getNodeLink = (node: TrailNode, ctx?: string): string =>
+  buildNodeUrl(node.nodeCategory, node.contentId, ctx);
 
-const getNodeIcon = (category: string) => {
-  switch (category) {
-    case 'chapter':
-      return BookOpen;
-    case 'branch':
-      return GitBranch;
-    case 'spinoff':
-      return Sparkles;
-    default:
-      return BookOpen;
-  }
-};
-
-const getNodeColor = (category: string) => {
-  switch (category) {
-    case 'chapter':
-      return 'text-accent-500 bg-accent-50 border-accent-200';
-    case 'branch':
-      return 'text-accent-500 bg-purple-50 border-purple-200';
-    case 'spinoff':
-      return 'text-amber-600 bg-amber-50 border-amber-200';
-    default:
-      return 'text-ink-500 bg-ink-50 border-ink-200';
-  }
-};
-
-const getCategoryLabel = (category: string) => {
-  switch (category) {
-    case 'chapter':
-      return '章节';
-    case 'branch':
-      return '分支';
-    case 'spinoff':
-      return '番外';
-    default:
-      return category;
-  }
-};
 
 const ReadingTrailPage: React.FC = () => {
   const { trailId } = useParams<{ trailId: string }>();
   const navigate = useNavigate();
+  const qc = useQueryClient();
 
   // ── Data fetching with React Query ──
   const { data: trail, isLoading, error } = useTrail(trailId!);
 
   // ── Local UI state ──
   const [advancing, setAdvancing] = useState(false);
-  const [isCompleted, setIsCompleted] = useState(false);
   const { addToast } = useToast();
 
-  // Derive from trail data
+  // Derive from trail data — 完成态直接派生，避免渲染期 setState
   const nodes = trail?.path.nodes || [];
   const totalNodes = nodes.length;
-  const currentNode = nodes[trail?.currentNodeIndex ?? -1];
-
-  // Check completion state
-  if (trail?.completedAt) {
-    setIsCompleted(true);
-  }
+  const currentNodeIndex = trail?.currentNodeIndex ?? 0;
+  const currentNode = nodes[currentNodeIndex];
+  const isCompleted = !!trail?.completedAt || currentNodeIndex >= totalNodes;
 
   const handleAdvance = useCallback(async () => {
     if (!trailId || advancing) return;
@@ -97,20 +47,17 @@ const ReadingTrailPage: React.FC = () => {
     try {
       const res = await client.post(`/reading-paths/trails/${trailId}/advance`);
       const result = res.data;
-      if (result.isCompleted) {
-        setIsCompleted(true);
-      } else {
-        const newIndex = result.currentNodeIndex;
-        if (trail) {
-          trail.currentNodeIndex = newIndex;
-        }
+      if (!result.isCompleted) {
+        // 触发 React Query 重取，让 currentNodeIndex 从服务端权威数据派生，
+        // 而非手动 mutate 缓存对象。
+        qc.invalidateQueries({ queryKey: ['reading-paths', 'trails', trailId] });
       }
     } catch (err: any) {
       addToast('error', err?.message || '操作失败');
     } finally {
       setAdvancing(false);
     }
-  }, [trailId, advancing, trail]);
+  }, [trailId, advancing, qc, addToast]);
 
   const handleBackToPath = useCallback(() => {
     if (trail?.pathId) {
@@ -148,12 +95,12 @@ const ReadingTrailPage: React.FC = () => {
     );
   }
 
-  // Completion state
-  if (isCompleted || trail.currentNodeIndex >= totalNodes) {
+  // Completion state — 由派生值 isCompleted 驱动
+  if (isCompleted) {
     return (
       <div className="max-w-2xl mx-auto py-16 px-4 text-center">
         <CheckCircle size={64} className="mx-auto text-green-500 mb-6" />
-        <h1 className="text-2xl font-black text-ink-800 mb-2">阅读完成！</h1>
+        <h1 className="text-2xl font-bold text-ink-800 mb-2">阅读完成！</h1>
         <p className="text-ink-500 mb-2">
           你已读完全部 {totalNodes} 个节点的「{trail.path.title}」
         </p>
@@ -184,7 +131,7 @@ const ReadingTrailPage: React.FC = () => {
           <div className="lg:sticky lg:top-24 space-y-4">
             {/* Path title + booklist link */}
             <div>
-              <h2 className="text-sm font-black text-ink-800 truncate">{trail.path.title}</h2>
+              <h2 className="text-sm font-bold text-ink-800 truncate">{trail.path.title}</h2>
               {trail.path.booklistId && (
                 <Link to={`/booklist/${trail.path.booklistId}`}
                   className="inline-flex items-center gap-1 mt-1 text-[11px] text-accent-500 hover:text-accent-600 font-medium">
@@ -211,7 +158,7 @@ const ReadingTrailPage: React.FC = () => {
                 const isDone = idx < trail.currentNodeIndex;
 
                 return (
-                  <Link key={node.id} to={getNodeLink(node)}
+                  <Link key={node.id} to={getNodeLink(node, trailId ? `trail:${trailId}` : undefined)}
                     className={`flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs transition-colors ${
                       isCurrent
                         ? 'bg-accent-50 border border-accent-200 font-bold text-accent-600'
@@ -281,7 +228,7 @@ const ReadingTrailPage: React.FC = () => {
               )}
 
               <div className="flex items-center gap-3 pt-2">
-                <Link to={getNodeLink(currentNode)}
+                <Link to={getNodeLink(currentNode, trailId ? `trail:${trailId}` : undefined)}
                   className="flex items-center gap-2 px-5 py-2.5 bg-accent-400 text-white rounded-xl text-sm font-bold hover:bg-accent-500 transition-colors">
                   <Play size={16} /> 去阅读
                 </Link>

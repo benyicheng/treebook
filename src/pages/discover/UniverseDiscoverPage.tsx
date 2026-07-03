@@ -4,6 +4,7 @@ import { useUniverseFeed } from '../../hooks/useUniverseFeed';
 import DiscoverTabs from './components/DiscoverTabs';
 import UniverseCardGrid from './components/UniverseCardGrid';
 import { Compass, Search, RotateCcw, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button, Input } from '../../components/ui';
 
 const UniverseDiscoverPage: React.FC = () => {
   const { items, loading, error, tab, setTab, page, totalPages, goToPage, refresh } =
@@ -54,25 +55,29 @@ const UniverseDiscoverPage: React.FC = () => {
           <div className="flex items-center gap-3 w-full sm:w-auto">
             {/* Search */}
             <form onSubmit={handleSearch} className="relative flex-1 sm:flex-initial">
-              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-400" />
-              <input
+              <Input
                 type="text"
+                size="sm"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="搜索宇宙..."
-                className="w-full sm:w-48 pl-9 pr-4 py-2 text-sm bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-700 rounded-full outline-none focus:border-accent-300 dark:focus:border-accent-600 focus:ring-2 focus:ring-accent-500/20 transition-all placeholder:text-ink-400 text-ink-700 dark:text-ink-200"
+                leftIcon={<Search size={16} />}
+                wrapperClassName="w-full sm:w-48"
+                className="rounded-full"
               />
             </form>
 
             {/* Refresh */}
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={refresh}
               disabled={loading}
-              className="flex items-center gap-1.5 px-4 py-2 text-sm font-bold text-ink-500 dark:text-ink-400 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-700 rounded-full hover:bg-ink-100 dark:hover:bg-ink-700 disabled:opacity-50 transition-all"
+              className="rounded-full"
+              leftIcon={<RotateCcw size={14} className={loading ? 'animate-spin' : ''} />}
             >
-              <RotateCcw size={14} className={loading ? 'animate-spin' : ''} />
               <span className="hidden sm:inline">刷新</span>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -95,14 +100,15 @@ const UniverseDiscoverPage: React.FC = () => {
         {/* ── Pagination ── */}
         {totalPages > 1 && (
           <div className="flex items-center justify-center gap-3 mt-12 pb-8">
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => goToPage(page - 1)}
               disabled={page <= 1}
-              className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-bold text-ink-500 dark:text-ink-400 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-700 hover:bg-ink-100 dark:hover:bg-ink-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              leftIcon={<ChevronLeft size={16} />}
             >
-              <ChevronLeft size={16} />
               上一页
-            </button>
+            </Button>
 
             <div className="flex items-center gap-1.5">
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
@@ -128,14 +134,15 @@ const UniverseDiscoverPage: React.FC = () => {
               })}
             </div>
 
-            <button
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => goToPage(page + 1)}
               disabled={page >= totalPages}
-              className="flex items-center gap-1 px-4 py-2.5 rounded-xl text-sm font-bold text-ink-500 dark:text-ink-400 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-700 hover:bg-ink-100 dark:hover:bg-ink-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              rightIcon={<ChevronRight size={16} />}
             >
               下一页
-              <ChevronRight size={16} />
-            </button>
+            </Button>
           </div>
         )}
       </div>

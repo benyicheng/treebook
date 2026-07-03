@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { reviewWorkflowService, type ReviewCase, type ReviewCaseDetail } from '../../api/reviewWorkflowService';
+import { Select, Button } from '../../components/ui';
 
 const parseJson = (s: string | null) => {
   if (!s) return null;
@@ -81,13 +82,12 @@ const ReviewCasesPage: React.FC = () => {
           <h1 className="text-3xl font-black text-ink-800 dark:text-white">人工复核工单</h1>
           <p className="text-sm text-ink-400 mt-2">机审拒绝/失败自动生成待办，人工复核可覆盖机审裁决并留痕</p>
         </div>
-        <select
+        <Select
           value={status}
           onChange={(e) => {
             setStatus(e.target.value);
             setSelected(null);
           }}
-          className="px-4 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm"
         >
           <option value="open">待处理</option>
           <option value="in_review">处理中</option>
@@ -95,7 +95,7 @@ const ReviewCasesPage: React.FC = () => {
           <option value="approved">已通过</option>
           <option value="rejected">已拒绝</option>
           <option value="closed">已关闭</option>
-        </select>
+        </Select>
       </div>
 
       {error && (
@@ -107,7 +107,7 @@ const ReviewCasesPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-2xl border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 overflow-hidden">
           <div className="px-5 py-4 border-b border-ink-100 dark:border-ink-700 flex items-center justify-between">
-            <div className="text-sm font-black text-ink-800 dark:text-white">工单列表</div>
+            <div className="text-sm font-bold text-ink-800 dark:text-white">工单列表</div>
             <div className="text-xs text-ink-400">{loading ? '加载中…' : `${cases.length} 条`}</div>
           </div>
           <div className="divide-y divide-ink-100 dark:divide-ink-700">
@@ -121,7 +121,7 @@ const ReviewCasesPage: React.FC = () => {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-sm font-black text-ink-800 dark:text-white truncate">
+                    <div className="text-sm font-bold text-ink-800 dark:text-white truncate">
                       L{c.level} · {c.targetType} · {c.contentType}{c.field ? ` · ${c.field}` : ''}
                     </div>
                     <div className="text-xs text-ink-400 truncate">{c.targetId}</div>
@@ -140,7 +140,7 @@ const ReviewCasesPage: React.FC = () => {
 
         <div className="rounded-2xl border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 overflow-hidden">
           <div className="px-5 py-4 border-b border-ink-100 dark:border-ink-700 flex items-center justify-between">
-            <div className="text-sm font-black text-ink-800 dark:text-white">工单详情</div>
+            <div className="text-sm font-bold text-ink-800 dark:text-white">工单详情</div>
             <div className="text-xs text-ink-400">{loadingDetail ? '加载中…' : selected ? selected.status : ''}</div>
           </div>
 
@@ -158,12 +158,12 @@ const ReviewCasesPage: React.FC = () => {
               </div>
 
               <div className="rounded-xl border border-ink-100 dark:border-ink-700 p-4">
-                <div className="text-xs font-black text-ink-500 mb-2">内容快照</div>
+                <div className="text-xs font-bold text-ink-500 mb-2">内容快照</div>
                 <pre className="text-xs whitespace-pre-wrap break-words text-ink-600 dark:text-ink-200">{snapshot ? JSON.stringify(snapshot, null, 2) : (selected.snapshot || '')}</pre>
               </div>
 
               <div className="rounded-xl border border-ink-100 dark:border-ink-700 p-4">
-                <div className="text-xs font-black text-ink-500 mb-2">操作日志</div>
+                <div className="text-xs font-bold text-ink-500 mb-2">操作日志</div>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {(selected.actions || []).map((a) => (
                     <div key={a.id} className="text-xs">
@@ -180,7 +180,7 @@ const ReviewCasesPage: React.FC = () => {
               </div>
 
               <div className="space-y-2">
-                <div className="text-xs font-black text-ink-500">备注（退回/拒绝原因或通过说明）</div>
+                <div className="text-xs font-bold text-ink-500">备注（退回/拒绝原因或通过说明）</div>
                 <textarea
                   value={actionNote}
                   onChange={(e) => setActionNote(e.target.value)}
@@ -188,27 +188,31 @@ const ReviewCasesPage: React.FC = () => {
                   placeholder="输入备注…"
                 />
                 <div className="flex gap-2">
-                  <button
-                    disabled={acting}
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    loading={acting}
                     onClick={() => void submitAction('approve')}
-                    className="px-4 py-2 rounded-xl bg-accent-500 text-white text-sm font-black disabled:opacity-50"
                   >
                     通过
-                  </button>
-                  <button
-                    disabled={acting}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="danger"
+                    loading={acting}
                     onClick={() => void submitAction('reject')}
-                    className="px-4 py-2 rounded-xl bg-rose-600 text-white text-sm font-black disabled:opacity-50"
                   >
                     拒绝
-                  </button>
-                  <button
-                    disabled={acting}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="primary"
+                    loading={acting}
                     onClick={() => void submitAction('return')}
-                    className="px-4 py-2 rounded-xl bg-amber-500 text-white text-sm font-black disabled:opacity-50"
+                    className="bg-amber-500 hover:bg-amber-600 shadow-amber-500/20"
                   >
                     退回修改
-                  </button>
+                  </Button>
                 </div>
               </div>
             </div>

@@ -11,6 +11,7 @@ import BranchCompareDrawer from './BranchCompareDrawer';
 import EventDetailDrawer from './EventDetailDrawer';
 import { LikeButton } from '../../../components/Interaction/LikeButton';
 import { ShareButton } from '../../../components/Interaction/ShareButton';
+import { IconButton, Button } from '../../../components/ui';
 import { EVENT_TYPE_LABELS } from './eventConstants';
 import type { ConnectorKey } from '../../../api/eventConnectorService';
 
@@ -106,13 +107,16 @@ const BooklistEventCard: React.FC<BooklistEventCardProps> = ({
           </div>
 
           {isCreator && (
-            <button
-              onClick={() => onRemove(item.id)}
-              className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/30 text-ink-400 hover:text-red-500 transition-all shrink-0"
+            <IconButton
+              variant="ghost"
+              size="sm"
+              aria-label="从书单移除"
               title="从书单移除"
+              onClick={() => onRemove(item.id)}
+              className="h-auto w-auto p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-100 dark:hover:bg-red-900/30 text-ink-400 hover:text-red-500 shrink-0"
             >
               <X size={14} />
-            </button>
+            </IconButton>
           )}
         </div>
 
@@ -153,12 +157,15 @@ const BooklistEventCard: React.FC<BooklistEventCardProps> = ({
             <MessageCircle size={12} className="shrink-0 mt-0.5 text-ink-300" />
             <span className="flex-1">{item.notes}</span>
             {isCreator && (
-              <button
+              <IconButton
+                variant="ghost"
+                size="sm"
+                aria-label="编辑点评"
                 onClick={() => onEditNotes(item)}
-                className="shrink-0 text-ink-300 hover:text-accent-500 transition-colors"
+                className="h-auto w-auto p-0 shrink-0 text-ink-300 hover:text-accent-500"
               >
                 <Edit3 size={10} />
-              </button>
+              </IconButton>
             )}
           </div>
         )}
@@ -213,13 +220,15 @@ const BooklistEventCard: React.FC<BooklistEventCardProps> = ({
 
         {hasNodes && (
           <>
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="flex items-center gap-1 text-[10px] text-ink-400 hover:text-ink-600 dark:hover:text-ink-300 transition-colors font-medium"
+              leftIcon={isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
+              className="h-auto gap-1 text-[10px] text-ink-400 hover:text-ink-600 dark:hover:text-ink-300 px-0 py-0"
             >
-              {isExpanded ? <ChevronDown size={12} /> : <ChevronRight size={12} />}
               关联内容 ({nodes.length})
-            </button>
+            </Button>
 
             {isExpanded && (
               <div className="space-y-0.5 pl-1">

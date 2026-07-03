@@ -17,6 +17,7 @@ import {
   Check,
 } from 'lucide-react';
 import client from '../../api/client';
+import { Button, Input, Textarea } from '../../components/ui';
 import { booklistService } from '../../api/storyService';
 import { useAuthStore } from '../../stores/useAuthStore';
 
@@ -321,7 +322,7 @@ const ReadingPathCreatePage: React.FC = () => {
         <AlertCircle size={48} className="mx-auto text-ink-300 mb-4" />
         <h2 className="text-xl font-bold text-ink-800 dark:text-white mb-2">请先登录</h2>
         <p className="text-ink-500 mb-6">你需要登录后才能创建阅读路径</p>
-        <button onClick={() => navigate('/login')} className="px-6 py-2.5 bg-accent-500 text-white rounded-xl text-sm font-bold hover:bg-accent-600">登录</button>
+        <Button onClick={() => navigate('/login')}>登录</Button>
       </div>
     );
   }
@@ -336,9 +337,9 @@ const ReadingPathCreatePage: React.FC = () => {
         <div>
           <div className="flex items-center gap-2 mb-1">
             <Route size={20} className="text-accent-400" />
-            <span className="text-xs font-bold text-accent-400 uppercase tracking-wider">创建阅读路径</span>
+            <span className="eyebrow text-accent-400">创建阅读路径</span>
           </div>
-          <h1 className="text-2xl font-black text-ink-800 dark:text-white">选择关联故事</h1>
+          <h1 className="text-2xl font-bold text-ink-800 dark:text-white">选择关联故事</h1>
           <p className="mt-1 text-sm text-ink-500">选择一篇故事，从它的内容中编排阅读路线</p>
         </div>
 
@@ -387,9 +388,9 @@ const ReadingPathCreatePage: React.FC = () => {
       <div>
         <div className="flex items-center gap-2 mb-1">
           <Route size={20} className="text-accent-400" />
-          <span className="text-xs font-bold text-accent-400 uppercase tracking-wider">创建阅读路径</span>
+          <span className="eyebrow text-accent-400">创建阅读路径</span>
         </div>
-        <h1 className="text-2xl font-black text-ink-800 dark:text-white">
+        <h1 className="text-2xl font-bold text-ink-800 dark:text-white">
           {booklist ? `基于「${booklist.title}」的路线` : storyName ? `「${storyName}」阅读路线` : '创建阅读路径'}
         </h1>
         <p className="mt-1 text-sm text-ink-500">
@@ -401,16 +402,15 @@ const ReadingPathCreatePage: React.FC = () => {
       <div className="bg-white dark:bg-ink-800 rounded-2xl border border-ink-100 dark:border-ink-700 p-5 space-y-4">
         <h3 className="text-sm font-bold text-ink-800 dark:text-white">基本信息</h3>
         <div>
-          <label className="block text-xs font-bold text-ink-500 mb-1.5">路径名称 *</label>
-          <input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
-            placeholder="如：凡人修仙 · 必看分支合集"
-            className="w-full px-3.5 py-2.5 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-700 text-sm text-ink-800 dark:text-white placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-transparent" />
+          <label className="block text-xs font-semibold text-ink-500 mb-1.5">路径名称 *</label>
+          <Input type="text" value={title} onChange={(e) => setTitle(e.target.value)}
+            placeholder="如：凡人修仙 · 必看分支合集" />
         </div>
         <div>
-          <label className="block text-xs font-bold text-ink-500 mb-1.5">简介</label>
-          <textarea value={description} onChange={(e) => setDescription(e.target.value)}
+          <label className="block text-xs font-semibold text-ink-500 mb-1.5">简介</label>
+          <Textarea value={description} onChange={(e) => setDescription(e.target.value)}
             placeholder="简要描述这条路线适合什么样的读者…" rows={2}
-            className="w-full px-3.5 py-2.5 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-700 text-sm text-ink-800 dark:text-white placeholder-ink-400 focus:outline-none focus:ring-2 focus:ring-accent-400 focus:border-transparent resize-none" />
+            className="resize-none" />
         </div>
         <div>
           <label className="block text-xs font-bold text-ink-500 mb-1.5">路线类型</label>
@@ -659,15 +659,11 @@ const ReadingPathCreatePage: React.FC = () => {
       )}
 
       <div className="flex items-center justify-end gap-3 pt-2 pb-8">
-        <button onClick={() => navigate(-1)} className="px-5 py-2.5 rounded-xl text-sm font-bold text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-700 transition-colors">取消</button>
-        <button onClick={handleSubmit} disabled={submitting || !title.trim() || selectedNodes.length === 0}
-          className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-accent-500 text-white text-sm font-bold hover:bg-accent-600 disabled:bg-ink-300 dark:disabled:bg-ink-600 disabled:cursor-not-allowed transition-colors">
-          {submitting ? (
-            <><Loader2 size={16} className="animate-spin" /> 创建中…</>
-          ) : (
-            <><Route size={16} /> 创建阅读路径</>
-          )}
-        </button>
+        <Button variant="ghost" onClick={() => navigate(-1)}>取消</Button>
+        <Button onClick={handleSubmit} loading={submitting} disabled={!title.trim() || selectedNodes.length === 0}
+          leftIcon={!submitting ? <Route size={16} /> : undefined}>
+          {submitting ? '创建中…' : '创建阅读路径'}
+        </Button>
       </div>
     </div>
   );

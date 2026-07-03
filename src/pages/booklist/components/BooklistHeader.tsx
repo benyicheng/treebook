@@ -5,6 +5,7 @@ import {
   Eye, User, Route, BookOpen,
 } from 'lucide-react';
 import { FollowButton } from '../../../components/Interaction';
+import { Button, IconButton } from '../../../components/ui';
 
 const TYPE_CONFIG: Record<string, { label: string; icon: React.ElementType; color: string }> = {
   TIMELINE:   { label: '时空导览', icon: Route,    color: 'bg-accent-600' },
@@ -31,11 +32,17 @@ interface BooklistHeaderProps {
   onShare: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onViewPaths?: () => void;
+  activeTab?: string;
+  onExpandPaths?: () => void;
 }
 
 const BooklistHeader: React.FC<BooklistHeaderProps> = ({
   booklist, isCreator, stats,
   onToggleLike, onShare, onEdit, onDelete,
+  onViewPaths,
+  activeTab,
+  onExpandPaths,
 }) => {
   const navigate = useNavigate();
   const tc = TYPE_CONFIG[booklist.type || ''] || TYPE_CONFIG.COLLECTION;
@@ -45,13 +52,15 @@ const BooklistHeader: React.FC<BooklistHeaderProps> = ({
   return (
     <div className="bg-white dark:bg-ink-700 rounded-2xl p-6 md:p-8 shadow-lg border border-ink-100 dark:border-ink-600 space-y-6 relative overflow-hidden">
 
-      <button
+      <Button
+        variant="ghost"
+        size="sm"
         onClick={() => navigate(-1)}
-        className="inline-flex items-center gap-2 text-sm font-bold text-ink-500 hover:text-accent-500 transition-colors"
+        leftIcon={<ArrowLeft size={16} />}
+        className="text-ink-500 hover:text-accent-500"
       >
-        <ArrowLeft size={16} />
         返回
-      </button>
+      </Button>
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-4 flex-1">
@@ -128,64 +137,85 @@ const BooklistHeader: React.FC<BooklistHeaderProps> = ({
         </div>
 
         <div className="flex flex-col gap-3 min-w-[240px]">
-          <button
+          <Button
+            variant="primary"
+            size="lg"
+            fullWidth
             onClick={() => navigate(`/reading-path/create?booklistId=${booklist.id}`)}
-            className="w-full flex items-center justify-center gap-3 px-6 py-3.5 bg-accent-500 text-white rounded-xl font-black text-base hover:bg-accent-600 transition-all shadow-lg shadow-accent-400/20 active:scale-95 group"
+            leftIcon={<Route size={20} className="group-hover:scale-110 transition-transform" />}
+            className="group py-3.5 text-base shadow-lg shadow-accent-400/20"
           >
-            <Route size={20} className="group-hover:scale-110 transition-transform" />
             创建阅读路径
-          </button>
+          </Button>
 
           {pathCount > 0 && (
-            <button
+            <Button
+              variant="outline"
+              size="md"
+              fullWidth
               onClick={() => {
-                const el = document.querySelector('[data-tab-id="paths"]');
-                if (el) (el as HTMLButtonElement).click();
+                if (activeTab === 'overview') {
+                  if (onExpandPaths) {
+                    onExpandPaths();
+                  }
+                } else if (onViewPaths) {
+                  onViewPaths();
+                } else {
+                  navigate(`/booklist/${booklist.id}?tab=overview`);
+                }
               }}
-              className="w-full flex items-center justify-center gap-3 px-6 py-3 bg-ink-50 dark:bg-ink-600 text-ink-600 dark:text-ink-300 border border-ink-100 dark:border-ink-500 rounded-xl font-bold text-sm hover:bg-ink-100 dark:hover:bg-ink-500 transition-all"
+              leftIcon={<Route size={18} />}
             >
-              <Route size={18} />
               查看全部 {pathCount} 条路径
-            </button>
+            </Button>
           )}
 
           <div className="flex gap-2">
-            <button
+            <Button
+              variant="outline"
+              size="md"
               onClick={onToggleLike}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-sm transition-all border ${
+              leftIcon={<Heart size={18} className={stats?.liked ? 'fill-red-500' : ''} />}
+              className={`flex-1 py-3 ${
                 stats?.liked
-                  ? "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-900/30"
-                  : "bg-white dark:bg-ink-700 text-ink-600 dark:text-ink-300 border-ink-100 dark:border-ink-600 hover:bg-ink-50 dark:hover:bg-ink-600"
+                  ? 'bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-900/30'
+                  : 'bg-white dark:bg-ink-700 text-ink-600 dark:text-ink-300 border-ink-100 dark:border-ink-600 hover:bg-ink-50 dark:hover:bg-ink-600'
               }`}
             >
-              <Heart size={18} className={stats?.liked ? "fill-red-500" : ""} />
               {stats?.liked ? '已点赞' : '点赞'}
-            </button>
+            </Button>
 
-            <button
+            <Button
+              variant="outline"
+              size="md"
               onClick={onShare}
-              className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-ink-50 dark:bg-ink-700 text-ink-600 dark:text-ink-300 border border-ink-100 dark:border-ink-600 rounded-xl font-bold text-sm hover:bg-ink-50 dark:hover:bg-ink-600 transition-all"
+              leftIcon={<Share2 size={18} />}
+              className="flex-1 py-3 bg-ink-50 dark:bg-ink-700 text-ink-600 dark:text-ink-300 border-ink-100 dark:border-ink-600 hover:bg-ink-50 dark:hover:bg-ink-600"
             >
-              <Share2 size={18} />
               分享
-            </button>
+            </Button>
           </div>
 
           {isCreator && (
             <div className="flex gap-2">
-              <button
+              <Button
+                variant="subtle"
+                size="md"
                 onClick={onEdit}
-                className="flex-1 flex items-center justify-center gap-2 px-4 py-3 bg-ink-100 dark:bg-ink-600 text-ink-600 dark:text-ink-300 rounded-xl font-bold text-sm hover:bg-ink-200 dark:hover:bg-ink-500 transition-all"
+                leftIcon={<Edit3 size={16} />}
+                className="flex-1 py-3"
               >
-                <Edit3 size={16} />
                 编辑书单
-              </button>
-              <button
+              </Button>
+              <IconButton
+                variant="ghost"
+                size="md"
+                aria-label="删除书单"
                 onClick={onDelete}
-                className="flex items-center justify-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-bold text-sm hover:bg-red-100 dark:hover:bg-red-900/30 transition-all"
+                className="py-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30"
               >
                 <Trash2 size={16} />
-              </button>
+              </IconButton>
             </div>
           )}
         </div>

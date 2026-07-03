@@ -1,6 +1,6 @@
 import React from 'react';
 import { AlertCircle } from 'lucide-react';
-import { Modal } from '../../../components/ui';
+import { Modal, Button, Input, Textarea } from '../../../components/ui';
 import { AddToBooklistModal } from '../../../components/Booklist';
 import MergeManagementModal from '../../../components/Merge/MergeManagementModal';
 
@@ -65,10 +65,9 @@ const StoryModals: React.FC<StoryModalsProps> = ({
         <form onSubmit={handleCreateBranch} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-bold text-ink-500">分支标题</label>
-            <input 
-              type="text" 
+            <Input
+              type="text"
               required
-              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all"
               placeholder="例如：如果主角选择了另一条路..."
               value={newBranchData.title}
               onChange={e => setNewBranchData((prev: any) => ({ ...prev, title: e.target.value }))}
@@ -76,10 +75,10 @@ const StoryModals: React.FC<StoryModalsProps> = ({
           </div>
           <div className="space-y-2">
             <label className="text-sm font-bold text-ink-500">分支描述</label>
-            <textarea 
+            <Textarea
               required
               rows={3}
-              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all resize-none"
+              className="resize-none"
               placeholder="简述这个平行宇宙的核心差异..."
               value={newBranchData.description}
               onChange={e => setNewBranchData((prev: any) => ({ ...prev, description: e.target.value }))}
@@ -103,13 +102,14 @@ const StoryModals: React.FC<StoryModalsProps> = ({
               <p className="text-xs font-medium">您正在创建社区分支。您的分支将被标记为“社区”，并展现在平行宇宙树中。</p>
             </div>
           )}
-          <button 
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full py-4 bg-accent-500 text-white rounded-2xl font-black hover:bg-accent-600 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+            loading={isSubmitting}
+            fullWidth
+            className="rounded-2xl h-auto py-4 font-black shadow-lg"
           >
             {isSubmitting ? '正在创建...' : '开启新宇宙'}
-          </button>
+          </Button>
         </form>
       </Modal>
 
@@ -121,10 +121,9 @@ const StoryModals: React.FC<StoryModalsProps> = ({
         <form onSubmit={handleCreateChapter} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-bold text-ink-500">章节标题</label>
-            <input 
-              type="text" 
+            <Input
+              type="text"
               required
-              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all"
               placeholder="例如：第一章 重生"
               value={newChapterData.title}
               onChange={e => setNewChapterData((prev: any) => ({ ...prev, title: e.target.value }))}
@@ -132,21 +131,21 @@ const StoryModals: React.FC<StoryModalsProps> = ({
           </div>
           <div className="space-y-2">
             <label className="text-sm font-bold text-ink-500">章节顺序</label>
-            <input 
-              type="number" 
+            <Input
+              type="number"
               required
-              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all"
               value={newChapterData.orderIndex}
               onChange={e => setNewChapterData((prev: any) => ({ ...prev, orderIndex: parseInt(e.target.value) }))}
             />
           </div>
-          <button 
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full py-4 bg-accent-500 text-white rounded-2xl font-black hover:bg-accent-600 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+            loading={isSubmitting}
+            fullWidth
+            className="rounded-2xl h-auto py-4 font-black shadow-lg"
           >
             {isSubmitting ? '正在添加...' : '确认添加'}
-          </button>
+          </Button>
         </form>
       </Modal>
 
@@ -158,39 +157,38 @@ const StoryModals: React.FC<StoryModalsProps> = ({
         <form onSubmit={handleUpdateStory} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-bold text-ink-500">故事标题</label>
-            <input 
-              type="text" 
+            <Input
+              type="text"
               required
-              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all"
               value={editStoryData.title}
               onChange={e => setEditStoryData((prev: any) => ({ ...prev, title: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-bold text-ink-500">封面图片 URL</label>
-            <input 
-              type="text" 
-              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all"
+            <Input
+              type="text"
               value={editStoryData.coverImage}
               onChange={e => setEditStoryData((prev: any) => ({ ...prev, coverImage: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
             <label className="text-sm font-bold text-ink-500">故事简介</label>
-            <textarea 
+            <Textarea
               rows={4}
-              className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all resize-none"
+              className="resize-none"
               value={editStoryData.description}
               onChange={e => setEditStoryData((prev: any) => ({ ...prev, description: e.target.value }))}
             />
           </div>
-          <button 
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full py-4 bg-accent-500 text-white rounded-2xl font-black hover:bg-accent-600 transition-all shadow-lg active:scale-95 disabled:opacity-50"
+            loading={isSubmitting}
+            fullWidth
+            className="rounded-2xl h-auto py-4 font-black shadow-lg"
           >
             {isSubmitting ? '保存中...' : '保存修改'}
-          </button>
+          </Button>
         </form>
       </Modal>
 

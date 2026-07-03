@@ -1,7 +1,6 @@
 import client from './client';
 import type { Story } from './types';
-
-export type { Character, Spinoff, Story } from './types';
+export type { Story, Character, Spinoff } from './types';
 
 export const storyService = {
   getTags: async () => {
@@ -36,6 +35,15 @@ export const storyService = {
     return data;
   },
 
+  delete: async (id: string) => {
+    await client.delete(`/stories/${id}`);
+  },
+
+  getMap: async (storyId: string) => {
+    const { data } = await client.get<any>(`/stories/${storyId}/map`);
+    return data;
+  },
+
   getRecentReads: async () => {
     try {
       const { data } = await client.get<any>('/stories/recent');
@@ -47,7 +55,6 @@ export const storyService = {
 };
 
 export { characterService } from './characterService';
-
 export { interactionService } from './interactionService';
 export type {
   InteractionStats,
@@ -56,18 +63,12 @@ export type {
   RatingRequest,
   ShareConfig,
 } from './interactionService';
-
 export { branchService } from './branchService';
 export type { Branch } from './branchService';
-
 export { booklistService } from './booklistService';
 export type { Booklist } from './booklistService';
-
 export { chapterService } from './chapterService';
 export type { Chapter, Comment } from './chapterService';
-
 export { spinoffService } from './spinoffService';
-
 export { savepointService } from './savepointService';
-
 export { aiService } from './aiService';

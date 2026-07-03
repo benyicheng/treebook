@@ -29,7 +29,7 @@ export const authService = {
     return data;
   },
 
-  register: async (userData: any) => {
+  register: async (userData: { username: string; email: string; password: string }) => {
     const { data } = await client.post<AuthResponse>('/auth/register', userData);
     setToken(data.token);
     return data;
@@ -40,7 +40,7 @@ export const authService = {
     return data;
   },
 
-  updateMe: async (payload: { username?: string; avatarUrl?: string; profile?: any }) => {
+  updateMe: async (payload: { username?: string; avatarUrl?: string; profile?: Record<string, unknown> }) => {
     const { data } = await client.put<User>('/auth/me', payload);
     return data;
   },

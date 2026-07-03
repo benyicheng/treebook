@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { MessageSquare, Send, Clock } from 'lucide-react';
 import { useToast } from '../../components/notifications';
 import { useNavigate } from 'react-router-dom';
+import { Button } from '../../components/ui';
 
 const CommentAvatar: React.FC<{ author: { avatarUrl?: string | null; username: string } }> = ({ author }) => {
   const [imgFailed, setImgFailed] = useState(false);
@@ -86,12 +87,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({ chapterId }) => {
       ) : (
         <div className="p-8 bg-ink-50 dark:bg-ink-700/50 rounded-3xl border-2 border-dashed border-ink-200 dark:border-ink-600 text-center">
           <p className="text-ink-500 font-medium mb-4">登录后即可参与时空对话</p>
-          <button 
+          <Button
+            variant="secondary"
             onClick={() => navigate('/login')}
-            className="px-8 py-3 bg-ink-800 dark:bg-white text-white dark:text-ink-800 rounded-2xl font-black text-sm hover:opacity-90 transition-all"
+            className="rounded-2xl px-8 font-black"
           >
             立即登录
-          </button>
+          </Button>
         </div>
       )}
 

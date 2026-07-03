@@ -1,28 +1,6 @@
 import client from './client';
-
-export type ModerationMetrics = {
-  since: string;
-  byStatus: Array<{ status: string; count: number }>;
-  byProvider: Array<{ provider: string; count: number }>;
-  byTargetType: Array<{ targetType: string; count: number }>;
-};
-
-export type ModerationDecision = {
-  id: string;
-  jobId: string;
-  businessLine: string;
-  targetType: string;
-  targetId: string;
-  contentType: string;
-  field?: string;
-  status: 'pending' | 'approved' | 'rejected' | 'failed';
-  labels?: string;
-  reasons?: string;
-  score?: number;
-  provider?: string;
-  traceId?: string;
-  createdAt: string;
-};
+import type { ModerationMetrics, ModerationDecision } from './types';
+export type { ModerationMetrics, ModerationDecision };
 
 export const moderationService = {
   getMetrics: async (sinceMinutes = 1440): Promise<ModerationMetrics> => {
@@ -40,4 +18,3 @@ export const moderationService = {
     return data;
   },
 };
-

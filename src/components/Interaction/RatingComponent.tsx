@@ -7,6 +7,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { useInteractionStore } from '../../stores/useInteractionStore';
 import { useToast } from '../notifications/Toast';
 import Modal from '../ui/Modal';
+import { Button } from '../ui';
 
 interface RatingComponentProps {
   targetType: TargetType;
@@ -284,19 +285,21 @@ export const RatingComponent: React.FC<RatingComponentProps> = ({
 
           {/* 提交按钮 */}
           <div className="flex gap-3">
-            <button
+            <Button
+              variant="subtle"
               onClick={() => setIsModalOpen(false)}
-              className="flex-1 py-3 bg-ink-100 text-ink-600 rounded-xl font-bold hover:bg-ink-200 transition-all"
+              className="flex-1 py-3"
             >
               取消
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={handleSubmit}
               disabled={isSubmitting}
-              className="flex-1 py-3 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-all disabled:opacity-50"
+              loading={isSubmitting}
+              className="flex-1 py-3 bg-amber-500 hover:bg-amber-600"
             >
               {isSubmitting ? '提交中...' : '确认评分'}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>

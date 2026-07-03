@@ -101,15 +101,18 @@ const BranchPage: React.FC = () => {
     }
   };
 
-  const handleSaveChapter = async (content: string) => {
+  const handleSaveChapter = async (content: string, meta?: { auto?: boolean }) => {
     if (!editingChapterId) return;
     try {
       await updateChapter.mutateAsync({ id: editingChapterId, data: { content } });
-      addToast('success', '章节已保存');
-      setEditingChapterId(null);
-      setActiveTab('chapters');
+      if (!meta?.auto) {
+        addToast('success', '章节已保存');
+        setEditingChapterId(null);
+        setActiveTab('chapters');
+      }
     } catch (err) {
-      addToast('error', '保存失败');
+      if (!meta?.auto) addToast('error', '保存失败');
+      throw err;
     }
   };
 
@@ -121,7 +124,7 @@ const BranchPage: React.FC = () => {
         ...newChapterData,
         branchId: id,
         storyId: currentBranch.parentStoryId,
-        content: '<p>新章节内容...</p>',
+        content: '',
       });
       setIsChapterModalOpen(false);
       setNewChapterData({ title: '', orderIndex: (currentBranch.chapters.length || 0) + 2 });

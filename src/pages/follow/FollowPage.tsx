@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useToast } from '../../components/notifications';
+import { IconButton } from '../../components/ui';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { followService } from '../../api/followService';
 import client from '../../api/client';
@@ -224,7 +225,7 @@ const FollowPage: React.FC = () => {
           </p>
           <Link
             to="/login"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm font-black shadow-lg shadow-pink-500/25 hover:shadow-xl hover:shadow-pink-500/30 hover:-translate-y-0.5 transition-all duration-300"
+            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-gradient-to-r from-pink-500 to-rose-500 text-white text-sm font-semibold shadow-lg shadow-pink-500/25 hover:shadow-xl hover:shadow-pink-500/30 hover:-translate-y-0.5 transition-all duration-300"
           >
             <User size={18} />
             立即登录
@@ -239,13 +240,13 @@ const FollowPage: React.FC = () => {
       {/* ── Header ── */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <button
+          <IconButton
             onClick={() => navigate(-1)}
-            className="p-2 rounded-xl hover:bg-ink-100 dark:hover:bg-ink-700 transition-colors"
+            aria-label="返回"
           >
             <ArrowLeft size={18} className="text-ink-400" />
-          </button>
-          <h1 className="text-xl font-black text-ink-800 dark:text-white">关注</h1>
+          </IconButton>
+          <h1 className="text-xl font-bold text-ink-800 dark:text-white">关注</h1>
         </div>
         <Link
           to="/discover"

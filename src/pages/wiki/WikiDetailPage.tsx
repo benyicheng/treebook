@@ -5,7 +5,7 @@ import { useWikiPage, useDeleteWikiPage, useAddWikiAlias, useRemoveWikiAlias, us
 import { wikiService, WikiLookupResult } from '../../api/wikiService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useToast } from '../../components/notifications';
-import { Modal } from '../../components/ui';
+import { Modal, Spinner } from '../../components/ui';
 import {
   ArrowLeft, Edit3, Trash2, Plus, X, Link2, Hash,
   FileText, Users, Globe, BookOpen, Zap, Puzzle,
@@ -34,6 +34,30 @@ const statusLabels: Record<string, string> = {
   draft: '草稿',
   published: '已发布',
   archived: '已归档',
+};
+
+// 百科属性 key → 中文标签。未知 key 回退原值，避免英文 key 直出。
+const attributeLabels: Record<string, string> = {
+  age: '年龄',
+  gender: '性别',
+  birthday: '生日',
+  origin: '出身',
+  occupation: '职业',
+  affiliation: '阵营',
+  faction: '势力',
+  ability: '能力',
+  weapon: '武器',
+  height: '身高',
+  weight: '体重',
+  personality: '性格',
+  appearance: '外貌',
+  location: '地点',
+  era: '时代',
+  status: '状态',
+  role: '身份',
+  species: '种族',
+  element: '属性',
+  level: '等级',
 };
 
 const WikiDetailPage: React.FC = () => {
@@ -173,7 +197,7 @@ const WikiDetailPage: React.FC = () => {
   if (isLoading) {
     return (
       <div className="flex justify-center items-center min-h-[80vh]">
-        <div className="w-12 h-12 border-4 border-accent-500 border-t-transparent rounded-full animate-spin" />
+        <Spinner size={48} />
       </div>
     );
   }
@@ -260,7 +284,7 @@ const WikiDetailPage: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
               {Object.entries(page.attributes).map(([key, value]) => (
                 <div key={key} className="flex items-center gap-1.5 text-sm">
-                  <span className="font-bold text-ink-500">{key}:</span>
+                  <span className="font-bold text-ink-500">{attributeLabels[key] ?? key}:</span>
                   <span className="text-ink-600 dark:text-ink-300">{String(value)}</span>
                 </div>
               ))}
@@ -333,7 +357,7 @@ const WikiDetailPage: React.FC = () => {
         <div className="bg-white dark:bg-ink-700 rounded-3xl border border-ink-100 dark:border-ink-600 p-6 space-y-4">
           <h2 className="text-lg font-black text-ink-800 dark:text-white flex items-center gap-2">
             <Link2 size={20} className="text-indigo-400" />
-            链接到此页的页面
+            本页链接到的页面
           </h2>
           {page.outgoingLinks?.length > 0 ? (
             <div className="space-y-2">
@@ -364,7 +388,7 @@ const WikiDetailPage: React.FC = () => {
         <div className="bg-white dark:bg-ink-700 rounded-3xl border border-ink-100 dark:border-ink-600 p-6 space-y-4">
           <h2 className="text-lg font-black text-ink-800 dark:text-white flex items-center gap-2">
             <Link2 size={20} className="text-indigo-400" />
-            被链接到此页的页面
+            链接到此页的页面
           </h2>
           {page.incomingLinks?.length > 0 ? (
             <div className="space-y-2">

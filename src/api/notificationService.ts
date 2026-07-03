@@ -1,16 +1,6 @@
 import client from './client';
-
-export interface NotificationItem {
-  id: string;
-  userId: string;
-  actorId?: string;
-  type: string;
-  targetType: string;
-  targetId: string;
-  message: string;
-  isRead: boolean;
-  createdAt: string;
-}
+import type { NotificationItem } from './types';
+export type { NotificationItem };
 
 const notificationService = {
   getNotifications: async (page = 1, limit = 20): Promise<{ items: NotificationItem[]; total: number; page: number; limit: number; totalPages: number }> => {
@@ -18,17 +8,17 @@ const notificationService = {
     return data;
   },
 
+  markRead: async (id?: string) => {
+    await client.post('/notifications/read', { id });
+  },
+
+  markAllRead: async () => {
+    await client.post('/notifications/read-all');
+  },
+
   getUnreadCount: async (): Promise<number> => {
     const { data } = await client.get<any>('/notifications/unread-count');
-    return data.count;
-  },
-
-  markAsRead: async (id: string): Promise<void> => {
-    await client.post(`/notifications/${id}/read`);
-  },
-
-  markAllAsRead: async (): Promise<void> => {
-    await client.post('/notifications/read-all');
+    return data;
   },
 };
 

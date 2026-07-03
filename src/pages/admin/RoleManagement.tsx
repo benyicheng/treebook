@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Shield, Plus, Edit3, Trash2, Check, X } from 'lucide-react';
+import { Button, IconButton, Input } from '../../components/ui';
 import { PermissionGate } from '../../components/auth';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useToast } from '../../components/notifications';
-import roleService, { Permission, RoleItem } from '../../api/roleService';
+import { roleService, Permission, RoleItem } from '../../api/roleService';
 
 const RoleManagement: React.FC = () => {
   const queryClient = useQueryClient();
@@ -148,51 +149,46 @@ const RoleManagement: React.FC = () => {
           <p className="text-ink-500 mt-2">管理系统角色及其对应的功能权限</p>
         </div>
         <PermissionGate permission="role:create">
-          <button
+          <Button
             onClick={handleCreate}
-            className="flex items-center gap-2 px-6 py-3 bg-accent-500 text-white rounded-xl font-bold hover:bg-accent-600 transition-all shadow-lg shadow-accent-400/20"
+            variant="primary"
+            size="lg"
+            leftIcon={<Plus size={20} />}
           >
-            <Plus size={20} />
             新建角色
-          </button>
+          </Button>
         </PermissionGate>
       </div>
 
       <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between mb-6">
         <div className="flex gap-3 items-center">
-          <input
+          <Input
             value={q}
             onChange={(e) => {
               setPage(1);
               setQ(e.target.value);
             }}
-            className="px-4 py-3 rounded-2xl bg-ink-50 dark:bg-ink-700 border border-transparent focus:border-accent-400 focus:ring-2 focus:ring-accent-400/20 outline-none font-bold text-ink-800 dark:text-white w-full md:w-80"
             placeholder="搜索角色名称或描述..."
+            wrapperClassName="w-full md:w-80"
           />
-          <button
-            onClick={() => rolesQuery.refetch()}
-            className="px-4 py-3 rounded-2xl bg-ink-100 dark:bg-ink-700 text-ink-800 dark:text-white font-black hover:bg-ink-200 dark:hover:bg-ink-600 transition-all active:scale-95"
-          >
+          <Button onClick={() => rolesQuery.refetch()} variant="subtle">
             刷新
-          </button>
+          </Button>
         </div>
         <div className="flex flex-wrap gap-3 justify-end">
           <PermissionGate permission="role:read">
-            <button
-              onClick={exportRoles}
-              className="px-4 py-3 rounded-2xl bg-ink-100 dark:bg-ink-700 text-ink-800 dark:text-white font-black hover:bg-ink-200 dark:hover:bg-ink-600 transition-all active:scale-95"
-            >
+            <Button onClick={exportRoles} variant="subtle">
               导出 CSV
-            </button>
+            </Button>
           </PermissionGate>
           <PermissionGate permission="role:delete">
-            <button
+            <Button
               disabled={selectedRoleIds.length === 0}
               onClick={bulkDelete}
-              className="px-4 py-3 rounded-2xl bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-300 font-black hover:bg-red-100 dark:hover:bg-red-900/30 transition-all active:scale-95 disabled:opacity-50"
+              variant="danger"
             >
               批量删除
-            </button>
+            </Button>
           </PermissionGate>
         </div>
       </div>
@@ -208,7 +204,7 @@ const RoleManagement: React.FC = () => {
           <div key={role.id} className="bg-white dark:bg-ink-700 rounded-3xl p-6 border border-ink-100 dark:border-ink-600 hover:shadow-xl transition-all">
             <div className="flex justify-between items-start mb-4">
               <div>
-                <h3 className="text-xl font-black text-ink-800 dark:text-white">{role.name}</h3>
+                <h3 className="text-xl font-bold text-ink-800 dark:text-white">{role.name}</h3>
                 <p className="text-sm text-ink-500 mt-1">{role.description}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -220,22 +216,24 @@ const RoleManagement: React.FC = () => {
                   aria-label={`选择角色 ${role.name}`}
                 />
                 {(canUpdateRole || canAssignPermissions) && (
-                  <button
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
                     onClick={() => handleEdit(role)}
-                    className="p-2 text-ink-400 hover:text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-500/10 rounded-lg transition-colors"
                     aria-label={`编辑角色 ${role.name}`}
                   >
                     <Edit3 size={18} />
-                  </button>
+                  </IconButton>
                 )}
                 {hasPermission('role:delete') && (
-                  <button
+                  <IconButton
+                    variant="danger"
+                    size="sm"
                     onClick={() => deleteRole(role.id)}
-                    className="p-2 text-ink-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                     aria-label={`删除角色 ${role.name}`}
                   >
                     <Trash2 size={18} />
-                  </button>
+                  </IconButton>
                 )}
               </div>
             </div>
@@ -259,43 +257,44 @@ const RoleManagement: React.FC = () => {
           共 {total} 条 · 第 {page}/{totalPages} 页
         </div>
         <div className="flex gap-2">
-          <button
+          <Button
+            variant="subtle"
+            size="sm"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}
-            className="px-4 py-2 rounded-xl bg-ink-100 dark:bg-ink-700 text-ink-800 dark:text-white font-black disabled:opacity-50"
           >
             上一页
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="subtle"
+            size="sm"
             onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
             disabled={page >= totalPages}
-            className="px-4 py-2 rounded-xl bg-ink-100 dark:bg-ink-700 text-ink-800 dark:text-white font-black disabled:opacity-50"
           >
             下一页
-          </button>
+          </Button>
         </div>
       </div>
 
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
+          <div className="absolute inset-0 scrim backdrop-blur-sm" onClick={() => setIsModalOpen(false)}></div>
           <div className="relative bg-ink-50 dark:bg-ink-800 rounded-3xl w-full max-w-2xl max-h-[85vh] flex flex-col shadow-2xl animate-in zoom-in-95 duration-200">
             <div className="p-6 border-b border-ink-100 dark:border-ink-700 flex justify-between items-center">
-              <h3 className="text-xl font-black text-ink-800 dark:text-white">
+              <h3 className="text-xl font-bold text-ink-800 dark:text-white">
                 {editingRole ? '编辑角色权限' : '新建角色'}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-ink-400 hover:text-ink-500">
+              <IconButton variant="ghost" size="sm" aria-label="关闭" onClick={() => setIsModalOpen(false)}>
                 <X size={24} />
-              </button>
+              </IconButton>
             </div>
 
             <div className="p-6 overflow-y-auto flex-1 space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-ink-500 uppercase">角色名称</label>
-                  <input
-                    className="w-full px-4 py-3 bg-ink-50 dark:bg-ink-700 border-none rounded-xl focus:ring-2 focus:ring-accent-400 outline-none"
+                  <Input
                     placeholder="例如: editor"
                     value={newRoleName}
                     onChange={e => setNewRoleName(e.target.value)}
@@ -304,8 +303,7 @@ const RoleManagement: React.FC = () => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-ink-500 uppercase">描述</label>
-                  <input
-                    className="w-full px-4 py-3 bg-ink-50 dark:bg-ink-700 border-none rounded-xl focus:ring-2 focus:ring-accent-400 outline-none"
+                  <Input
                     placeholder="角色职能描述"
                     value={newRoleDesc}
                     onChange={e => setNewRoleDesc(e.target.value)}
@@ -348,18 +346,12 @@ const RoleManagement: React.FC = () => {
             </div>
 
             <div className="p-6 border-t border-ink-100 dark:border-ink-700 flex justify-end gap-3">
-              <button
-                onClick={() => setIsModalOpen(false)}
-                className="px-6 py-3 bg-ink-100 dark:bg-ink-700 text-ink-500 dark:text-ink-300 rounded-xl font-bold hover:bg-ink-200"
-              >
+              <Button variant="subtle" onClick={() => setIsModalOpen(false)}>
                 取消
-              </button>
-              <button
-                onClick={handleSubmit}
-                className="px-6 py-3 bg-accent-500 text-white rounded-xl font-bold hover:bg-accent-600 shadow-lg shadow-accent-400/20"
-              >
+              </Button>
+              <Button variant="primary" onClick={handleSubmit}>
                 保存配置
-              </button>
+              </Button>
             </div>
           </div>
         </div>

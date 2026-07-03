@@ -1,25 +1,10 @@
 import client from './client';
-
-export interface ReadingProgress {
-  chapterId: string;
-  status: 'reading' | 'completed';
-  progress: number;
-  currentPage: number | null;
-  source: string | null;
-  sourceId: string | null;
-  updatedAt: string;
-}
-
-export interface ReadingStats {
-  total: number;
-  completed: number;
-  inProgress: number;
-}
+import type { ReadingProgress, ReadingStats } from './types';
+export type { ReadingProgress, ReadingStats };
 
 export const readingProgressService = {
-  /** 批量获取阅读进度 */
   getProgress: async (chapterIds?: string[]): Promise<ReadingProgress[]> => {
-    const params: any = {};
+    const params: Record<string, string> = {};
     if (chapterIds?.length) {
       params.chapterIds = chapterIds.join(',');
     }
@@ -27,13 +12,11 @@ export const readingProgressService = {
     return data;
   },
 
-  /** 获取阅读统计 */
   getStats: async (): Promise<ReadingStats> => {
     const { data } = await client.get<ReadingStats>('/reading-progress/stats');
     return data;
   },
 
-  /** 更新（upsert）阅读进度 */
   upsertProgress: async (chapterId: string, payload: {
     status?: 'reading' | 'completed';
     progress?: number;

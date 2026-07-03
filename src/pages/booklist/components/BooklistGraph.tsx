@@ -17,7 +17,7 @@ import { useBooklistGraph, useCreateRelation, useDeleteRelation } from '../../..
 import { useAuthStore } from '../../../stores/useAuthStore';
 import { useToast } from '../../../components/notifications';
 import { Plus, X, Link2 } from 'lucide-react';
-import { Modal } from '../../../components/ui';
+import { Modal, Select, Button, Badge } from '../../../components/ui';
 
 interface BooklistGraphProps {
   booklistId: string;
@@ -62,9 +62,9 @@ const GraphNode: React.FC<{ data: any }> = ({ data }) => {
       <div className="flex items-center gap-2 mb-1">
         <span className="text-sm font-bold text-ink-800 leading-tight">{data.label}</span>
         {data.isWiki && (
-          <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-green-100 text-green-700 text-[10px] font-bold leading-none">
+          <Badge tone="success" variant="solid" size="sm">
             百科
-          </span>
+          </Badge>
         )}
       </div>
       {data.storyTitle && (
@@ -72,9 +72,9 @@ const GraphNode: React.FC<{ data: any }> = ({ data }) => {
       )}
       {data.isWiki && data.wikiContentType && (
         <div className="mt-1">
-          <span className="inline-flex px-1.5 py-0.5 rounded bg-green-50 text-green-600 text-[10px] font-medium border border-green-200">
+          <Badge tone="success" variant="outline" size="sm">
             {contentTypeLabels[data.wikiContentType] || data.wikiContentType}
-          </span>
+          </Badge>
         </div>
       )}
       {data.notes && (
@@ -233,13 +233,14 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
           </span>
         </div>
         {user && (
-          <button
+          <Button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-accent-500 text-white rounded-xl text-sm font-bold hover:bg-accent-600 transition-colors"
+            variant="primary"
+            size="md"
+            leftIcon={<Plus size={16} />}
           >
-            <Plus size={16} />
             添加关系
-          </button>
+          </Button>
         )}
       </div>
 
@@ -286,8 +287,9 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
         <div className="space-y-4">
           <div>
             <label className="text-xs font-bold text-ink-500 mb-1 block">源条目</label>
-            <select
-              className="w-full px-4 py-3 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 outline-none text-sm"
+            <Select
+              size="md"
+              wrapperClassName="w-full"
               value={newRelation.sourceItemId}
               onChange={e => setNewRelation(prev => ({ ...prev, sourceItemId: e.target.value }))}
             >
@@ -297,12 +299,13 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
                   {item.chapter?.title || item.wiki?.title || item.spinoff?.title || item.branch?.title || item.targetId || item.id.slice(0, 8)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div>
             <label className="text-xs font-bold text-ink-500 mb-1 block">目标条目</label>
-            <select
-              className="w-full px-4 py-3 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 outline-none text-sm"
+            <Select
+              size="md"
+              wrapperClassName="w-full"
               value={newRelation.targetItemId}
               onChange={e => setNewRelation(prev => ({ ...prev, targetItemId: e.target.value }))}
             >
@@ -312,27 +315,30 @@ const BooklistGraph: React.FC<BooklistGraphProps> = ({ booklistId }) => {
                   {item.chapter?.title || item.wiki?.title || item.spinoff?.title || item.branch?.title || item.targetId || item.id.slice(0, 8)}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <div>
             <label className="text-xs font-bold text-ink-500 mb-1 block">关系类型</label>
-            <select
-              className="w-full px-4 py-3 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 outline-none text-sm"
+            <Select
+              size="md"
+              wrapperClassName="w-full"
               value={newRelation.relationType}
               onChange={e => setNewRelation(prev => ({ ...prev, relationType: e.target.value }))}
             >
               {Object.entries(relationLabels).map(([key, label]) => (
                 <option key={key} value={key}>{label}</option>
               ))}
-            </select>
+            </Select>
           </div>
-          <button
+          <Button
             onClick={handleAddRelation}
             disabled={createRelation.isPending}
-            className="w-full py-3 bg-accent-500 text-white rounded-xl font-black hover:bg-accent-600 disabled:opacity-50 transition-colors"
+            variant="primary"
+            size="md"
+            fullWidth
           >
             {createRelation.isPending ? '添加中...' : '确认添加'}
-          </button>
+          </Button>
         </div>
       </Modal>
     </div>

@@ -1,38 +1,6 @@
+import type { Branch } from './types';
 import client from './client';
-import type { Story, Spinoff } from './types';
-
-export interface Branch {
-  id: string;
-  parentStoryId: string;
-  parentChapterId: string;
-  parentEventId?: string | null;
-  parentBranchId?: string;
-  authorId: string;
-  title: string;
-  description?: string | null;
-  branchType: string;
-  isOfficial: boolean;
-  isCertified?: boolean;
-  treeDepth?: number;
-  status?: 'ongoing' | 'completed' | 'merged';
-  viewCount?: number;
-  createdAt: string;
-  updatedAt: string;
-  author?: {
-    id: string;
-    username: string;
-    role: string;
-  };
-  parentStory?: Story & { spinoffs?: Spinoff[] };
-  parentChapter?: {
-    id: string;
-    title: string;
-    orderIndex: number;
-  };
-  _count?: {
-    chapters: number;
-  };
-}
+export type { Branch };
 
 export const branchService = {
   getAll: async (params?: { q?: string; page?: number; limit?: number }) => {

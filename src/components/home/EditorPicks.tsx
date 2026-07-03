@@ -3,11 +3,12 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Star } from 'lucide-react';
 import { Skeleton } from '../ui/Skeleton';
+import EmptyState from '../ui/EmptyState';
 import SectionTitle from './SectionTitle';
 import { coverFallback, stagger, fadeUp } from './shared';
 
 interface EditorPicksProps {
-  displayedPicks: any[];
+  displayedPicks: { id?: string; title?: string; author?: string; cover?: string; description?: string }[];
   storiesLoading: boolean;
 }
 
@@ -40,6 +41,13 @@ const EditorPicks: React.FC<EditorPicksProps> = ({ displayedPicks, storiesLoadin
           </div>
         ))}
       </div>
+    ) : displayedPicks.length === 0 ? (
+      <EmptyState
+        icon={Star}
+        title="暂无编辑推荐"
+        description="编辑团队正在精选优质作品，敬请期待"
+        compact
+      />
     ) : (
       <motion.div variants={stagger} className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {displayedPicks.map((pick: any, i: number) => (

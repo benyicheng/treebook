@@ -3,7 +3,7 @@ import { Spinoff } from '../../api/storyService';
 import { useSpinoffs } from '../../hooks/useSpinoffs';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { BookOpen, PlusCircle, Star, MessageSquare, Users } from 'lucide-react';
-import { Modal } from '../../components/ui';
+import { Modal, Button, IconButton, Badge } from '../../components/ui';
 import { useNavigate } from 'react-router-dom';
 import { Skeleton } from '../../components/ui';
 import { ShareButton } from '../../components/Interaction';
@@ -19,13 +19,14 @@ const SpinoffPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
         <h1 className="text-3xl font-black text-ink-800 dark:text-white tracking-tight">精彩番外</h1>
         {isAuthenticated && (
-          <button 
+          <Button
+            variant="primary"
             onClick={() => navigate('/spinoff/create')}
-            className="flex items-center gap-2 px-6 py-3 bg-accent-600 text-white rounded-2xl font-bold hover:bg-accent-700 transition-all shadow-lg active:scale-95"
+            leftIcon={<PlusCircle size={20} />}
+            className="px-6 py-3 rounded-2xl"
           >
-            <PlusCircle size={20} />
             发布番外
-          </button>
+          </Button>
         )}
       </div>
 
@@ -53,19 +54,19 @@ const SpinoffPage: React.FC = () => {
             <div key={spinoff.id} className="group bg-ink-50 dark:bg-ink-700 rounded-3xl border border-ink-100 dark:border-ink-600 p-8 hover:border-accent-300 dark:hover:border-accent-500 hover:shadow-2xl hover:shadow-accent-500/10 transition-all duration-300 flex flex-col">
               <div className="flex justify-between items-start mb-6">
                 <div className="flex gap-2">
-                  <span className="px-3 py-1 bg-accent-50 dark:bg-accent-800/30 text-accent-600 dark:text-accent-400 text-[10px] font-black uppercase tracking-wider rounded-full">
+                  <Badge tone="accent" variant="soft" size="sm">
                     番外短篇
-                  </span>
+                  </Badge>
                   {spinoff.isOfficial && (
-                    <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-black uppercase tracking-wider rounded-full">
+                    <Badge tone="warning" variant="soft" size="sm">
                       官方认证
-                    </span>
+                    </Badge>
                   )}
                 </div>
               </div>
               
               <div className="space-y-4 flex-grow">
-                <h3 className="text-2xl font-black text-ink-800 dark:text-white group-hover:text-accent-600 transition-colors line-clamp-2 leading-tight">
+                <h3 className="text-2xl font-bold text-ink-800 dark:text-white group-hover:text-accent-600 transition-colors line-clamp-2 leading-tight">
                   {spinoff.title}
                 </h3>
                 <div className="flex items-center gap-2 text-xs font-bold text-ink-400">
@@ -84,14 +85,14 @@ const SpinoffPage: React.FC = () => {
                       {spinoff.characters.slice(0, 4).map(char => (
                         <div
                           key={char.id}
-                          className="w-6 h-6 rounded-full bg-accent-100 dark:bg-accent-800/50 border-2 border-white dark:border-ink-700 flex items-center justify-center text-[9px] font-black text-accent-600 dark:text-accent-400"
+                          className="w-6 h-6 rounded-full bg-accent-100 dark:bg-accent-800/50 border-2 border-white dark:border-ink-700 flex items-center justify-center text-[9px] font-bold text-accent-600 dark:text-accent-400"
                           title={`${char.name}（${char.role === 'protagonist' ? '主角' : char.role === 'antagonist' ? '反派' : '配角'}）`}
                         >
                           {char.name[0]}
                         </div>
                       ))}
                       {spinoff.characters.length > 4 && (
-                        <div className="w-6 h-6 rounded-full bg-ink-100 dark:bg-ink-700 border-2 border-white dark:border-ink-700 flex items-center justify-center text-[8px] font-black text-ink-400">
+                        <div className="w-6 h-6 rounded-full bg-ink-100 dark:bg-ink-700 border-2 border-white dark:border-ink-700 flex items-center justify-center text-[8px] font-bold text-ink-400">
                           +{spinoff.characters.length - 4}
                         </div>
                       )}
@@ -119,9 +120,13 @@ const SpinoffPage: React.FC = () => {
                     size="sm"
                     variant="ghost"
                   />
-                  <button onClick={() => navigate(`/spinoff/${spinoff.id}`)} className="p-3 bg-ink-50 dark:bg-ink-800 text-ink-400 hover:text-accent-600 hover:bg-accent-50 dark:hover:bg-accent-800/20 rounded-xl transition-all">
+                  <IconButton
+                    aria-label={`查看番外：${spinoff.title}`}
+                    onClick={() => navigate(`/spinoff/${spinoff.id}`)}
+                    className="p-3 bg-ink-50 dark:bg-ink-800 text-ink-400 hover:text-accent-600 hover:bg-accent-50 dark:hover:bg-accent-800/20 rounded-xl"
+                  >
                     <BookOpen size={20} />
-                  </button>
+                  </IconButton>
                 </div>
               </div>
             </div>

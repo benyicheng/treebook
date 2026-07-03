@@ -1,7 +1,7 @@
-import React, { useCallback } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, Sparkles } from 'lucide-react';
 
 interface BannerSlide {
   imageUrl: string;
@@ -21,6 +21,41 @@ interface HeroBannerProps {
 const HeroBanner: React.FC<HeroBannerProps> = ({ slides, bannerIndex, goBanner, fullWidth }) => {
   const navigate = useNavigate();
   const slide = slides[bannerIndex];
+
+  // 空数据兜底：避免访问 undefined.imageUrl 导致崩溃
+  if (!slide) {
+    return (
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className={`relative w-full overflow-hidden shadow-2xl flex items-center justify-center ${
+          fullWidth
+            ? '-mt-28 pt-28 min-h-[300px] md:aspect-[21/7] md:max-h-[420px]'
+            : 'aspect-[21/8] max-h-[460px] rounded-3xl mb-12 border border-ink-100/50 dark:border-ink-700/50'
+        }`}
+      >
+        <div className="absolute inset-0 bg-gradient-to-br from-accent-500/10 via-ink-50 to-accent-500/5 dark:from-accent-500/15 dark:via-ink-800 dark:to-accent-500/10" />
+        <div className="relative flex flex-col items-center text-center px-6">
+          <div className="w-14 h-14 rounded-2xl bg-accent-500/10 dark:bg-accent-500/20 flex items-center justify-center mb-4">
+            <Sparkles size={24} className="text-accent-500" />
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-black text-ink-800 dark:text-white mb-2">
+            暂无精选内容
+          </h2>
+          <p className="text-sm text-ink-500 dark:text-ink-400 mb-6 max-w-md">
+            精彩故事正在路上，先去探索其他作品吧
+          </p>
+          <button
+            onClick={() => navigate('/stories')}
+            className="px-6 py-3 bg-accent-500 text-white text-sm font-semibold rounded-full hover:bg-accent-600 transition-all shadow-lg active:scale-95 flex items-center gap-2"
+          >
+            探索更多
+            <ArrowRight size={15} />
+          </button>
+        </div>
+      </motion.section>
+    );
+  }
 
   return (
     <motion.section
@@ -83,14 +118,14 @@ const HeroBanner: React.FC<HeroBannerProps> = ({ slides, bannerIndex, goBanner, 
         >
           <button
             onClick={() => navigate(slide.link || '#')}
-            className="group/btn px-8 py-3.5 bg-ink-50 text-ink-800 text-sm font-black rounded-full hover:bg-ink-50 transition-all shadow-2xl active:scale-95 flex items-center gap-2.5"
+            className="group/btn px-8 py-3.5 bg-ink-50 text-ink-800 text-sm font-semibold rounded-full hover:bg-ink-50 transition-all shadow-2xl active:scale-95 flex items-center gap-2.5"
           >
             {slide.buttonText || '查看详情'}
             <ArrowRight size={15} className="transition-transform group-hover/btn:translate-x-1" />
           </button>
           <button
             onClick={() => navigate('/stories')}
-            className="px-8 py-3.5 bg-white/10 backdrop-blur-sm text-white text-sm font-black rounded-full border border-white/25 hover:bg-white/20 hover:border-white/40 transition-all active:scale-95"
+            className="px-8 py-3.5 bg-white/10 backdrop-blur-sm text-white text-sm font-semibold rounded-full border border-white/25 hover:bg-white/20 hover:border-white/40 transition-all active:scale-95"
           >
             探索更多
           </button>

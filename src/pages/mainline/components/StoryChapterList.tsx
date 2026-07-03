@@ -10,7 +10,7 @@ interface StoryChapterListProps {
   setEditingChapterId: (id: string | null) => void;
   setIsChapterModalOpen: (open: boolean) => void;
   setBooklistTargetChapter: (target: any) => void;
-  handleSaveChapter: (content: string) => void;
+  handleSaveChapter: (content: string, meta?: { auto?: boolean }) => void;
   storyId: string;
 }
 

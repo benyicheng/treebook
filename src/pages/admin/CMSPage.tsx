@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import { useToast } from '../../components/notifications';
+import { Button, IconButton, Switch } from '../../components/ui';
 
 type TabKey = 'basic' | 'banner' | 'announcement' | 'editor-picks' | 'footer' | 'seo' | 'pages';
 
@@ -199,24 +200,19 @@ const CMSPage: React.FC = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-black text-ink-800 dark:text-white flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-ink-800 dark:text-white flex items-center gap-2">
             <Settings size={24} className="text-accent-500" />
             网站 CMS 管理
           </h1>
           <p className="text-sm text-ink-500 dark:text-ink-400 mt-1">管理网站基本信息、轮播、公告等内容</p>
         </div>
-        <button
+        <Button
           onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-6 py-2.5 bg-accent-500 text-white rounded-xl font-bold hover:bg-accent-600 disabled:opacity-50 transition-all shadow-lg shadow-accent-400/20"
+          loading={saving}
+          leftIcon={!saving ? <Save size={16} /> : undefined}
         >
-          {saving ? (
-            <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-          ) : (
-            <Save size={16} />
-          )}
           保存所有设置
-        </button>
+        </Button>
       </div>
 
       {/* Save Status */}
@@ -241,7 +237,7 @@ const CMSPage: React.FC = () => {
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-bold transition-all text-left ${
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold transition-all text-left ${
                   activeTab === tab.key
                     ? 'bg-accent-500 text-white shadow-lg shadow-accent-400/20'
                     : 'text-ink-500 dark:text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-700'
@@ -264,7 +260,7 @@ const CMSPage: React.FC = () => {
 
               {/* Logo 预览 */}
               <div className="flex items-center gap-6 p-4 bg-ink-50 dark:bg-ink-700 rounded-xl">
-                <div className="w-16 h-16 rounded-xl bg-accent-500 flex items-center justify-center text-white font-black text-2xl overflow-hidden shrink-0">
+                <div className="w-16 h-16 rounded-xl bg-accent-500 flex items-center justify-center text-white font-bold text-2xl overflow-hidden shrink-0">
                   {form.logoUrl ? (
                     <img src={form.logoUrl} alt="Logo" className="w-full h-full object-contain" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   ) : (
@@ -272,7 +268,7 @@ const CMSPage: React.FC = () => {
                   )}
                 </div>
                 <div>
-                  <p className="text-lg font-black text-ink-800 dark:text-white">{form.siteName || '网站名称'}</p>
+                  <p className="text-lg font-bold text-ink-800 dark:text-white">{form.siteName || '网站名称'}</p>
                   <p className="text-sm text-ink-500">{form.siteSlogan || '网站口号'}</p>
                 </div>
               </div>
@@ -392,7 +388,7 @@ const CMSPage: React.FC = () => {
 
               <button
                 onClick={addSlide}
-                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-ink-300 dark:border-ink-600 rounded-xl text-ink-500 hover:border-accent-400 hover:text-accent-500 transition-all font-medium"
+                className="w-full flex items-center justify-center gap-2 py-3 border-2 border-dashed border-ink-300 dark:border-ink-600 rounded-xl text-ink-500 hover:border-accent-400 hover:text-accent-500 transition-all font-semibold"
               >
                 <Plus size={18} />
                 添加轮播图
@@ -410,17 +406,11 @@ const CMSPage: React.FC = () => {
                   <p className="font-bold text-ink-800 dark:text-white text-sm">启用公告栏</p>
                   <p className="text-xs text-ink-500 mt-0.5">开启后，公告内容会显示在首页</p>
                 </div>
-                <button
-                  onClick={() => handleChange('announcementEnabled', form.announcementEnabled === 'true' ? 'false' : 'true')}
-                  className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                    form.announcementEnabled === 'true'
-                      ? 'bg-accent-500 text-white'
-                      : 'bg-ink-200 dark:bg-ink-600 text-ink-500 dark:text-ink-400'
-                  }`}
-                >
-                  {form.announcementEnabled === 'true' ? <Eye size={14} /> : <EyeOff size={14} />}
-                  {form.announcementEnabled === 'true' ? '已启用' : '已关闭'}
-                </button>
+                <Switch
+                  checked={form.announcementEnabled === 'true'}
+                  onChange={(v) => handleChange('announcementEnabled', v ? 'true' : 'false')}
+                  aria-label="启用公告栏"
+                />
               </div>
 
               <FormField label="公告内容" hint="显示在首页公告栏的文字内容">
@@ -543,7 +533,7 @@ const CMSPage: React.FC = () => {
                       {/* 卡片头部 */}
                       <div className="flex items-center gap-4 p-4 bg-ink-50 dark:bg-ink-700/50">
                         {/* 序号 */}
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold shrink-0 ${
                           i === 0 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
                           i === 1 ? 'bg-ink-100 text-ink-500 dark:bg-ink-600 dark:text-ink-300' :
                           'bg-orange-50 text-orange-600 dark:bg-orange-900/20 dark:text-orange-400'
@@ -794,7 +784,7 @@ const PageEditor: React.FC<{
   return (
     <div className="space-y-3 p-5 bg-ink-50 dark:bg-ink-700/50 rounded-xl border border-ink-100 dark:border-ink-700">
       <div className="flex items-center justify-between">
-        <h4 className="text-sm font-black text-ink-800 dark:text-white">{title}</h4>
+        <h4 className="text-sm font-bold text-ink-800 dark:text-white">{title}</h4>
         <button
           type="button"
           onClick={() => setPreview(!preview)}
@@ -833,14 +823,14 @@ const PageEditor: React.FC<{
 };
 
 // 辅助组件
-const inputClass = 'w-full px-3 py-2.5 bg-ink-50 dark:bg-ink-700 border border-ink-200 dark:border-ink-600 rounded-xl text-sm text-ink-800 dark:text-white focus:ring-2 focus:ring-accent-400 outline-none transition-all';
-const inputSmClass = 'w-full px-3 py-2 bg-ink-50 dark:bg-ink-800 border border-ink-200 dark:border-ink-600 rounded-lg text-sm text-ink-800 dark:text-white focus:ring-2 focus:ring-accent-400 outline-none transition-all';
+const inputClass = 'w-full px-3 py-2.5 bg-ink-50 dark:bg-ink-700 border border-ink-200 dark:border-ink-600 rounded-xl text-sm text-ink-800 dark:text-white focus:ring-2 focus:ring-accent-500/30 focus:border-accent-400 outline-none transition-all';
+const inputSmClass = 'w-full px-3 py-2 bg-ink-50 dark:bg-ink-800 border border-ink-200 dark:border-ink-600 rounded-lg text-sm text-ink-800 dark:text-white focus:ring-2 focus:ring-accent-500/30 focus:border-accent-400 outline-none transition-all';
 
 const SectionTitle: React.FC<{ icon: React.ReactNode; title: string; desc: string }> = ({ icon, title, desc }) => (
   <div className="flex items-start gap-3 pb-4 border-b border-ink-100 dark:border-ink-700">
     <div className="p-2 bg-accent-50 dark:bg-accent-500/10 rounded-lg text-accent-500">{icon}</div>
     <div>
-      <h3 className="font-black text-ink-800 dark:text-white">{title}</h3>
+      <h3 className="font-bold text-ink-800 dark:text-white">{title}</h3>
       <p className="text-xs text-ink-500 mt-0.5">{desc}</p>
     </div>
   </div>
@@ -854,7 +844,7 @@ const FormField: React.FC<{
   children: React.ReactNode;
 }> = ({ label, hint, required, compact, children }) => (
   <div className={compact ? 'space-y-1' : 'space-y-1.5'}>
-    <label className={`block font-bold text-ink-600 dark:text-ink-300 ${compact ? 'text-xs' : 'text-sm'}`}>
+    <label className={`block font-semibold text-ink-600 dark:text-ink-300 ${compact ? 'text-xs' : 'text-sm'}`}>
       {label}
       {required && <span className="text-red-500 ml-1">*</span>}
     </label>

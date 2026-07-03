@@ -14,6 +14,7 @@ import {
   Eye,
   GripVertical,
 } from 'lucide-react';
+import { Button, IconButton, Badge } from '../../../components/ui';
 
 interface ChapterItem {
   id: string;
@@ -140,18 +141,14 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
           <div className="flex flex-col md:flex-row justify-between gap-6">
             <div className="space-y-2">
               <div className="flex items-center gap-3">
-                <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
-                  item.chapter?.branchId ? 'bg-accent-100 text-accent-500' : 'bg-accent-100 text-accent-500'
-                }`}>
+                <Badge tone="accent" size="sm" className="rounded-full">
                   {item.chapter?.branchId ? '平行分支' : '主线章节'}
-                </span>
+                </Badge>
                 <span className="text-xs font-bold text-ink-400">
                   {item.chapter?.story?.title}
                 </span>
                 {isCurrent && (
-                  <span className="px-2 py-0.5 bg-accent-100 dark:bg-accent-500/15 text-accent-600 dark:text-accent-400 text-[10px] font-black rounded-full">
-                    当前
-                  </span>
+                  <Badge tone="accent" size="sm" className="rounded-full">当前</Badge>
                 )}
               </div>
               <h3 className={`text-2xl font-black group-hover:text-accent-500 transition-colors ${
@@ -161,17 +158,15 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
               </h3>
             </div>
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant={isCurrent ? 'primary' : 'subtle'}
+                size="md"
                 onClick={() => onRead(item, index)}
-                className={`inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl font-bold text-sm transition-all active:scale-95 ${
-                  isCurrent
-                    ? 'bg-accent-500 text-white hover:bg-accent-600 shadow-md shadow-accent-400/20'
-                    : 'bg-ink-50 dark:bg-ink-800 text-ink-800 dark:text-white hover:bg-accent-50 dark:hover:bg-accent-500/10 hover:text-accent-500'
-                }`}
+                rightIcon={<ChevronRight size={16} />}
+                className={`px-6 py-3 ${isCurrent ? 'shadow-md shadow-accent-400/20' : 'bg-ink-50 dark:bg-ink-800 text-ink-800 dark:text-white hover:bg-accent-50 dark:hover:bg-accent-500/10 hover:text-accent-500'}`}
               >
                 {isCurrent ? '继续阅读' : (isCompleted ? '重新阅读' : '阅读此章节')}
-                <ChevronRight size={16} />
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -199,12 +194,15 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
                   导游点评
                 </div>
                 {isCreator && (
-                  <button
+                  <IconButton
+                    variant="ghost"
+                    size="sm"
+                    aria-label="编辑点评"
                     onClick={() => onEditNotes(item)}
-                    className="text-ink-400 hover:text-accent-500 transition-colors"
+                    className="h-auto w-auto p-0 text-ink-400 hover:text-accent-500"
                   >
                     <Edit3 size={14} />
-                  </button>
+                  </IconButton>
                 )}
               </div>
               {item.notes ? (
@@ -234,42 +232,53 @@ const BooklistChapterCard: React.FC<BooklistChapterCardProps> = ({
             {isCreator && (
               <div className="flex items-center gap-1">
                 {/* Drag handle (dnd-kit) */}
-                <button
+                <IconButton
+                  variant="ghost"
+                  size="sm"
+                  aria-label="拖拽排序"
+                  title="拖拽排序"
                   {...attributes}
                   {...listeners}
-                  className="p-1.5 text-ink-300 hover:text-accent-500 transition-colors cursor-grab active:cursor-grabbing touch-none"
-                  title="拖拽排序"
-                  aria-label="拖拽排序"
+                  className="h-auto w-auto p-1.5 text-ink-300 hover:text-accent-500 cursor-grab active:cursor-grabbing touch-none"
                 >
                   <GripVertical size={16} />
-                </button>
+                </IconButton>
 
                 <span className="w-px h-4 bg-ink-200 dark:bg-ink-600 mx-1" />
 
-                <button
+                <IconButton
+                  variant="ghost"
+                  size="sm"
+                  aria-label="上移"
+                  title="上移"
                   onClick={() => onMoveUp(item.id)}
                   disabled={index === 0}
-                  className="p-1.5 text-ink-300 hover:text-accent-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="上移"
+                  className="h-auto w-auto p-1.5 text-ink-300 hover:text-accent-500 disabled:cursor-not-allowed"
                 >
                   <ArrowUp size={14} />
-                </button>
-                <button
+                </IconButton>
+                <IconButton
+                  variant="ghost"
+                  size="sm"
+                  aria-label="下移"
+                  title="下移"
                   onClick={() => onMoveDown(item.id)}
                   disabled={index === totalItems - 1}
-                  className="p-1.5 text-ink-300 hover:text-accent-500 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                  title="下移"
+                  className="h-auto w-auto p-1.5 text-ink-300 hover:text-accent-500 disabled:cursor-not-allowed"
                 >
                   <ArrowDown size={14} />
-                </button>
+                </IconButton>
                 <span className="w-px h-4 bg-ink-200 dark:bg-ink-600 mx-1" />
-                <button
-                  onClick={() => onRemove(item.id)}
-                  className="p-1.5 text-ink-300 hover:text-red-500 transition-colors"
+                <IconButton
+                  variant="ghost"
+                  size="sm"
+                  aria-label="删除此章节"
                   title="删除此章节"
+                  onClick={() => onRemove(item.id)}
+                  className="h-auto w-auto p-1.5 text-ink-300 hover:text-red-500"
                 >
                   <Trash2 size={14} />
-                </button>
+                </IconButton>
               </div>
             )}
           </div>

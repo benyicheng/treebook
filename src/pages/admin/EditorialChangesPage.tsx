@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { editorialService, type EditorialChange, type EditorialChangeDetail } from '../../api/editorialService';
+import { Select, Button } from '../../components/ui';
 
 const parseJson = (s: string | null) => {
   if (!s) return null;
@@ -79,27 +80,25 @@ const EditorialChangesPage: React.FC = () => {
           <p className="text-sm text-ink-400 mt-2">以变更单方式提交/应用改稿，自动留痕并触发退回工单重提与机审</p>
         </div>
         <div className="flex gap-2">
-          <select
+          <Select
             value={status}
             onChange={(e) => setStatus(e.target.value)}
-            className="px-4 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm"
           >
             <option value="submitted">待应用</option>
             <option value="draft">草稿</option>
             <option value="applied">已应用</option>
             <option value="rejected">已拒绝</option>
-          </select>
-          <select
+          </Select>
+          <Select
             value={targetType}
             onChange={(e) => setTargetType(e.target.value)}
-            className="px-4 py-2 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 text-sm"
           >
             <option value="">全部类型</option>
             <option value="story">story</option>
             <option value="chapter">chapter</option>
             <option value="spinoff">spinoff</option>
             <option value="booklist">booklist</option>
-          </select>
+          </Select>
         </div>
       </div>
 
@@ -112,7 +111,7 @@ const EditorialChangesPage: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="rounded-2xl border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 overflow-hidden">
           <div className="px-5 py-4 border-b border-ink-100 dark:border-ink-700 flex items-center justify-between">
-            <div className="text-sm font-black text-ink-800 dark:text-white">变更单列表</div>
+            <div className="text-sm font-bold text-ink-800 dark:text-white">变更单列表</div>
             <div className="text-xs text-ink-400">{loading ? '加载中…' : `${changes.length} 条`}</div>
           </div>
           <div className="divide-y divide-ink-100 dark:divide-ink-700">
@@ -126,7 +125,7 @@ const EditorialChangesPage: React.FC = () => {
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-sm font-black text-ink-800 dark:text-white truncate">
+                    <div className="text-sm font-bold text-ink-800 dark:text-white truncate">
                       {c.targetType} · {c.field}
                     </div>
                     <div className="text-xs text-ink-400 truncate">{c.targetId}</div>
@@ -143,7 +142,7 @@ const EditorialChangesPage: React.FC = () => {
 
         <div className="rounded-2xl border border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 overflow-hidden">
           <div className="px-5 py-4 border-b border-ink-100 dark:border-ink-700 flex items-center justify-between">
-            <div className="text-sm font-black text-ink-800 dark:text-white">变更单详情</div>
+            <div className="text-sm font-bold text-ink-800 dark:text-white">变更单详情</div>
             <div className="text-xs text-ink-400">{loadingDetail ? '加载中…' : selected ? selected.status : ''}</div>
           </div>
 
@@ -160,17 +159,17 @@ const EditorialChangesPage: React.FC = () => {
 
               <div className="grid grid-cols-1 gap-4">
                 <div className="rounded-xl border border-ink-100 dark:border-ink-700 p-4">
-                  <div className="text-xs font-black text-ink-500 mb-2">原文</div>
+                  <div className="text-xs font-bold text-ink-500 mb-2">原文</div>
                   <pre className="text-xs whitespace-pre-wrap break-words text-ink-600 dark:text-ink-200">{selected.original || ''}</pre>
                 </div>
                 <div className="rounded-xl border border-ink-100 dark:border-ink-700 p-4">
-                  <div className="text-xs font-black text-ink-500 mb-2">改稿后</div>
+                  <div className="text-xs font-bold text-ink-500 mb-2">改稿后</div>
                   <pre className="text-xs whitespace-pre-wrap break-words text-ink-600 dark:text-ink-200">{selected.proposed || ''}</pre>
                 </div>
               </div>
 
               <div className="rounded-xl border border-ink-100 dark:border-ink-700 p-4">
-                <div className="text-xs font-black text-ink-500 mb-2">动作留痕</div>
+                <div className="text-xs font-bold text-ink-500 mb-2">动作留痕</div>
                 <div className="space-y-2 max-h-64 overflow-y-auto">
                   {actionPayloads.map((a: any) => (
                     <div key={a.id} className="text-xs">
@@ -189,13 +188,15 @@ const EditorialChangesPage: React.FC = () => {
               </div>
 
               <div className="flex gap-2">
-                <button
-                  disabled={acting || selected.status !== 'submitted'}
+                <Button
+                  size="sm"
+                  variant="primary"
+                  loading={acting}
+                  disabled={selected.status !== 'submitted'}
                   onClick={() => void apply()}
-                  className="px-4 py-2 rounded-xl bg-accent-500 text-white text-sm font-black disabled:opacity-50"
                 >
                   应用改稿
-                </button>
+                </Button>
               </div>
               {selected.status !== 'submitted' && (
                 <div className="text-xs text-ink-400">仅 submitted 状态可应用改稿</div>

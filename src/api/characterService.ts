@@ -1,5 +1,6 @@
 import client from './client';
 import type { Character } from './types';
+export type { Character };
 
 export const characterService = {
   getCharacters: async (storyId: string) => {
@@ -19,6 +20,11 @@ export const characterService = {
 
   deleteCharacter: async (charId: string) => {
     await client.delete(`/stories/characters/${charId}`);
+  },
+
+  getAppearances: async (charId: string) => {
+    const { data } = await client.get<any>(`/stories/characters/${charId}/appearances`);
+    return data;
   },
 
   getCharacterAppearances: async (storyId: string) => {

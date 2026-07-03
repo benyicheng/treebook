@@ -1,8 +1,8 @@
 import React, { useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { Bell, CheckCheck, Loader2, MessageSquare, GitBranch, GitPullRequest, CheckCircle, XCircle, BookOpen } from 'lucide-react';
+import { Bell, CheckCheck, MessageSquare, GitBranch, GitPullRequest, CheckCircle, XCircle, BookOpen, AlertCircle, RefreshCw } from 'lucide-react';
 import { useNotificationStore } from '../../stores/useNotificationStore';
 import { useAuthStore } from '../../stores/useAuthStore';
+import { Spinner } from '../ui';
 import { formatDistanceToNow } from 'date-fns';
 import { zhCN } from 'date-fns/locale';
 
@@ -60,7 +60,7 @@ const getTypeConfig = (type: string) => {
 const NotificationDropdown: React.FC = () => {
   const { isAuthenticated } = useAuthStore();
   const {
-    notifications, unreadCount, isLoading, isOpen,
+    notifications, unreadCount, isLoading, error, isOpen,
     fetchNotifications, markAsRead, markAllAsRead,
     toggleOpen, close, startPolling,
   } = useNotificationStore();
@@ -128,7 +128,7 @@ const NotificationDropdown: React.FC = () => {
         <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-ink-50 dark:bg-ink-800 rounded-2xl shadow-2xl border border-ink-100 dark:border-ink-700 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-ink-50 dark:border-ink-700">
-            <h3 className="text-sm font-black text-ink-800 dark:text-white">
+            <h3 className="text-sm font-bold text-ink-800 dark:text-white">
               通知
               {unreadCount > 0 && (
                 <span className="ml-2 text-xs font-bold text-red-500">({unreadCount} 未读)</span>
@@ -149,7 +149,24 @@ const NotificationDropdown: React.FC = () => {
           <div className="max-h-[420px] overflow-y-auto overscroll-contain">
             {isLoading && notifications.length === 0 ? (
               <div className="flex items-center justify-center py-16">
-                <Loader2 size={24} className="animate-spin text-ink-300" />
+                <Spinner size={28} />
+              </div>
+            ) : error && notifications.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center px-6">
+                <div className="w-10 h-10 rounded-full bg-red-50 dark:bg-red-900/20 flex items-center justify-center mb-3">
+                  <AlertCircle size={20} className="text-red-500" />
+                </div>
+                <p className="text-sm font-medium text-ink-500 dark:text-ink-400 mb-1">
+                  {error}
+                </p>
+                <p className="text-xs text-ink-400 mb-3">网络异常，请稍后重试</p>
+                <button
+                  onClick={() => fetchNotifications()}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold text-accent-500 hover:bg-accent-50 dark:hover:bg-accent-500/10 transition-colors"
+                >
+                  <RefreshCw size={12} />
+                  重试
+                </button>
               </div>
             ) : notifications.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-ink-400 dark:text-ink-500">

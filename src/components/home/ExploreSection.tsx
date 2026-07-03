@@ -31,7 +31,7 @@ const ExploreSection: React.FC<ExploreSectionProps> = ({ sortedStories, storiesL
           <div className="p-1.5 rounded-lg bg-gradient-to-br from-rose-500 to-pink-600 shadow-sm">
             <Compass size={14} className="text-white" />
           </div>
-          <h2 className="text-xl font-black text-ink-800 dark:text-white tracking-tight">探索全站</h2>
+          <h2 className="text-xl font-bold text-ink-800 dark:text-white tracking-tight">探索全站</h2>
         </div>
         <div className="flex items-center gap-1 p-1 bg-ink-100/80 dark:bg-ink-700/60 backdrop-blur-sm rounded-xl border border-ink-200/50 dark:border-ink-600/50">
           {['热门', '新书', '官方', '完结'].map(tab => (
@@ -90,12 +90,12 @@ const ExploreSection: React.FC<ExploreSectionProps> = ({ sortedStories, storiesL
                     </p>
                   </div>
                   {story.status === 'completed' && (
-                    <div className="absolute top-3 left-3 px-2.5 py-1 bg-accent-400/90 backdrop-blur-sm text-white text-[9px] font-black rounded-full shadow-lg shadow-accent-400/30">
+                    <div className="absolute top-3 left-3 px-2.5 py-1 bg-accent-400/90 backdrop-blur-sm text-white eyebrow rounded-full shadow-lg shadow-accent-400/30">
                       完结
                     </div>
                   )}
                   {story.isOfficial && !story.status?.includes('completed') && (
-                    <div className="absolute top-3 left-3 px-2.5 py-1 bg-gradient-to-r from-accent-500 to-accent-600 text-white text-[9px] font-black rounded-full uppercase shadow-lg shadow-accent-400/30">
+                    <div className="absolute top-3 left-3 px-2.5 py-1 bg-gradient-to-r from-accent-500 to-accent-600 text-white eyebrow rounded-full shadow-lg shadow-accent-400/30">
                       官方
                     </div>
                   )}

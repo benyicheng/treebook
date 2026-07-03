@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { activityService, ActivityItem } from '../../api/activityService';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { timeAgo } from '../../lib/utils';
-import { Avatar } from '../ui';
+import { Avatar, Button } from '../ui';
 import {
   Loader2,
   BookOpen,
@@ -245,10 +245,11 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
       {/* Load more */}
       {hasMore && (
         <div className="text-center pt-2">
-          <button
+          <Button
+            variant="ghost"
             onClick={handleLoadMore}
             disabled={loading}
-            className="px-6 py-2 text-sm font-bold text-accent-500 hover:text-accent-600 disabled:opacity-50 transition-colors"
+            className="text-accent-500 hover:text-accent-600"
           >
             {loading ? (
               <span className="inline-flex items-center gap-2">
@@ -258,7 +259,7 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({
             ) : (
               '加载更多'
             )}
-          </button>
+          </Button>
         </div>
       )}
 

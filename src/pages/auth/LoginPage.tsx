@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { Mail, Lock, LogIn, ArrowLeft, AlertCircle } from 'lucide-react';
+import { Button, Input } from '../../components/ui';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
@@ -50,10 +51,11 @@ const LoginPage: React.FC = () => {
                 <Mail size={14} />
                 电子邮箱
               </label>
-              <input 
+              <Input
                 type="email"
                 required
-                className="w-full px-5 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 rounded-2xl focus:ring-4 focus:ring-accent-400/10 focus:border-accent-400 outline-none transition-all font-medium"
+                size="lg"
+                className="rounded-2xl"
                 placeholder="name@example.com"
                 value={formData.email}
                 onChange={e => setFormData(prev => ({ ...prev, email: e.target.value }))}
@@ -65,10 +67,11 @@ const LoginPage: React.FC = () => {
                 <Lock size={14} />
                 登录密码
               </label>
-              <input 
+              <Input
                 type="password"
                 required
-                className="w-full px-5 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 rounded-2xl focus:ring-4 focus:ring-accent-400/10 focus:border-accent-400 outline-none transition-all font-medium"
+                size="lg"
+                className="rounded-2xl"
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={e => setFormData(prev => ({ ...prev, password: e.target.value }))}
@@ -76,20 +79,15 @@ const LoginPage: React.FC = () => {
             </div>
           </div>
 
-          <button 
+          <Button
             type="submit"
-            disabled={isLoading}
-            className="w-full py-4 bg-accent-500 text-white rounded-2xl font-black text-lg hover:bg-accent-600 transition-all shadow-xl hover:shadow-accent-400/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+            loading={isLoading}
+            fullWidth
+            leftIcon={<LogIn size={20} />}
+            className="rounded-2xl h-auto py-4 text-lg font-black shadow-xl hover:shadow-accent-400/20"
           >
-            {isLoading ? (
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-            ) : (
-              <>
-                <LogIn size={20} />
-                立即登录
-              </>
-            )}
-          </button>
+            立即登录
+          </Button>
         </form>
 
         <div className="pt-6 text-center border-t border-ink-100 dark:border-ink-600">

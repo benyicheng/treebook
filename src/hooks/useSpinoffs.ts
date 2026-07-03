@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { spinoffService } from '../api/storyService';
+import { spinoffService } from '../api/spinoffService';
 import { queryKeys } from '../lib/queryKeys';
 
 export function useSpinoffs(params?: {

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Eye, MessageSquare } from 'lucide-react';
+import { Eye, MessageSquare, RefreshCw, AlertTriangle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { LikeButton } from './LikeButton';
 import { RatingComponent } from './RatingComponent';
@@ -97,8 +97,16 @@ export const InteractionBar: React.FC<InteractionBarProps> = ({
 
   if (error || !stats) {
     return (
-      <div className="text-sm text-ink-400">
-        互动数据加载失败
+      <div className="flex items-center gap-2 text-sm text-ink-400 py-1">
+        <AlertTriangle size={14} className="shrink-0" />
+        <span>互动数据加载失败</span>
+        <button
+          onClick={fetchStats}
+          className="inline-flex items-center gap-1 text-accent-500 hover:text-accent-600 dark:hover:text-accent-400 font-medium transition-colors"
+        >
+          <RefreshCw size={12} />
+          重试
+        </button>
       </div>
     );
   }

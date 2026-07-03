@@ -11,6 +11,7 @@ import {
   Sparkles, ShieldCheck, History, Search, GitBranch
 } from 'lucide-react';
 import { ChapterEditor } from '../../components/Editor';
+import { Button, IconButton, Input, Textarea } from '../../components/ui';
 
 const SpinoffEditorPage: React.FC = () => {
   const { id } = useParams(); // Spinoff ID (if editing)
@@ -136,7 +137,9 @@ const SpinoffEditorPage: React.FC = () => {
     setCurrentStep('edit');
   };
 
-  const handleSave = async (content?: string) => {
+  const handleSave = async (content?: string, meta?: { auto?: boolean }) => {
+    // 自动保存时，尚未创建的番外先不自动落库（避免误创建/重复创建），等用户显式保存
+    if (meta?.auto && !id) return;
     setIsSaving(true);
     try {
       const payload = {
@@ -148,12 +151,15 @@ const SpinoffEditorPage: React.FC = () => {
 
       if (id) {
         await spinoffService.update(id, payload);
+        if (!meta?.auto) addToast('success', '已保存');
       } else {
         const created = await spinoffService.create(payload);
+        addToast('success', '已创建');
         navigate(`/spinoff/edit/${created.id}`, { replace: true });
       }
     } catch (err) {
-      addToast('error', '保存失败');
+      if (!meta?.auto) addToast('error', '保存失败');
+      throw err;
     } finally {
       setIsSaving(false);
     }
@@ -187,21 +193,24 @@ const SpinoffEditorPage: React.FC = () => {
               <h1 className="text-3xl font-black text-ink-800 dark:text-white">选择原著世界观</h1>
               <p className="text-ink-500 mt-2 font-medium">所有的番外创作都需要基于一个现有的主线故事。</p>
             </div>
-            <button onClick={() => navigate(-1)} className="p-3 bg-ink-50 dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 text-ink-400 hover:text-ink-800 transition-all">
+            <IconButton
+              aria-label="返回"
+              onClick={() => navigate(-1)}
+              className="p-3 bg-ink-50 dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 text-ink-400 hover:text-ink-800"
+            >
               <ArrowLeft size={20} />
-            </button>
+            </IconButton>
           </div>
 
-          <div className="relative">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-ink-400" size={20} />
-            <input 
-              type="text" 
-              placeholder="搜索故事标题..."
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              className="w-full pl-16 pr-6 py-5 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-700 rounded-[2rem] shadow-sm outline-none focus:ring-2 focus:ring-accent-500 transition-all font-medium"
-            />
-          </div>
+          <Input
+            type="text"
+            placeholder="搜索故事标题..."
+            value={searchQuery}
+            onChange={e => setSearchQuery(e.target.value)}
+            wrapperClassName="w-full"
+            className="pl-16 pr-6 py-5 border-ink-100 dark:border-ink-700 rounded-[2rem] shadow-sm font-medium"
+            leftIcon={<Search size={20} className="text-ink-400 ml-3" />}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredStories.map(story => (
@@ -214,7 +223,7 @@ const SpinoffEditorPage: React.FC = () => {
                   <Book className="text-accent-600" size={32} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-black text-lg text-ink-800 dark:text-white truncate group-hover:text-accent-600 transition-colors">{story.title}</h3>
+                  <h3 className="font-bold text-lg text-ink-800 dark:text-white truncate group-hover:text-accent-600 transition-colors">{story.title}</h3>
                   <p className="text-xs text-ink-400 mt-1 line-clamp-2 leading-relaxed">{story.description}</p>
                 </div>
                 <ChevronRight className="text-ink-300 group-hover:text-accent-600 transition-colors" />
@@ -246,24 +255,27 @@ const SpinoffEditorPage: React.FC = () => {
             <div>
               <h1 className="text-3xl font-black text-ink-800 dark:text-white">选择关联章节</h1>
               <p className="text-ink-500 mt-2 font-medium">
-                番外将关联到 <span className="font-black text-accent-600">{originalStory?.title}</span> 的哪个章节？
+                番外将关联到 <span className="font-bold text-accent-600">{originalStory?.title}</span> 的哪个章节？
               </p>
             </div>
-            <button onClick={() => setCurrentStep('select-story')} className="p-3 bg-ink-50 dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 text-ink-400 hover:text-ink-800 transition-all">
+            <IconButton
+              aria-label="返回选择故事"
+              onClick={() => setCurrentStep('select-story')}
+              className="p-3 bg-ink-50 dark:bg-ink-700 rounded-2xl border border-ink-100 dark:border-ink-600 text-ink-400 hover:text-ink-800"
+            >
               <ArrowLeft size={20} />
-            </button>
+            </IconButton>
           </div>
 
-          <div className="relative">
-            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-ink-400" size={20} />
-            <input 
-              type="text" 
-              placeholder="搜索章节标题..."
-              value={chapterSearchQuery}
-              onChange={e => setChapterSearchQuery(e.target.value)}
-              className="w-full pl-16 pr-6 py-5 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-700 rounded-[2rem] shadow-sm outline-none focus:ring-2 focus:ring-accent-500 transition-all font-medium"
-            />
-          </div>
+          <Input
+            type="text"
+            placeholder="搜索章节标题..."
+            value={chapterSearchQuery}
+            onChange={e => setChapterSearchQuery(e.target.value)}
+            wrapperClassName="w-full"
+            className="pl-16 pr-6 py-5 border-ink-100 dark:border-ink-700 rounded-[2rem] shadow-sm font-medium"
+            leftIcon={<Search size={20} className="text-ink-400 ml-3" />}
+          />
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {filteredChapters.map((chapter: any) => (
@@ -276,7 +288,7 @@ const SpinoffEditorPage: React.FC = () => {
                   <Book className="text-accent-600" size={24} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h3 className="font-black text-lg text-ink-800 dark:text-white truncate group-hover:text-accent-600 transition-colors">
+                  <h3 className="font-bold text-lg text-ink-800 dark:text-white truncate group-hover:text-accent-600 transition-colors">
                     第 {chapter.orderIndex} 章：{chapter.title}
                   </h3>
                   <p className="text-xs text-ink-400 mt-1 line-clamp-2 leading-relaxed">{chapter.summary || chapter.content?.slice(0, 120)}</p>
@@ -303,12 +315,13 @@ const SpinoffEditorPage: React.FC = () => {
       {/* Header */}
       <header className="bg-white dark:bg-ink-800 border-b border-ink-100 dark:border-ink-700 px-6 py-4 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-6">
-          <button 
+          <IconButton
+            aria-label="返回"
             onClick={() => navigate(-1)}
-            className="p-2 text-ink-400 hover:text-ink-800 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-ink-700 rounded-xl transition-all"
+            className="p-2 text-ink-400 hover:text-ink-800 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-ink-700 rounded-xl"
           >
             <ArrowLeft size={20} />
-          </button>
+          </IconButton>
           <div className="h-8 w-[1px] bg-ink-200 dark:bg-ink-600"></div>
           <div>
             <h1 className="text-lg font-black text-ink-800 dark:text-white flex items-center gap-2">
@@ -347,14 +360,15 @@ const SpinoffEditorPage: React.FC = () => {
             </button>
           </div>
           
-          <button 
+          <Button
+            variant="primary"
             onClick={() => handleSave()}
-            disabled={isSaving}
-            className="flex items-center gap-2 px-6 py-2 bg-accent-600 text-white rounded-xl font-black hover:bg-accent-700 transition-all shadow-lg shadow-accent-500/20 active:scale-95 disabled:opacity-50"
+            loading={isSaving}
+            leftIcon={<Save size={18} />}
+            className="px-6 py-2 bg-accent-600 hover:bg-accent-700 rounded-xl shadow-lg shadow-accent-500/20"
           >
-            <Save size={18} />
             {isSaving ? '保存中...' : '保存'}
-          </button>
+          </Button>
         </div>
       </header>
 
@@ -363,14 +377,14 @@ const SpinoffEditorPage: React.FC = () => {
         <aside className="w-80 border-r border-ink-100 dark:border-ink-700 bg-ink-50 dark:bg-ink-800 overflow-y-auto hidden xl:block">
           <div className="p-6 space-y-8">
             <section>
-              <div className="flex items-center gap-2 mb-4 text-xs font-black text-ink-400 uppercase tracking-widest">
+              <div className="eyebrow flex items-center gap-2 mb-4 text-ink-400">
                 <Book size={14} />
                 原著设定参考
               </div>
               <div className="space-y-3">
                 <div className="bg-ink-50 dark:bg-ink-700/50 p-4 rounded-2xl border border-ink-100 dark:border-ink-600">
-                  <h4 className="font-black text-[10px] text-ink-800 dark:text-white mb-1 uppercase tracking-tighter text-accent-500">主线世界观</h4>
-                  <h4 className="font-black text-sm text-ink-800 dark:text-white mb-2">{originalStory?.title}</h4>
+                  <h4 className="font-bold text-[10px] text-ink-800 dark:text-white mb-1 uppercase tracking-tighter text-accent-500">主线世界观</h4>
+                  <h4 className="font-bold text-sm text-ink-800 dark:text-white mb-2">{originalStory?.title}</h4>
                   <p className="text-[10px] text-ink-500 leading-relaxed line-clamp-3">
                     {originalStory?.description}
                   </p>
@@ -378,11 +392,11 @@ const SpinoffEditorPage: React.FC = () => {
                 
                 {originalBranch && (
                   <div className="bg-purple-50 dark:bg-accent-500/10 p-4 rounded-2xl border border-accent-100 dark:border-purple-800 animate-in fade-in slide-in-from-left-4 duration-500">
-                    <h4 className="font-black text-[10px] text-accent-500 dark:text-purple-400 mb-1 uppercase tracking-tighter flex items-center gap-1">
+                    <h4 className="font-bold text-[10px] text-accent-500 dark:text-purple-400 mb-1 uppercase tracking-tighter flex items-center gap-1">
                       <GitBranch size={12} />
                       时空分支设定
                     </h4>
-                    <h4 className="font-black text-sm text-ink-800 dark:text-white mb-2">{originalBranch.title}</h4>
+                    <h4 className="font-bold text-sm text-ink-800 dark:text-white mb-2">{originalBranch.title}</h4>
                     <p className="text-[10px] text-purple-700 dark:text-purple-300 leading-relaxed line-clamp-4">
                       {originalBranch.description}
                     </p>
@@ -393,11 +407,11 @@ const SpinoffEditorPage: React.FC = () => {
 
             <section>
               <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2 text-xs font-black text-ink-400 uppercase tracking-widest">
+                <div className="eyebrow flex items-center gap-2 text-ink-400">
                   <Users size={14} />
                   引用角色
                 </div>
-                <span className="text-[10px] font-black text-accent-600 bg-accent-50 px-2 py-0.5 rounded-full">
+                <span className="text-[10px] font-bold text-accent-600 bg-accent-50 px-2 py-0.5 rounded-full">
                   {selectedCharIds.length}
                 </span>
               </div>
@@ -417,7 +431,7 @@ const SpinoffEditorPage: React.FC = () => {
                         {char.name[0]}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-black text-ink-800 dark:text-white truncate">{char.name}</p>
+                        <p className="text-sm font-bold text-ink-800 dark:text-white truncate">{char.name}</p>
                         <p className="text-[10px] text-ink-500 truncate capitalize">{char.role}</p>
                       </div>
                     </div>
@@ -429,7 +443,7 @@ const SpinoffEditorPage: React.FC = () => {
             <section className="bg-accent-600 rounded-3xl p-6 text-white shadow-xl shadow-accent-500/20">
               <div className="flex items-center gap-2 mb-3">
                 <ShieldCheck size={20} />
-                <h4 className="font-black">创作准则</h4>
+                <h4 className="font-bold">创作准则</h4>
               </div>
               <p className="text-xs text-indigo-100 leading-relaxed">
                 番外创作应尊重原著核心设定。如果你的番外被原作者认证，将获得 200% 的收益权重！
@@ -443,11 +457,12 @@ const SpinoffEditorPage: React.FC = () => {
           {activeTab === 'editor' ? (
             <div className="p-6 h-full">
                <div className="max-w-4xl mx-auto h-full flex flex-col space-y-4">
-                  <input 
+                  <Input
                     type="text"
                     value={spinoff.title}
                     onChange={e => setSpinoff(prev => ({ ...prev, title: e.target.value }))}
-                    className="w-full bg-transparent text-3xl font-black text-ink-800 dark:text-white outline-none placeholder:text-ink-200"
+                    wrapperClassName="w-full"
+                    className="w-full h-auto bg-transparent border-0 text-3xl font-black text-ink-800 dark:text-white outline-none focus:ring-0 focus:border-transparent px-0 placeholder:text-ink-200"
                     placeholder="请输入番外标题..."
                   />
                   <div className="flex-1">
@@ -455,9 +470,9 @@ const SpinoffEditorPage: React.FC = () => {
                       chapterId={id || 'new-spinoff'} 
                       storyId={spinoff.originalStoryId}
                       initialContent={spinoff.content || ''}
-                      onSave={(content) => {
+                      onSave={(content, meta) => {
                         setSpinoff(prev => ({ ...prev, content }));
-                        handleSave(content);
+                        return handleSave(content, meta);
                       }}
                     />
                   </div>
@@ -467,7 +482,7 @@ const SpinoffEditorPage: React.FC = () => {
             <div className="p-12 overflow-y-auto">
               <div className="max-w-2xl mx-auto space-y-12">
                 <div className="space-y-6">
-                  <h3 className="text-2xl font-black text-ink-800 dark:text-white flex items-center gap-3">
+                  <h3 className="text-2xl font-bold text-ink-800 dark:text-white flex items-center gap-3">
                     <Layout className="text-accent-600" />
                     番外核心设定
                   </h3>
@@ -491,7 +506,7 @@ const SpinoffEditorPage: React.FC = () => {
                             }`}
                           >
                             <t.icon size={20} className={spinoff.type === t.id ? 'text-accent-600' : 'text-ink-400'} />
-                            <div className="font-black text-sm text-ink-800 dark:text-white">{t.label}</div>
+                            <div className="font-semibold text-sm text-ink-800 dark:text-white">{t.label}</div>
                             <div className="text-[10px] text-ink-500 leading-tight">{t.desc}</div>
                           </button>
                         ))}
@@ -500,11 +515,11 @@ const SpinoffEditorPage: React.FC = () => {
 
                     <div className="space-y-2">
                       <label className="text-sm font-bold text-ink-500 uppercase tracking-wider">短简介 (Summary)</label>
-                      <textarea 
+                      <Textarea
                         value={spinoff.summary}
                         onChange={e => setSpinoff(prev => ({ ...prev, summary: e.target.value }))}
                         rows={4}
-                        className="w-full px-6 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-700 rounded-3xl outline-none focus:ring-2 focus:ring-accent-500 transition-all resize-none"
+                        className="px-6 py-4 border-ink-100 dark:border-ink-700 rounded-3xl focus:ring-accent-500 resize-none"
                         placeholder="简单描述一下番外的看点..."
                       />
                     </div>
@@ -514,7 +529,7 @@ const SpinoffEditorPage: React.FC = () => {
                 <div className="bg-amber-50 dark:bg-amber-900/20 p-8 rounded-[2.5rem] border border-amber-100 dark:border-amber-800 space-y-4">
                   <div className="flex items-center gap-3 text-amber-600 dark:text-amber-400">
                     <Info size={24} />
-                    <h4 className="text-lg font-black">关于版权与收益</h4>
+                    <h4 className="text-lg font-bold">关于版权与收益</h4>
                   </div>
                   <div className="space-y-3 text-sm text-amber-700 dark:text-amber-300 font-medium leading-relaxed">
                     <p>• 本番外默认向原著作者缴纳 10% 的版权授权费（从番外产生的阅读收益中自动扣除）。</p>

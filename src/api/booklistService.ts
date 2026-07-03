@@ -1,31 +1,6 @@
 import client from './client';
-
-export interface Booklist {
-  id: string;
-  creatorId: string;
-  title: string;
-  description: string;
-  content?: string;
-  coverImage?: string;
-  type?: string;
-  isPublic: boolean;
-  viewCount?: number;
-  likesCount?: number;
-  totalEarnings?: number;
-  tags?: { id: string; name: string }[] | string;
-  createdAt: string;
-  updatedAt: string;
-  creator?: {
-    id: string;
-    username: string;
-  };
-  _count?: { items: number };
-  items?: any[];
-  itemsBySection?: Record<string, any[]>;
-  itemsByStory?: { storyId: string; story?: any; items: any[]; events: any[]; children: any[] }[];
-  ungroupedItems?: any[];
-  paths?: any[];
-}
+import type { Booklist, BooklistItem } from './types';
+export type { Booklist, BooklistItem };
 
 export const booklistService = {
   getAll: async (params?: { creatorId?: string; isPublic?: boolean; limit?: number; type?: string; tag?: string; q?: string; sortBy?: string; page?: number }) => {
@@ -99,7 +74,6 @@ export const booklistService = {
     return data;
   },
 
-  // ── Graph: Relations ──
   getGraph: async (booklistId: string) => {
     const { data } = await client.get<any>(`/booklists/${booklistId}/graph`);
     return data;

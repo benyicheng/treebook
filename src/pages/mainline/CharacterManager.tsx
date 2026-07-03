@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { characterService } from '../../api/characterService';
 import { aiService } from '../../api/aiService';
+import client from '../../api/client';
 import type { Character } from '../../api/types';
 import { useCharacters, useCreateCharacter, useUpdateCharacter } from '../../hooks/useCharacters';
 import { useAuthStore } from '../../stores/useAuthStore';
@@ -10,6 +11,14 @@ import { Modal } from '../../components/ui';
 import { queryKeys } from '../../lib/queryKeys';
 
 import { useToast } from '../../components/notifications';
+
+const resolveApiUrl = (path: string) => {
+  const baseURL = client.defaults.baseURL;
+  if (!baseURL || typeof baseURL !== 'string') return path;
+  if (!path.startsWith('/')) return path;
+  const origin = baseURL.replace(/\/api\/?$/, '');
+  return origin + path;
+};
 
 interface CharacterManagerProps {
   storyId: string;
@@ -36,12 +45,17 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
     e.preventDefault();
     if (!editingChar) return;
 
+    const submitData = { ...editingChar };
+    if (submitData.attributes === null || submitData.attributes === undefined) {
+      delete submitData.attributes;
+    }
+
     setIsSubmitting(true);
     try {
       if (editingChar.id) {
-        await updateCharMutation.mutateAsync({ charId: editingChar.id, data: editingChar });
+        await updateCharMutation.mutateAsync({ charId: editingChar.id, data: submitData });
       } else {
-        await createCharMutation.mutateAsync({ storyId, data: editingChar });
+        await createCharMutation.mutateAsync({ storyId, data: submitData });
       }
       setIsModalOpen(false);
       setEditingChar(null);
@@ -65,7 +79,7 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
       
       setEditingChar(prev => ({
         ...prev!,
-        avatarUrl: result.imageUrl
+        avatarUrl: resolveApiUrl(result.imageUrl as string)
       }));
     } catch (err) {
       addToast('error', 'AI 生成失败，请稍后重试');
@@ -119,7 +133,7 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
               <div className="flex items-start gap-4">
                 <div className="w-16 h-16 rounded-2xl bg-ink-200 dark:bg-ink-600 overflow-hidden shrink-0">
                   {char.avatarUrl ? (
-                    <img src={char.avatarUrl} alt={char.name} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                    <img src={resolveApiUrl(char.avatarUrl)} alt={char.name} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-ink-400">
                       <User size={32} />
@@ -178,7 +192,7 @@ const CharacterManager: React.FC<CharacterManagerProps> = ({ storyId, isAuthor }
               <label className="text-xs font-bold text-ink-500 uppercase">角色头像</label>
               <div className="w-24 h-24 bg-ink-100 dark:bg-ink-700 rounded-2xl flex items-center justify-center text-ink-400 shrink-0 border border-dashed border-ink-300 dark:border-ink-500 relative overflow-hidden group">
                 {editingChar?.avatarUrl ? (
-                  <img src={editingChar.avatarUrl} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                  <img src={resolveApiUrl(editingChar.avatarUrl)} className="w-full h-full object-cover" onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                 ) : (
                   <User size={32} />
                 )}

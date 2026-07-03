@@ -14,7 +14,7 @@ import {
   Route,
   Clock,
 } from 'lucide-react';
-import { Modal, DebouncedInput, EmptyState } from '../../components/ui';
+import { Modal, DebouncedInput, EmptyState, Button, Input, Textarea, Select } from '../../components/ui';
 import { useToast } from '../../components/notifications';
 import BooklistCard from '../../components/Booklist/BooklistCard';
 
@@ -97,13 +97,13 @@ const BooklistPage: React.FC = () => {
           世界线导览
         </h1>
         {isAuthenticated && (
-          <button
+          <Button
             onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-2 px-5 py-2.5 bg-accent-500 text-white rounded-xl font-bold text-sm hover:bg-accent-600 transition-all shadow-lg active:scale-95"
+            variant="primary"
+            leftIcon={<PlusCircle size={18} />}
           >
-            <PlusCircle size={18} />
             开启策展计划
-          </button>
+          </Button>
         )}
       </div>
 
@@ -119,7 +119,7 @@ const BooklistPage: React.FC = () => {
           <div className="flex p-1 bg-ink-100 dark:bg-ink-800 rounded-2xl shrink-0">
             <button
               onClick={() => setScope('all')}
-              className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
                 scope === 'all' ? 'bg-white dark:bg-ink-700 text-accent-500 shadow-sm' : 'text-ink-500 hover:text-ink-600'
               }`}
             >
@@ -127,7 +127,7 @@ const BooklistPage: React.FC = () => {
             </button>
             <button
               onClick={() => setScope('mine')}
-              className={`px-4 py-2 rounded-xl text-sm font-black transition-all ${
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
                 scope === 'mine' ? 'bg-white dark:bg-ink-700 text-accent-500 shadow-sm' : 'text-ink-500 hover:text-ink-600'
               }`}
             >
@@ -142,7 +142,7 @@ const BooklistPage: React.FC = () => {
         <div className="flex p-1 bg-ink-100 dark:bg-ink-800 rounded-2xl">
           <button
             onClick={() => setFilterType('ALL')}
-            className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${
+            className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
               filterType === 'ALL' ? 'bg-white dark:bg-ink-700 text-accent-500 shadow-sm' : 'text-ink-500 hover:text-ink-600'
             }`}
           >
@@ -151,7 +151,7 @@ const BooklistPage: React.FC = () => {
 
           <button
             onClick={() => setFilterType('COLLECTION')}
-            className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${
+            className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
               filterType === 'COLLECTION' ? 'bg-white dark:bg-ink-700 text-accent-500 shadow-sm' : 'text-ink-500 hover:text-ink-600'
             }`}
           >
@@ -160,7 +160,7 @@ const BooklistPage: React.FC = () => {
 
           <button
             onClick={() => setFilterType('TIMELINE')}
-            className={`px-6 py-2.5 rounded-xl text-sm font-black transition-all ${
+            className={`px-6 py-2.5 rounded-xl text-sm font-semibold transition-all ${
               filterType === 'TIMELINE' ? 'bg-white dark:bg-ink-700 text-accent-500 shadow-sm' : 'text-ink-500 hover:text-ink-600'
             }`}
           >
@@ -170,26 +170,28 @@ const BooklistPage: React.FC = () => {
 
         <div className="flex items-center gap-4 w-full md:w-auto">
           <div className="relative flex-1 md:w-48">
-            <Tag size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
-            <input
+            <Input
               type="text"
               placeholder="搜索标签..."
-              className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all text-sm font-medium"
+              size="md"
+              leftIcon={<Tag size={16} />}
               value={selectedTag}
               onChange={e => setSelectedTag(e.target.value)}
             />
           </div>
           <div className="flex items-center gap-2 px-3 py-2 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 rounded-xl">
             <Filter size={16} className="text-ink-400" />
-            <select
-              className="bg-transparent text-sm font-bold text-ink-600 dark:text-ink-300 outline-none cursor-pointer"
+            <Select
+              size="sm"
               value={sortBy}
               onChange={e => setSortBy(e.target.value)}
+              className="bg-transparent border-0 focus:ring-0 font-bold text-ink-600 dark:text-ink-300 cursor-pointer pr-6"
+              wrapperClassName="flex-1"
             >
               <option value="hot">最热门 (Trending)</option>
               <option value="earning">高收益 (Top Paid)</option>
               <option value="newest">最新发布</option>
-            </select>
+            </Select>
           </div>
         </div>
       </div>
@@ -240,11 +242,12 @@ const BooklistPage: React.FC = () => {
       >
         <form onSubmit={handleCreateBooklist} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-bold text-ink-500">导览标题</label>
-            <input 
-              type="text" 
+            <label className="text-sm font-semibold text-ink-500">导览标题</label>
+            <Input
+              type="text"
               required
-              className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all font-bold text-lg"
+              size="lg"
+              className="font-bold text-lg"
               placeholder="例如：末世废土：人类最后的一百种结局"
               value={newBooklist.title}
               onChange={e => setNewBooklist(prev => ({ ...prev, title: e.target.value }))}
@@ -252,7 +255,7 @@ const BooklistPage: React.FC = () => {
           </div>
           {/* 可视化类型选择卡片 */}
           <div className="space-y-3">
-            <label className="text-sm font-bold text-ink-500">导览类型</label>
+            <label className="text-sm font-semibold text-ink-500">导览类型</label>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {/* 主题合集 */}
               <button
@@ -278,7 +281,7 @@ const BooklistPage: React.FC = () => {
                     <Layers size={20} />
                   </div>
                   <div>
-                    <div className={`font-black text-sm ${
+                    <div className={`font-bold text-sm ${
                       newBooklist.type === 'COLLECTION' ? 'text-accent-600 dark:text-accent-400' : 'text-ink-600 dark:text-ink-300'
                     }`}>
                       主题合集
@@ -319,7 +322,7 @@ const BooklistPage: React.FC = () => {
                     <Route size={20} />
                   </div>
                   <div>
-                    <div className={`font-black text-sm ${
+                    <div className={`font-bold text-sm ${
                       newBooklist.type === 'TIMELINE' ? 'text-accent-600 dark:text-accent-400' : 'text-ink-600 dark:text-ink-300'
                     }`}>
                       时空导览
@@ -339,30 +342,31 @@ const BooklistPage: React.FC = () => {
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-bold text-ink-500">标签 (逗号分隔)</label>
-            <input 
-              type="text" 
-              className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all font-bold"
+            <label className="text-sm font-semibold text-ink-500">标签 (逗号分隔)</label>
+            <Input
+              type="text"
+              size="lg"
+              className="font-bold"
               placeholder="治愈, 虐心..."
               value={newBooklist.tags}
               onChange={e => setNewBooklist(prev => ({ ...prev, tags: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold text-ink-500">导览简介</label>
-            <textarea 
+            <label className="text-sm font-semibold text-ink-500">导览简介</label>
+            <Textarea
               rows={4}
-              className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all resize-none font-medium"
+              className="resize-none"
               placeholder="为你的路线写一段引人入胜的开场白..."
               value={newBooklist.description}
               onChange={e => setNewBooklist(prev => ({ ...prev, description: e.target.value }))}
             />
           </div>
           <div className="space-y-2">
-            <label className="text-sm font-bold text-ink-500">封面图片 URL (可选)</label>
-            <input 
-              type="text" 
-              className="w-full px-6 py-4 rounded-2xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none transition-all font-medium"
+            <label className="text-sm font-semibold text-ink-500">封面图片 URL (可选)</label>
+            <Input
+              type="text"
+              size="lg"
               placeholder="https://images.unsplash.com/..."
               value={newBooklist.coverImage}
               onChange={e => setNewBooklist(prev => ({ ...prev, coverImage: e.target.value }))}
@@ -383,13 +387,15 @@ const BooklistPage: React.FC = () => {
               </div>
             </div>
           </div>
-          <button 
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="w-full py-5 bg-accent-500 text-white rounded-[2rem] font-black text-xl hover:bg-accent-600 transition-all shadow-xl shadow-accent-400/20 active:scale-95 disabled:opacity-50"
+            variant="primary"
+            fullWidth
+            loading={isSubmitting}
+            className="py-5 h-auto rounded-[2rem] text-xl font-semibold shadow-xl shadow-accent-400/20"
           >
             {isSubmitting ? '正在开辟时空...' : '立即开启路线'}
-          </button>
+          </Button>
         </form>
       </Modal>
     </div>

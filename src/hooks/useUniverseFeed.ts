@@ -53,7 +53,7 @@ export function useUniverseFeed(initialTab: DiscoverTab = 'hot'): UseUniverseFee
         : typeof error === 'string'
           ? error
           : typeof error === 'object'
-            ? (error as any).message || JSON.stringify(error)
+            ? (error as Record<string, unknown>).message || JSON.stringify(error)
             : String(error),
     tab,
     setTab,

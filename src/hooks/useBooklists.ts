@@ -27,10 +27,11 @@ export function useBooklist(id: string) {
   });
 }
 
-export function useMyBooklists() {
+export function useMyBooklists(opts?: { enabled?: boolean }) {
   return useQuery({
     queryKey: queryKeys.booklists.my,
     queryFn: () => booklistService.getMy(),
+    enabled: opts?.enabled ?? true,
   });
 }
 

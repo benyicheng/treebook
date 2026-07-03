@@ -73,6 +73,14 @@
     --shadow-sm: 0 1px 2px oklch(0% 0 0 / 0.04);
     --shadow-md: 0 4px 12px oklch(0% 0 0 / 0.06);
     --shadow-lg: 0 8px 24px oklch(0% 0 0 / 0.08);
+
+    /* === Scrim（模态/抽屉遮罩）—— 替代散落的 bg-black/NN === */
+    --scrim-light: oklch(0% 0 0 / 0.5);
+    --scrim-dark:  oklch(0% 0 0 / 0.65);
+
+    /* === Selection === */
+    --selection-bg: oklch(52% 0.18 280 / 0.18);
+    --selection-fg: inherit;
   }
 
   [data-theme="dark"] {
@@ -84,6 +92,8 @@
     --color-border:      oklch(24% 0.010 260);
     --color-accent:      oklch(62% 0.16 280);
     --color-accent-hover: oklch(72% 0.12 280);
+
+    --scrim-light: var(--scrim-dark);
   }
 
   body {
@@ -99,6 +109,37 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* 文本选中：统一强调色，替代浏览器默认蓝 */
+  ::selection {
+    background: var(--selection-bg);
+    color: var(--selection-fg);
+  }
+
+  /* 滚动条：低调、与 surface 协调 */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: oklch(0% 0 0 / 0.18) transparent;
+  }
+  *::-webkit-scrollbar { width: 10px; height: 10px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb {
+    background: oklch(0% 0 0 / 0.16);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  *::-webkit-scrollbar-thumb:hover { background: oklch(0% 0 0 / 0.28); background-clip: padding-box; }
+  [data-theme="dark"] *::-webkit-scrollbar-thumb { background: oklch(100% 0 0 / 0.16); background-clip: padding-box; }
+  [data-theme="dark"] *::-webkit-scrollbar-thumb:hover { background: oklch(100% 0 0 / 0.28); background-clip: padding-box; }
+
+  /* 锚点跳转不被 fixed header 遮挡（h-20=5rem） */
+  [id] { scroll-margin-top: 6rem; }
+
+  /* 默认 focus-visible 基线：兜底无障碍指示 */
+  :focus-visible {
+    outline: none;
+  }
+
   /* Reduced motion */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
@@ -112,6 +153,42 @@
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom);
   }
+
+  /* ==========================================================================
+     animate-in 系列 — 入场动画工具类
+     替代未安装的 tailwindcss-animate 插件，让现有 Modal / ConfirmDialog /
+     NotificationDropdown / NodePreviewCard / AddToBooklistModal 等组件
+     已使用的 animate-in / fade-in / zoom-in-95 / slide-in-from-top-2 类名生效。
+     通过 CSS 变量组合，与 duration-* 工具类协同。
+     ========================================================================== */
+  @keyframes tw-enter {
+    from {
+      opacity: var(--tw-enter-opacity, 1);
+      transform: translate3d(var(--tw-enter-translate-x, 0), var(--tw-enter-translate-y, 0), 0)
+                 scale(var(--tw-enter-scale, 1));
+    }
+    to {
+      opacity: 1;
+      transform: translate3d(0, 0, 0) scale(1);
+    }
+  }
+
+  .animate-in {
+    animation-name: tw-enter;
+    animation-duration: 200ms;
+    animation-timing-function: var(--ease-out-quart, cubic-bezier(0.25, 1, 0.5, 1));
+    animation-fill-mode: both;
+  }
+  .fade-in { --tw-enter-opacity: 0; }
+  .zoom-in-95 { --tw-enter-scale: 0.95; }
+  .slide-in-from-top-2 { --tw-enter-translate-y: -0.5rem; }
+
+  /* duration-* 工具类默认只作用于 transition；此处让它在 animate-in 上下文
+     中同时驱动 animation-duration，覆盖默认 200ms。组合选择器提升特异性。 */
+  .animate-in.duration-100 { animation-duration: 100ms; }
+  .animate-in.duration-200 { animation-duration: 200ms; }
+  .animate-in.duration-300 { animation-duration: 300ms; }
+  .animate-in.duration-500 { animation-duration: 500ms; }
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
@@ -119,4 +196,164 @@
   .no-scrollbar::-webkit-scrollbar {
     display: none;
   }
+
+  /* 遮罩层：替代散落的 bg-black/30|40|50|60，随明暗自适应 */
+  .scrim {
+    background-color: var(--scrim-light);
+  }
+
+  /* 微标签（eyebrow）：统一全项目散落的 text-[10px] uppercase tracking-widest font-black
+     此前这类 micro-label 字重 800 压平层级，统一降为 600（semibold）。 */
+  .eyebrow {
+    font-size: 0.6875rem;
+    line-height: 1;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-muted);
+  }
+}
+
+/* ==========================================================================
+   .md-prose — 精修 Markdown 排版
+   用于章节阅读正文与编辑器预览，配合 Tailwind Typography 的 `prose` 使用。
+   目标：中文阅读舒适、层级清晰、强调元素有质感，明暗一致。
+   ========================================================================== */
+@layer components {
+  .md-prose {
+    color: var(--color-text);
+    line-height: var(--leading-relaxed);
+    word-break: break-word;
+  }
+
+  /* 正文段落：衬线阅读体、舒适行距、段间留白 */
+  .md-prose p {
+    font-family: var(--font-reading);
+    font-size: 1.0625rem;
+    line-height: 1.9;
+    margin: 0 0 1.25em;
+    color: var(--color-text);
+  }
+
+  /* 沉浸阅读态：首行缩进 + 两端对齐（仅正文阅读场景启用） */
+  .md-prose.md-prose--reading p {
+    text-indent: 2em;
+    text-align: justify;
+  }
+
+  /* 标题：展示体、清晰的字重与上下留白节奏 */
+  .md-prose h1,
+  .md-prose h2,
+  .md-prose h3,
+  .md-prose h4 {
+    font-family: var(--font-display);
+    color: var(--color-text);
+    font-weight: var(--weight-bold);
+    line-height: var(--leading-snug);
+    margin: 1.8em 0 0.7em;
+    text-indent: 0;
+  }
+  .md-prose h1 { font-size: 1.75rem; font-weight: var(--weight-black); }
+  .md-prose h2 {
+    font-size: 1.4rem;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid var(--color-border);
+  }
+  .md-prose h3 { font-size: 1.2rem; }
+  .md-prose h4 { font-size: 1.05rem; }
+
+  /* 链接：强调色 + 细腻下划线 */
+  .md-prose a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    transition: color var(--duration-fast) var(--ease-out-quart);
+  }
+  .md-prose a:hover { color: var(--color-accent-hover); }
+
+  /* 引用：左侧强调色竖条 + 柔和底色 */
+  .md-prose blockquote {
+    margin: 1.5em 0;
+    padding: 0.75em 1.25em;
+    border-left: 3px solid var(--color-accent);
+    background: var(--color-surface-2);
+    border-radius: 0 var(--radius-md) var(--radius-md) 0;
+    color: var(--color-text-muted);
+    font-style: normal;
+  }
+  .md-prose blockquote p { margin: 0; text-indent: 0; text-align: left; }
+
+  /* 行内代码 */
+  .md-prose :not(pre) > code {
+    font-family: var(--font-mono);
+    font-size: 0.875em;
+    padding: 0.15em 0.4em;
+    border-radius: var(--radius-sm);
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-border);
+    color: var(--color-accent-hover);
+  }
+
+  /* 代码块 */
+  .md-prose pre {
+    margin: 1.5em 0;
+    padding: 1.1em 1.25em;
+    border-radius: var(--radius-lg);
+    background: oklch(18% 0.015 260);
+    color: oklch(92% 0.005 260);
+    overflow-x: auto;
+    font-family: var(--font-mono);
+    font-size: 0.9rem;
+    line-height: 1.6;
+  }
+  .md-prose pre code { background: none; border: none; padding: 0; color: inherit; }
+
+  /* 列表 */
+  .md-prose ul,
+  .md-prose ol { margin: 1em 0 1.25em; padding-left: 1.6em; }
+  .md-prose li { margin: 0.4em 0; line-height: 1.8; }
+  .md-prose ul > li { list-style: disc; }
+  .md-prose ol > li { list-style: decimal; }
+
+  /* 分隔线：居中的装饰性符号 */
+  .md-prose hr {
+    border: none;
+    margin: 2.5em auto;
+    width: 40%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-border), transparent);
+  }
+
+  /* 图片：圆角 + 轻投影 */
+  .md-prose img {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--radius-xl);
+    box-shadow: var(--shadow-md);
+    margin: 1.5em auto;
+    display: block;
+  }
+
+  /* 表格 */
+  .md-prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5em 0;
+    font-size: 0.95rem;
+  }
+  .md-prose th,
+  .md-prose td {
+    border: 1px solid var(--color-border);
+    padding: 0.6em 0.9em;
+    text-align: left;
+  }
+  .md-prose th { background: var(--color-surface-2); font-weight: var(--weight-semibold); }
+
+  /* 强调 */
+  .md-prose strong { font-weight: var(--weight-bold); color: var(--color-text); }
+
+  /* 深色模式微调 */
+  .dark .md-prose pre { background: oklch(10% 0.015 260); }
+  .dark .md-prose :not(pre) > code { color: var(--color-accent); }
 }

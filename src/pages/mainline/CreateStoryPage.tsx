@@ -4,6 +4,7 @@ import { useAuthStore } from '../../stores/useAuthStore';
 import { useCreateStory } from '../../hooks/useStories';
 import { useToast } from '../../components/notifications';
 import { Book, Image as ImageIcon, Type, AlignLeft, Send, ArrowLeft } from 'lucide-react';
+import { Button, Input, Textarea } from '../../components/ui';
 
 const CreateStoryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -82,11 +83,11 @@ const CreateStoryPage: React.FC = () => {
                   <Type size={16} />
                   故事标题
                 </label>
-                <input 
+                <Input
                   type="text"
                   required
                   placeholder="给你的宇宙起个响亮的名字..."
-                  className="w-full px-6 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 rounded-2xl focus:ring-4 focus:ring-accent-400/10 focus:border-accent-400 outline-none transition-all text-xl font-bold"
+                  className="rounded-2xl h-auto px-6 py-4 text-xl font-bold"
                   value={formData.title}
                   onChange={e => setFormData(prev => ({ ...prev, title: e.target.value }))}
                 />
@@ -97,11 +98,11 @@ const CreateStoryPage: React.FC = () => {
                   <AlignLeft size={16} />
                   故事简介
                 </label>
-                <textarea 
+                <Textarea
                   required
                   rows={5}
                   placeholder="简述你的世界观、核心冲突和主要角色..."
-                  className="w-full px-6 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 rounded-2xl focus:ring-4 focus:ring-accent-400/10 focus:border-accent-400 outline-none transition-all text-lg font-light resize-none leading-relaxed"
+                  className="rounded-2xl px-6 py-4 text-lg font-light resize-none leading-relaxed"
                   value={formData.description}
                   onChange={e => setFormData(prev => ({ ...prev, description: e.target.value }))}
                 />
@@ -120,10 +121,10 @@ const CreateStoryPage: React.FC = () => {
                     </span>
                   ))}
                 </div>
-                <input 
+                <Input
                   type="text"
                   placeholder="输入标签后按回车或逗号添加..."
-                  className="w-full px-6 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 rounded-2xl focus:ring-4 focus:ring-accent-400/10 focus:border-accent-400 outline-none transition-all font-mono text-sm"
+                  className="rounded-2xl h-auto px-6 py-4 font-mono text-sm"
                   value={tagInput}
                   onChange={e => setTagInput(e.target.value)}
                   onKeyDown={handleAddTag}
@@ -135,10 +136,10 @@ const CreateStoryPage: React.FC = () => {
                   <ImageIcon size={16} />
                   封面图片 URL (可选)
                 </label>
-                <input 
+                <Input
                   type="url"
                   placeholder="https://example.com/cover.jpg"
-                  className="w-full px-6 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-600 rounded-2xl focus:ring-4 focus:ring-accent-400/10 focus:border-accent-400 outline-none transition-all font-mono text-sm"
+                  className="rounded-2xl h-auto px-6 py-4 font-mono text-sm"
                   value={formData.coverImage}
                   onChange={e => setFormData(prev => ({ ...prev, coverImage: e.target.value }))}
                 />
@@ -147,20 +148,15 @@ const CreateStoryPage: React.FC = () => {
             </div>
 
             <div className="pt-6 border-t border-ink-100 dark:border-ink-600">
-              <button 
+              <Button
                 type="submit"
-                disabled={isLoading}
-                className="w-full py-5 bg-accent-500 text-white rounded-2xl font-black text-xl hover:bg-accent-600 transition-all shadow-xl hover:shadow-accent-400/20 active:scale-95 disabled:opacity-50 flex items-center justify-center gap-3"
+                loading={isLoading}
+                fullWidth
+                leftIcon={<Send size={24} />}
+                className="rounded-2xl h-auto py-5 text-xl font-black shadow-xl hover:shadow-accent-400/20"
               >
-                {isLoading ? (
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                ) : (
-                  <>
-                    <Send size={24} />
-                    确认开启宇宙
-                  </>
-                )}
-              </button>
+                确认开启宇宙
+              </Button>
             </div>
           </form>
         </div>

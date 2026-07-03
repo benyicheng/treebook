@@ -18,6 +18,7 @@ import {
 import client from '../../api/client';
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useToast } from '../../components/notifications';
+import { getNodeIcon, getNodeColor, getCategoryLabel, getNodeLinkBase } from '../../utils/nodeMeta';
 
 interface ReadingPathNode {
   id: string;
@@ -138,55 +139,10 @@ const ReadingPathDetailPage: React.FC = () => {
   }, [id]);
 
   const getNodeLink = (node: ReadingPathNode): string => {
-    switch (node.nodeCategory) {
-      case 'chapter':
-        return `/read/${node.contentId}`;
-      case 'branch':
-        return `/branch/${node.contentId}`;
-      case 'spinoff':
-        return `/spinoff/${node.contentId}`;
-      default:
-        return '#';
-    }
-  };
-
-  const getNodeIcon = (category: string) => {
-    switch (category) {
-      case 'chapter':
-        return BookOpen;
-      case 'branch':
-        return GitBranch;
-      case 'spinoff':
-        return Sparkles;
-      default:
-        return BookOpen;
-    }
-  };
-
-  const getNodeColor = (category: string) => {
-    switch (category) {
-      case 'chapter':
-        return 'text-accent-500 bg-accent-50 dark:bg-accent-500/15 border-accent-200 dark:border-accent-600';
-      case 'branch':
-        return 'text-accent-500 bg-purple-50 dark:bg-purple-900/30 border-purple-200 dark:border-purple-800';
-      case 'spinoff':
-        return 'text-amber-600 bg-amber-50 dark:bg-amber-900/30 border-amber-200 dark:border-amber-800';
-      default:
-        return 'text-ink-500 bg-ink-50 dark:bg-ink-700';
-    }
-  };
-
-  const getCategoryLabel = (category: string) => {
-    switch (category) {
-      case 'chapter':
-        return '章节';
-      case 'branch':
-        return '分支';
-      case 'spinoff':
-        return '番外';
-      default:
-        return category;
-    }
+    // 携带阅读路径上下文，便于 ReadPage 识别来源并回写进度。
+    // 阶段 1 仅注入参数，ReadPage 暂未消费会安全降级。
+    const base = getNodeLinkBase(node.nodeCategory, node.contentId);
+    return id && base !== '#' ? `${base}?ctx=path:${id}` : base;
   };
 
   const handleStartReading = async () => {
@@ -339,7 +295,7 @@ const ReadingPathDetailPage: React.FC = () => {
               <button
                 onClick={handleStartReading}
                 disabled={startingRead}
-                className="group flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-ink-50 text-accent-600 text-base font-black shadow-lg shadow-black/10 hover:shadow-xl hover:shadow-black/20 hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100 transition-all duration-300"
+                className="group flex items-center gap-2 px-8 py-3.5 rounded-2xl bg-ink-50 text-accent-600 text-base font-semibold shadow-lg shadow-black/10 hover:shadow-xl hover:shadow-black/20 hover:scale-[1.02] disabled:opacity-60 disabled:hover:scale-100 transition-all duration-300"
               >
                 <Play size={20} className="fill-accent-600 group-hover:translate-x-0.5 transition-transform" />
                 {startingRead ? '加载中...' : user ? '开始阅读' : '登录后开始阅读'}

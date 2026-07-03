@@ -7,7 +7,7 @@ import { ArrowLeft, BookOpen, Star, Users, History, Sparkles, Layout, Info, Edit
 import { useAuthStore } from '../../stores/useAuthStore';
 import { useToast } from '../../components/notifications';
 import ReactMarkdown from 'react-markdown';
-import { Modal } from '../../components/ui';
+import { Modal, Button, Textarea, Badge } from '../../components/ui';
 import { FollowButton } from '../../components/Interaction';
 import { ShareButton } from '../../components/Interaction';
 import { useSpinoff } from '../../hooks/useSpinoffs';
@@ -102,23 +102,25 @@ const SpinoffDetailPage: React.FC = () => {
       <div className="max-w-3xl mx-auto py-10 px-6">
         <div className="bg-white dark:bg-ink-800 rounded-3xl border border-ink-100 dark:border-ink-700 shadow-sm p-8 space-y-6">
           <div className="space-y-2">
-            <div className="text-xs font-black text-ink-400 uppercase tracking-widest">番外短篇</div>
+            <div className="eyebrow text-ink-400">番外短篇</div>
             <h1 className="text-2xl font-black text-ink-800 dark:text-white">内容加载失败</h1>
             <p className="text-ink-500 dark:text-ink-400 text-sm">{error?.message || '未找到该番外'}</p>
           </div>
           <div className="flex gap-3">
-            <button
+            <Button
+              variant="subtle"
               onClick={() => navigate(-1)}
-              className="px-6 py-3 bg-ink-100 dark:bg-ink-700 text-ink-800 dark:text-white rounded-2xl font-black hover:bg-ink-200 dark:hover:bg-ink-600 transition-all active:scale-95"
+              className="px-6 py-3 rounded-2xl font-bold"
             >
               返回
-            </button>
-            <button
+            </Button>
+            <Button
+              variant="primary"
               onClick={() => window.location.reload()}
-              className="px-6 py-3 bg-accent-600 text-white rounded-2xl font-black hover:bg-accent-700 transition-all active:scale-95"
+              className="px-6 py-3 rounded-2xl font-bold"
             >
               重试
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -135,10 +137,9 @@ const SpinoffDetailPage: React.FC = () => {
           <div className="absolute top-0 right-0 w-64 h-64 bg-accent-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2"></div>
 
           <div className="flex items-center justify-between">
-            <button onClick={() => navigate(-1)} className="inline-flex items-center gap-2 text-sm font-bold text-ink-500 hover:text-accent-600 transition-colors">
-              <ArrowLeft size={16} />
+            <Button variant="ghost" size="sm" onClick={() => navigate(-1)} leftIcon={<ArrowLeft size={16} />} className="text-sm font-bold text-ink-500 hover:text-accent-600">
               返回番外列表
-            </button>
+            </Button>
             
             <div className="flex items-center gap-2">
               <ShareButton
@@ -151,26 +152,28 @@ const SpinoffDetailPage: React.FC = () => {
               {(user?.id === spinoff.authorId || user?.role === 'admin') && (
                 <>
                   {!spinoff.isOfficial && user?.id === spinoff.authorId && (
-                    <button 
+                    <Button
+                      variant="ghost"
                       onClick={() => setIsRequestModalOpen(true)}
                       disabled={!!pendingRequest}
-                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold transition-all ${
-                        pendingRequest 
-                          ? 'bg-amber-50 text-amber-500 cursor-default' 
+                      leftIcon={<ShieldCheck size={16} />}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold ${
+                        pendingRequest
+                          ? 'bg-amber-50 text-amber-500 cursor-default'
                           : 'bg-amber-100 text-amber-600 hover:bg-amber-200'
                       }`}
                     >
-                      <ShieldCheck size={16} />
                       {pendingRequest ? '官方认证审核中' : '申请官方认证'}
-                    </button>
+                    </Button>
                   )}
-                  <button 
+                  <Button
+                    variant="ghost"
                     onClick={() => navigate(`/spinoff/edit/${spinoff.id}`)}
-                    className="flex items-center gap-2 px-4 py-2 bg-ink-100 dark:bg-ink-700 text-ink-500 dark:text-ink-400 rounded-xl text-sm font-bold hover:bg-accent-50 dark:hover:bg-accent-800/20 hover:text-accent-600 transition-all"
+                    leftIcon={<Edit3 size={16} />}
+                    className="flex items-center gap-2 px-4 py-2 bg-ink-100 dark:bg-ink-700 text-ink-500 dark:text-ink-400 rounded-xl text-sm font-bold hover:bg-accent-50 dark:hover:bg-accent-800/20 hover:text-accent-600"
                   >
-                    <Edit3 size={16} />
                     编辑番外
-                  </button>
+                  </Button>
                 </>
               )}
             </div>
@@ -178,15 +181,15 @@ const SpinoffDetailPage: React.FC = () => {
 
           <div className="space-y-4">
             <div className="flex flex-wrap gap-2 items-center">
-              <span className={`px-3 py-1 ${typeInfo.color} text-[10px] font-black rounded-full uppercase tracking-wider flex items-center gap-1`}>
+              <Badge tone="accent" variant="soft" size="sm" className="flex items-center gap-1">
                 <typeInfo.icon size={12} />
                 {typeInfo.label}
-              </span>
+              </Badge>
               {spinoff.isOfficial && (
-                <span className="px-3 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-black rounded-full uppercase tracking-wider flex items-center gap-1">
+                <Badge tone="warning" variant="soft" size="sm" className="flex items-center gap-1">
                   <ShieldCheck size={12} />
                   官方认证
-                </span>
+                </Badge>
               )}
             </div>
             <h1 className="text-4xl md:text-5xl font-black text-ink-800 dark:text-white tracking-tight leading-tight">
@@ -235,7 +238,7 @@ const SpinoffDetailPage: React.FC = () => {
         <div className="bg-white dark:bg-ink-800 rounded-[2.5rem] p-8 border border-ink-100 dark:border-ink-700 shadow-sm space-y-8">
           {/* Reference Source */}
           <section className="space-y-4">
-            <div className="flex items-center gap-2 text-xs font-black text-ink-400 uppercase tracking-widest">
+            <div className="eyebrow flex items-center gap-2 text-ink-400">
               <Layout size={14} />
               世界观基石
             </div>
@@ -254,29 +257,33 @@ const SpinoffDetailPage: React.FC = () => {
                 </div>
               )}
               <div>
-                <h4 className="font-black text-ink-800 dark:text-white group-hover:text-accent-600 transition-colors leading-tight">
+                <h4 className="font-bold text-ink-800 dark:text-white group-hover:text-accent-600 transition-colors leading-tight">
                   {spinoff.originalStory?.title}
                 </h4>
 
                 {/* Status & Tags */}
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {spinoff.originalStory?.status && (
-                    <span className={`px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
-                      spinoff.originalStory.status === 'ongoing'
-                        ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400'
-                        : spinoff.originalStory.status === 'completed'
-                        ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
-                        : 'bg-ink-100 text-ink-500 dark:bg-ink-700 dark:text-ink-400'
-                    }`}>
+                    <Badge
+                      tone={
+                        spinoff.originalStory.status === 'ongoing'
+                          ? 'success'
+                          : spinoff.originalStory.status === 'completed'
+                          ? 'info'
+                          : 'neutral'
+                      }
+                      variant="soft"
+                      size="sm"
+                    >
                       {spinoff.originalStory.status === 'ongoing' ? '连载中'
                         : spinoff.originalStory.status === 'completed' ? '已完结'
                         : '暂停'}
-                    </span>
+                    </Badge>
                   )}
                   {spinoff.originalStory?.tags?.slice(0, 3).map((tag: { id: string; name: string }) => (
-                    <span key={tag.id} className="px-2 py-0.5 bg-accent-50 dark:bg-accent-800/20 text-accent-600 dark:text-accent-400 rounded-full text-[9px] font-bold">
+                    <Badge key={tag.id} tone="accent" variant="soft" size="sm">
                       #{tag.name}
-                    </span>
+                    </Badge>
                   ))}
                 </div>
 
@@ -304,7 +311,7 @@ const SpinoffDetailPage: React.FC = () => {
           {/* Referenced Characters */}
           {characters.length > 0 && (
             <section className="space-y-4">
-              <div className="flex items-center gap-2 text-xs font-black text-ink-400 uppercase tracking-widest">
+              <div className="eyebrow flex items-center gap-2 text-ink-400">
                 <Users size={14} />
                 引用角色设定
               </div>
@@ -315,7 +322,7 @@ const SpinoffDetailPage: React.FC = () => {
                       {char.name[0]}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-black text-ink-800 dark:text-white truncate">{char.name}</p>
+                      <p className="text-sm font-bold text-ink-800 dark:text-white truncate">{char.name}</p>
                       <p className="text-[10px] text-ink-500 truncate capitalize">{char.role}</p>
                     </div>
                   </div>
@@ -328,7 +335,7 @@ const SpinoffDetailPage: React.FC = () => {
           <section className="p-5 bg-accent-50 dark:bg-accent-800/20 rounded-2xl border border-accent-100 dark:border-accent-800 space-y-3">
             <div className="flex items-center gap-2 text-accent-600 dark:text-accent-400">
               <Info size={16} />
-              <h5 className="text-xs font-black">版权声明</h5>
+              <h5 className="text-xs font-bold">版权声明</h5>
             </div>
             <p className="text-[10px] text-accent-700 dark:text-accent-300 leading-relaxed font-medium">
               本作品已向原著作者缴纳 IP 授权费。禁止任何未经授权的转载或二次商业开发。
@@ -336,13 +343,15 @@ const SpinoffDetailPage: React.FC = () => {
           </section>
         </div>
         
-        <button
+        <Button
+          variant="secondary"
+          fullWidth
           onClick={() => navigate('/spinoff')}
-          className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-ink-800 dark:bg-white text-white dark:text-ink-800 rounded-[2rem] font-black hover:bg-accent-600 dark:hover:bg-accent-50 transition-all active:scale-95"
+          leftIcon={<BookOpen size={20} />}
+          className="w-full px-6 py-4 rounded-[2rem] font-bold hover:bg-accent-600 dark:hover:bg-accent-50"
         >
-          <BookOpen size={20} />
           发现更多平行时空
-        </button>
+        </Button>
       </aside>
 
       {/* Certification Request Modal */}
@@ -359,24 +368,25 @@ const SpinoffDetailPage: React.FC = () => {
           
           <div className="space-y-2">
             <label className="text-sm font-bold text-ink-500 uppercase tracking-wider">申请说明</label>
-            <textarea
+            <Textarea
               required
               rows={4}
-              className="w-full px-6 py-4 bg-ink-50 dark:bg-ink-800 border border-ink-100 dark:border-ink-700 rounded-3xl outline-none focus:ring-2 focus:ring-amber-500 transition-all resize-none"
+              className="px-6 py-4 border-ink-100 dark:border-ink-700 rounded-3xl focus:ring-amber-500 resize-none"
               placeholder="请说明为什么你的番外应该获得官方认证（如：严格遵循设定、扩充了某个角色的背景等）..."
               value={requestMessage}
               onChange={e => setRequestMessage(e.target.value)}
             />
           </div>
 
-          <button
+          <Button
             type="submit"
-            disabled={createRequestMutation.isPending}
-            className="w-full py-4 bg-amber-500 text-white rounded-2xl font-black hover:bg-amber-600 transition-all shadow-lg active:scale-95 disabled:opacity-50 flex items-center justify-center gap-2"
+            variant="primary"
+            loading={createRequestMutation.isPending}
+            leftIcon={<Send size={18} />}
+            className="w-full py-4 bg-amber-500 hover:bg-amber-600 rounded-2xl shadow-lg"
           >
-            <Send size={18} />
             {createRequestMutation.isPending ? '发送中...' : '发送申请'}
-          </button>
+          </Button>
         </form>
       </Modal>
     </div>

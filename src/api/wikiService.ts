@@ -1,42 +1,6 @@
 import client from './client';
-
-export interface WikiPage {
-  id: string;
-  storyId: string | null;
-  title: string;
-  slug: string;
-  contentType: 'character' | 'setting' | 'event' | 'concept' | 'faction' | 'item';
-  content: string;
-  summary: string | null;
-  attributes: Record<string, any> | null;
-  status: 'draft' | 'published' | 'archived';
-  version: number;
-  createdBy: string;
-  updatedAt: string;
-  createdAt: string;
-  creator?: { id: string; username: string; role?: string };
-  aliases?: WikiAlias[];
-  outgoingLinks?: WikiLink[];
-  incomingLinks?: WikiLink[];
-  story?: { id: string; title: string } | null;
-  _count?: { outgoingLinks: number; incomingLinks: number };
-}
-
-export interface WikiAlias {
-  id: string;
-  wikiPageId: string;
-  alias: string;
-  language: string | null;
-}
-
-export interface WikiLink {
-  id: string;
-  sourcePageId: string;
-  targetPageId: string;
-  linkType: 'reference' | 'see_also' | 'parent' | 'child' | 'related';
-  targetPage?: { id: string; title: string; slug: string; contentType: string };
-  sourcePage?: { id: string; title: string; slug: string; contentType: string };
-}
+import type { WikiPage, WikiAlias, WikiLink } from './types';
+export type { WikiPage, WikiAlias, WikiLink };
 
 export interface WikiLookupResult {
   id: string;
@@ -64,7 +28,7 @@ export const wikiService = {
     limit?: string;
   }) => {
     const { data } = await client.get<any>('/wiki-pages', { params });
-    return data; // { success, data, pagination }
+    return data;
   },
 
   getById: async (id: string) => {
@@ -107,7 +71,6 @@ export const wikiService = {
     return data;
   },
 
-  /** 轻量级百科查找，用于 WikiPopover */
   lookup: async (q: string, limit: number = 5): Promise<WikiLookupResult[]> => {
     const { data } = await client.get<WikiLookupResult[]>('/wiki-pages/lookup', {
       params: { q, limit },

@@ -24,7 +24,7 @@ const TreeViewToggle: React.FC<TreeViewToggleProps> = ({ value, onChange }) => {
           <button
             key={mode}
             onClick={() => onChange(mode)}
-            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${
+            className={`relative flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
               isActive
                 ? 'text-white'
                 : 'text-ink-500 dark:text-ink-400 hover:text-ink-700 dark:hover:text-white'

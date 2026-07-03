@@ -1,119 +1,158 @@
-import React, { useMemo, useState } from 'react';
-import { Calendar, Plus, ChevronDown, ChevronRight } from 'lucide-react';
-import BooklistEventCard from './BooklistEventCard';
-import { EventConnectorsProvider } from './EventConnectorsContext';
+import React, { useState } from 'react';
+import { Calendar } from 'lucide-react';
+import { EmptyState, Button, IconButton, Badge } from '../../../components/ui';
+import EventDetailDrawer from './EventDetailDrawer';
 
 interface BooklistEventTabProps {
-  itemsByStory: any[];
+  booklist: any;
   isCreator: boolean;
-  onRemoveItem: (itemId: string) => void;
   onEditNotes: (item: any) => void;
-  onOpenCreateEvent: () => void;
-  onOpenAddEvent: () => void;
+  onRemove: (itemId: string) => void;
+  onAddEvent?: () => void;
+  onCreateEvent?: () => void;
 }
 
-const BooklistEventTab: React.FC<BooklistEventTabProps> = ({
-  itemsByStory,
+export const BooklistEventTab: React.FC<BooklistEventTabProps> = ({
+  booklist,
   isCreator,
-  onRemoveItem,
   onEditNotes,
-  onOpenCreateEvent,
-  onOpenAddEvent,
+  onRemove,
+  onAddEvent,
+  onCreateEvent,
 }) => {
-  const [collapsedGroups, setCollapsedGroups] = useState<Set<string>>(new Set());
-
-  const toggleGroup = (storyId: string) => {
-    setCollapsedGroups(prev => {
-      const next = new Set(prev);
-      next.has(storyId) ? next.delete(storyId) : next.add(storyId);
-      return next;
-    });
-  };
-
-  const totalEvents = itemsByStory.reduce((acc: number, g: any) => acc + (g.events?.length || 0), 0);
-  const hasEvents = itemsByStory.some((g: any) => g.events?.length > 0);
-
-  // 收集所有事件 ID 给 EventConnectorsProvider 批量预拉。
-  // Provider 内部按 flag 决定是否真正发请求；flag off 则等同未渲染。
-  const allEventIds = useMemo(() => {
-    const ids: string[] = [];
-    for (const group of itemsByStory) {
-      for (const item of group.events || []) {
-        const evt = item.event || item;
-        if (evt?.id) ids.push(evt.id);
-      }
-    }
-    return ids;
-  }, [itemsByStory]);
+  const b = booklist || {};
+  const events = (b.items || []).filter((item: any) => item.targetType === 'event');
+  const [openEventId, setOpenEventId] = useState<string | null>(null);
+  const [openEventStory, setOpenEventStory] = useState<{ storyId?: string; storyAuthorId?: string }>({});
 
   return (
-    <EventConnectorsProvider eventIds={allEventIds}>
-      <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-bold text-ink-800 dark:text-white flex items-center gap-2">
-          <Calendar size={18} className="text-rose-500" />
-          大事件
-          <span className="text-sm font-normal text-ink-400">({totalEvents})</span>
-        </h2>
-        {isCreator && (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={onOpenCreateEvent}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-rose-600 text-white text-xs font-bold hover:bg-rose-700 transition-colors"
-            >
-              <Plus size={14} /> 创建大事件
-            </button>
-            <button
-              onClick={onOpenAddEvent}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-rose-200 dark:border-rose-700 text-rose-600 dark:text-rose-400 text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors"
-            >
-              添加已有
-            </button>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between mb-1">
+        <div className="flex items-center gap-3">
+          <div className="w-1 h-6 rounded-full bg-gradient-to-b from-accent-400 to-accent-600" />
+          <div className="p-1.5 rounded-lg bg-gradient-to-br from-accent-400 to-accent-600 shadow-sm">
+            <Calendar size={14} className="text-white" />
+          </div>
+          <h2 className="text-base font-bold text-ink-800 dark:text-white tracking-tight">
+            大事件
+            <span className="text-sm font-normal text-ink-400 ml-2">({events.length})</span>
+          </h2>
+        </div>
+        {isCreator && (onAddEvent || onCreateEvent) && (
+          <div className="flex gap-2">
+            {onCreateEvent && (
+              <Button variant="primary" size="sm" onClick={onCreateEvent} className="shadow-lg shadow-accent-400/20">
+                + 新建事件
+              </Button>
+            )}
+            {onAddEvent && (
+              <Button variant="subtle" size="sm" onClick={onAddEvent}>
+                + 添加事件
+              </Button>
+            )}
           </div>
         )}
       </div>
-
-      {!hasEvents ? (
-        <p className="text-sm text-ink-400 py-8 text-center">暂未添加大事件</p>
+      {events.length === 0 ? (
+        <EmptyState icon={Calendar} title="暂无大事件" compact />
       ) : (
-        <div className="space-y-4">
-          {itemsByStory.filter((g: any) => g.events?.length > 0).map((group: any) => {
-            const isCollapsed = collapsedGroups.has(group.storyId);
+        <div className="space-y-3">
+          {events.map((item: any) => {
+            const evt = item.event || item;
+            const eventId = evt.id || item.targetId;
             return (
               <div
-                key={group.storyId}
-                className="rounded-2xl bg-white dark:bg-ink-700 border border-ink-100 dark:border-ink-600 overflow-hidden"
+                key={item.id}
+                onClick={() => {
+                  if (!eventId) return;
+                  setOpenEventStory({
+                    storyId: evt.storyId,
+                    storyAuthorId: evt.story?.author?.id ?? evt.story?.authorId,
+                  });
+                  setOpenEventId(eventId);
+                }}
+                className="p-4 rounded-xl bg-white dark:bg-ink-700 border border-ink-100 dark:border-ink-600 hover:shadow-md hover:border-accent-200 dark:hover:border-accent-600 transition-all cursor-pointer"
               >
-                <button
-                  onClick={() => toggleGroup(group.storyId)}
-                  className="w-full px-4 py-3 bg-gradient-to-r from-rose-50 to-transparent dark:from-rose-900/20 border-b border-ink-100 dark:border-ink-600 flex items-center gap-3 hover:from-rose-100 dark:hover:from-rose-900/30 transition-colors text-left"
-                >
-                  {isCollapsed ? <ChevronRight size={16} className="text-rose-500 shrink-0" /> : <ChevronDown size={16} className="text-rose-500 shrink-0" />}
-                  <Calendar size={16} className="text-rose-500 shrink-0" />
-                  <p className="text-sm font-bold text-ink-700 dark:text-ink-300">{group.story?.title || '未知故事'}</p>
-                  <span className="text-xs text-ink-400">({group.events.length} 个事件)</span>
-                </button>
-
-                {!isCollapsed && (
-                  <div className="divide-y divide-ink-100 dark:divide-ink-600">
-                    {group.events.map((item: any) => (
-                      <BooklistEventCard
-                        key={item.id}
-                        item={item}
-                        isCreator={isCreator}
-                        onRemove={onRemoveItem}
-                        onEditNotes={onEditNotes}
-                      />
-                    ))}
+                <div className="flex items-start gap-4">
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center text-white shrink-0"
+                    style={{ backgroundColor: evt.color || '#f43f5e' }}
+                  >
+                    <Calendar size={18} />
                   </div>
-                )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-bold text-ink-800 dark:text-white">
+                        {evt.title || '未命名事件'}
+                      </h3>
+                      {evt.type && (
+                        <Badge tone="danger" size="sm">{evt.type}</Badge>
+                      )}
+                    </div>
+                    {evt.description && (
+                      <p className="text-xs text-ink-500 mt-1.5 line-clamp-2">
+                        {evt.description}
+                      </p>
+                    )}
+                    {item.notes && (
+                      <p className="text-xs text-ink-400 italic mt-1">
+                        点评：{item.notes}
+                      </p>
+                    )}
+                    {evt.timestamp && (
+                      <div className="flex items-center gap-2 mt-2 text-[10px] text-ink-400">
+                        <Calendar size={10} />
+                        {new Date(evt.timestamp).toLocaleDateString('zh-CN')}
+                      </div>
+                    )}
+                  </div>
+                  {isCreator && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <IconButton
+                        variant="ghost"
+                        size="sm"
+                        aria-label="编辑点评"
+                        title="编辑点评"
+                        onClick={(e) => { e.stopPropagation(); onEditNotes(item); }}
+                        className="h-auto w-auto p-2 rounded-lg hover:bg-accent-50 dark:hover:bg-accent-500/15 text-ink-400 hover:text-accent-600"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                          <path d="m15 5 4 4"/>
+                        </svg>
+                      </IconButton>
+                      <IconButton
+                        variant="danger"
+                        size="sm"
+                        aria-label="移除"
+                        title="移除"
+                        onClick={(e) => { e.stopPropagation(); onRemove(item.id); }}
+                        className="h-auto w-auto p-2 rounded-lg text-ink-400 dark:hover:bg-red-900/30"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M3 6h18"/>
+                          <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
+                          <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>
+                        </svg>
+                      </IconButton>
+                    </div>
+                  )}
+                </div>
               </div>
             );
           })}
         </div>
       )}
+
+      {openEventId && (
+        <EventDetailDrawer
+          eventId={openEventId}
+          storyId={openEventStory.storyId}
+          storyAuthorId={openEventStory.storyAuthorId}
+          onClose={() => setOpenEventId(null)}
+        />
+      )}
     </div>
-    </EventConnectorsProvider>
   );
 };
 

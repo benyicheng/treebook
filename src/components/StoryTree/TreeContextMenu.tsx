@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Copy, GitBranch, BookmarkPlus, Eye, Share2 } from 'lucide-react';
+import { Button } from '../ui';
 
 interface TreeContextMenuProps {
   open: boolean;
@@ -77,14 +78,15 @@ const TreeContextMenu: React.FC<TreeContextMenuProps> = ({
           style={{ left: adjustedX, top: adjustedY }}
         >
           {menuItems.map((item) => (
-            <button
+            <Button
               key={item.id}
+              variant="ghost"
               onClick={item.action}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-700 dark:text-ink-300 hover:bg-accent-50 dark:hover:bg-accent-500/10 hover:text-accent-600 dark:hover:text-accent-400 transition-colors"
+              className="w-full justify-start gap-2.5 px-4 py-2.5 text-sm font-medium text-ink-700 dark:text-ink-300 hover:bg-accent-50 dark:hover:bg-accent-500/10 hover:text-accent-600 dark:hover:text-accent-400"
             >
               <span className="text-ink-400 dark:text-ink-500">{item.icon}</span>
               {item.label}
-            </button>
+            </Button>
           ))}
         </motion.div>
       )}

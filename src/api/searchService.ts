@@ -1,30 +1,6 @@
 import client from './client';
-
-export interface SearchResultItem {
-  title: string;
-  type: 'story' | 'chapter' | 'branch' | 'spinoff' | 'author';
-  sourceId: string;
-  highlight: string;
-  metadata: {
-    storyId?: string;
-    authorId?: string;
-    branchId?: string;
-  };
-  rank: number;
-}
-
-export interface SearchResult {
-  results: SearchResultItem[];
-  total: number;
-  query: string;
-  type: string | null;
-}
-
-export interface SearchSuggestItem {
-  title: string;
-  type: 'story' | 'chapter' | 'branch' | 'spinoff' | 'author';
-  sourceId: string;
-}
+import type { SearchResultItem, SearchResult, SearchSuggestItem } from './types';
+export type { SearchResultItem, SearchResult, SearchSuggestItem };
 
 const searchService = {
   async searchAll(query: string, type?: string, limit = 20, offset = 0, sort?: 'relevance' | 'newest'): Promise<SearchResult> {

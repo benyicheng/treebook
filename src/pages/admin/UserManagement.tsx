@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Users, Plus, X, Search, Shield } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '../../components/notifications';
-import roleService, { UserWithRoles } from '../../api/roleService';
+import { Button, IconButton, Input, Badge } from '../../components/ui';
+import { roleService, UserWithRoles } from '../../api/roleService';
 
 const UserManagement: React.FC = () => {
   const queryClient = useQueryClient();
@@ -63,16 +64,14 @@ const UserManagement: React.FC = () => {
             <p className="text-sm text-ink-500 dark:text-ink-400 mt-0.5">管理用户角色分配</p>
           </div>
         </div>
-        <div className="relative">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-400" />
-          <input
-            type="text"
-            placeholder="搜索用户名或邮箱..."
-            value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(1); }}
-            className="pl-10 pr-4 py-2.5 bg-ink-50 dark:bg-ink-700 border border-ink-200 dark:border-ink-600 rounded-xl text-sm font-medium focus:ring-2 focus:ring-accent-400/20 outline-none w-64"
-          />
-        </div>
+        <Input
+          type="text"
+          placeholder="搜索用户名或邮箱..."
+          value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(1); }}
+          leftIcon={<Search size={16} />}
+          wrapperClassName="w-64"
+        />
       </div>
 
       {/* 用户列表 */}
@@ -87,11 +86,11 @@ const UserManagement: React.FC = () => {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-ink-100 dark:border-ink-700 bg-ink-50/50 dark:bg-ink-700/50">
-                    <th className="text-left px-6 py-4 text-xs font-black text-ink-400 uppercase tracking-wider">用户</th>
-                    <th className="text-left px-6 py-4 text-xs font-black text-ink-400 uppercase tracking-wider">邮箱</th>
-                    <th className="text-left px-6 py-4 text-xs font-black text-ink-400 uppercase tracking-wider">旧角色</th>
-                    <th className="text-left px-6 py-4 text-xs font-black text-ink-400 uppercase tracking-wider">RBAC 角色</th>
-                    <th className="text-right px-6 py-4 text-xs font-black text-ink-400 uppercase tracking-wider">操作</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-ink-400 uppercase tracking-wider">用户</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-ink-400 uppercase tracking-wider">邮箱</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-ink-400 uppercase tracking-wider">旧角色</th>
+                    <th className="text-left px-6 py-4 text-xs font-bold text-ink-400 uppercase tracking-wider">RBAC 角色</th>
+                    <th className="text-right px-6 py-4 text-xs font-bold text-ink-400 uppercase tracking-wider">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-ink-50 dark:divide-ink-700">
@@ -114,13 +113,17 @@ const UserManagement: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 text-sm text-ink-500 dark:text-ink-400">{user.email}</td>
                         <td className="px-6 py-4">
-                          <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-bold ${
-                            user.role === 'admin' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
-                            user.role === 'author' ? 'bg-accent-100 text-accent-600 dark:bg-accent-500/15 dark:text-accent-400' :
-                            'bg-ink-100 text-ink-500 dark:bg-ink-700 dark:text-ink-400'
-                          }`}>
+                          <Badge
+                            tone={
+                              user.role === 'admin' ? 'danger' :
+                              user.role === 'author' ? 'accent' :
+                              'neutral'
+                            }
+                            variant="soft"
+                            size="sm"
+                          >
                             {user.role}
-                          </span>
+                          </Badge>
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex flex-wrap gap-1">
@@ -144,13 +147,14 @@ const UserManagement: React.FC = () => {
                         </td>
                         <td className="px-6 py-4 text-right">
                           {unassignedRoles.length > 0 && (
-                            <button
+                            <Button
+                              variant="primary"
+                              size="sm"
                               onClick={() => setAssigningUser(user)}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-accent-600 dark:text-violet-400 hover:bg-violet-50 dark:hover:bg-violet-900/20 rounded-lg transition-colors"
+                              leftIcon={<Plus size={14} />}
                             >
-                              <Plus size={14} />
                               分配角色
-                            </button>
+                            </Button>
                           )}
                         </td>
                       </tr>
@@ -175,20 +179,22 @@ const UserManagement: React.FC = () => {
                 共 {usersData.total} 名用户，第 {usersData.page}/{usersData.totalPages} 页
               </p>
               <div className="flex gap-2">
-                <button
+                <Button
+                  variant="subtle"
+                  size="sm"
                   onClick={() => setPage((p) => Math.max(1, p - 1))}
                   disabled={page <= 1}
-                  className="px-3 py-1.5 text-sm font-bold rounded-lg border border-ink-200 dark:border-ink-600 disabled:opacity-30 hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors"
                 >
                   上一页
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="subtle"
+                  size="sm"
                   onClick={() => setPage((p) => Math.min(usersData.totalPages, p + 1))}
                   disabled={page >= usersData.totalPages}
-                  className="px-3 py-1.5 text-sm font-bold rounded-lg border border-ink-200 dark:border-ink-600 disabled:opacity-30 hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors"
                 >
                   下一页
-                </button>
+                </Button>
               </div>
             </div>
           )}
@@ -197,13 +203,13 @@ const UserManagement: React.FC = () => {
 
       {/* 分配角色弹窗 */}
       {assigningUser && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setAssigningUser(null)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center scrim backdrop-blur-sm" onClick={() => setAssigningUser(null)}>
           <div className="bg-white dark:bg-ink-800 rounded-2xl shadow-2xl border border-ink-100 dark:border-ink-700 w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-lg font-black text-ink-800 dark:text-white">为 {assigningUser.username} 分配角色</h3>
-              <button onClick={() => setAssigningUser(null)} className="p-1 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700 text-ink-400">
+              <h3 className="text-lg font-bold text-ink-800 dark:text-white">为 {assigningUser.username} 分配角色</h3>
+              <IconButton aria-label="关闭" onClick={() => setAssigningUser(null)} variant="ghost" size="sm" className="text-ink-400 hover:bg-ink-100 dark:hover:bg-ink-700">
                 <X size={18} />
-              </button>
+              </IconButton>
             </div>
             <div className="space-y-2 max-h-64 overflow-y-auto">
               {allRoles

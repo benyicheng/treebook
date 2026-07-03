@@ -1,4 +1,5 @@
 import React from 'react';
+import Button from './Button';
 
 interface EmptyStateProps {
   /** 顶部图标，传入 lucide 图标组件 */
@@ -43,12 +44,9 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         </p>
       )}
       {action && (
-        <button
-          onClick={action.onClick}
-          className="mt-4 px-5 py-2 bg-accent-500 text-white rounded-xl text-sm font-bold hover:bg-accent-600 transition-colors"
-        >
+        <Button size="sm" className="mt-4" onClick={action.onClick}>
           {action.label}
-        </button>
+        </Button>
       )}
     </div>
   );

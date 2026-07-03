@@ -10,11 +10,11 @@ interface AuthState {
   isLoading: boolean;
   error: string | null;
   login: (credentials: { email: string; password: string }) => Promise<void>;
-  register: (userData: any) => Promise<void>;
+  register: (userData: { username: string; email: string; password: string }) => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
   hasPermission: (permission: string) => boolean;
-  updateMe: (payload: { username?: string; avatarUrl?: string; profile?: any }) => Promise<void>;
+  updateMe: (payload: { username?: string; avatarUrl?: string; profile?: Record<string, unknown> }) => Promise<void>;
 }
 
 /** Clear all auth state (used by checkAuth failure & auth:logout event) */

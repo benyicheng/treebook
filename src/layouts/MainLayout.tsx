@@ -5,6 +5,7 @@ import { useAuthStore } from '../stores/useAuthStore';
 import { useSiteConfigStore } from '../stores/useSiteConfigStore';
 import { useModeStore } from '../stores/useModeStore';
 import { MobileNavbar } from '../components/layout';
+import MobileSearchOverlay from '../components/layout/MobileSearchOverlay';
 import { ReadingDrawer } from '../components/Booklist';
 import { NotificationDropdown } from '../components/notifications';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -27,6 +28,7 @@ const MainLayout: React.FC = () => {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
   const triggerRef = useRef<HTMLDivElement | null>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout>>();
 
@@ -225,7 +227,7 @@ const MainLayout: React.FC = () => {
                           to={typed.path || '#'}
                           className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm transition-all duration-fast whitespace-nowrap shrink-0
                             ${groupActive
-                              ? 'text-ink-900 dark:text-ink-50 font-black'
+                              ? 'text-ink-900 dark:text-ink-50 font-semibold'
                               : 'text-ink-900 hover:text-black dark:text-ink-50 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-ink-700/50 font-medium'
                             }`}
                         >
@@ -246,7 +248,7 @@ const MainLayout: React.FC = () => {
                   to={regItem.path}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm transition-all duration-fast whitespace-nowrap shrink-0
                     ${active
-                      ? 'text-ink-900 dark:text-ink-50 font-black'
+                      ? 'text-ink-900 dark:text-ink-50 font-semibold'
                       : 'text-ink-900 hover:text-black dark:text-ink-50 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-ink-700/50 font-medium'
                     }`}
                 >
@@ -277,7 +279,7 @@ const MainLayout: React.FC = () => {
                       onClick={() => setOpenDropdown(null)}
                       className={`flex items-center gap-3 px-4 py-2.5 text-sm transition-colors whitespace-nowrap
                         ${childActive
-                          ? 'text-ink-900 dark:text-ink-50 font-black'
+                          ? 'text-ink-900 dark:text-ink-50 font-semibold'
                           : 'text-ink-900 hover:text-black dark:text-ink-50 dark:hover:text-white hover:bg-ink-100 dark:hover:bg-ink-700/50 font-medium'
                         }`}
                     >
@@ -294,7 +296,7 @@ const MainLayout: React.FC = () => {
           <div className="flex items-center gap-4 shrink-0">
             {/* Mobile search icon */}
             <button
-              onClick={() => {/* Mobile search would toggle a fullscreen overlay */}}
+              onClick={() => setIsMobileSearchOpen(true)}
               className="flex xl:hidden p-2.5 rounded-lg transition-colors min-w-[44px] min-h-[44px] items-center justify-center text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-700"
               aria-label="搜索"
             >
@@ -384,10 +386,10 @@ const MainLayout: React.FC = () => {
                 </>
               ) : (
                 <div className="flex items-center gap-4">
-                  <Link to="/register" className={`text-sm font-black transition-colors duration-instant hidden sm:block text-ink-900 hover:text-accent-600 dark:text-ink-50`}>
+                  <Link to="/register" className={`text-sm font-semibold transition-colors duration-instant hidden sm:block text-ink-900 hover:text-accent-600 dark:text-ink-50`}>
                     注册账号
                   </Link>
-                   <Link to="/login" className="px-6 py-2.5 rounded-full text-sm font-black hover:opacity-90 transition-all duration-instant shadow-md min-h-[44px] flex items-center bg-ink-800 dark:bg-ink-50 text-ink-50 dark:text-ink-800">
+                   <Link to="/login" className="px-6 py-2.5 rounded-full text-sm font-semibold hover:opacity-90 transition-all duration-instant shadow-md min-h-[44px] flex items-center bg-ink-800 dark:bg-ink-50 text-ink-50 dark:text-ink-800">
                     立即登录
                   </Link>
                 </div>
@@ -404,7 +406,7 @@ const MainLayout: React.FC = () => {
           onMouseEnter={() => setIsSidebarHovered(true)}
           onMouseLeave={() => setIsSidebarHovered(false)}
           className={`
-            fixed left-0 bottom-0 top-20 z-40 transition-all duration-slow ease-out-expo
+            fixed left-0 bottom-0 top-20 z-40 transition-all duration-300 ease-out-expo
             ${isSidebarHovered 
               ? 'w-64 bg-ink-50/95 dark:bg-ink-800/95 backdrop-blur-xl border-r border-ink-100 dark:border-ink-700 shadow-[20px_0_40px_-15px_rgba(0,0,0,0.1)]' 
               : 'w-3 bg-transparent hover:bg-accent-500/20 hover:border-r hover:border-accent-200 dark:hover:border-accent-800/30'}
@@ -412,13 +414,13 @@ const MainLayout: React.FC = () => {
             ${!isSidebarHovered ? 'cursor-pointer' : ''}
           `}
         >
-          <div className={`flex-1 flex flex-col overflow-y-auto no-scrollbar transition-all duration-slow ease-out-expo ${isSidebarHovered ? 'px-4 pb-6' : 'px-3 pb-3'}`}>
+          <div className={`flex-1 flex flex-col overflow-y-auto no-scrollbar transition-all duration-300 ease-out-expo ${isSidebarHovered ? 'px-4 pb-6' : 'px-3 pb-3'}`}>
             <div className={`flex-1 space-y-1 ${isSidebarHovered ? 'pt-4' : 'pt-4'}`}>
               {/* 模式切换 */}
               <div className={isSidebarHovered ? 'px-2 pb-4 space-y-1' : 'flex flex-col items-center gap-1 pb-4'}>
                 <button
                   onClick={() => { setMode('browse'); navigate('/discover'); }}
-                  className={`flex items-center gap-3 rounded-xl transition-all duration-normal
+                  className={`flex items-center gap-3 rounded-xl transition-all duration-200
                     ${isSidebarHovered ? 'px-3 py-2.5 w-full' : 'justify-center p-2.5'}
                     ${mode === 'browse'
                       ? 'bg-accent-50 dark:bg-accent-500/15 text-accent-600 dark:text-accent-400'
@@ -427,11 +429,11 @@ const MainLayout: React.FC = () => {
                   title={!isSidebarHovered ? '浏览' : undefined}
                 >
                   <Compass size={20} className={mode === 'browse' ? 'text-accent-600 dark:text-accent-400' : 'opacity-60'} />
-                  {isSidebarHovered && <span className="text-sm font-black whitespace-nowrap">浏览</span>}
+                  {isSidebarHovered && <span className="text-sm font-semibold whitespace-nowrap">浏览</span>}
                 </button>
                 <button
                   onClick={() => { setMode('create'); navigate('/dashboard'); }}
-                  className={`flex items-center gap-3 rounded-xl transition-all duration-normal
+                  className={`flex items-center gap-3 rounded-xl transition-all duration-200
                     ${isSidebarHovered ? 'px-3 py-2.5 w-full' : 'justify-center p-2.5'}
                     ${mode === 'create'
                       ? 'bg-accent-50 dark:bg-accent-500/15 text-accent-600 dark:text-accent-400'
@@ -440,14 +442,14 @@ const MainLayout: React.FC = () => {
                   title={!isSidebarHovered ? '创作台' : undefined}
                 >
                   <Layout size={20} className={mode === 'create' ? 'text-accent-600 dark:text-accent-400' : 'opacity-60'} />
-                  {isSidebarHovered && <span className="text-sm font-black whitespace-nowrap">创作台</span>}
+                  {isSidebarHovered && <span className="text-sm font-semibold whitespace-nowrap">创作台</span>}
                 </button>
               </div>
 
               {/* 创作台导航项 */}
               {mode === 'create' && (
                 <>
-                  <div className={`${isSidebarHovered ? 'mx-2 pb-1 text-[10px] font-black text-ink-400 dark:text-ink-500 uppercase tracking-widest' : 'flex justify-center'}`}>
+                  <div className={`${isSidebarHovered ? 'mx-2 pb-1 eyebrow text-ink-400 dark:text-ink-500' : 'flex justify-center'}`}>
                     {isSidebarHovered ? '创作' : <Layout size={14} className="text-ink-400" />}
                   </div>
                   {creatorItems.map((item) => {
@@ -456,7 +458,7 @@ const MainLayout: React.FC = () => {
                       <Link
                         key={item.name}
                         to={item.path}
-                        className={`flex items-center gap-3 rounded-xl transition-all duration-normal group/item
+                        className={`flex items-center gap-3 rounded-xl transition-all duration-200 group/item
                           ${isSidebarHovered ? 'px-3 py-2.5' : 'justify-center p-2.5'}
                           ${active
                             ? 'bg-accent-50 dark:bg-accent-500/15 text-accent-600 dark:text-accent-400'
@@ -464,8 +466,8 @@ const MainLayout: React.FC = () => {
                           }`}
                         title={!isSidebarHovered ? item.name : undefined}
                       >
-                        <item.icon size={20} className={`shrink-0 transition-transform duration-fast group-hover/item:scale-110 ${active ? 'text-accent-600 dark:text-accent-400' : 'opacity-60'}`} />
-                        {isSidebarHovered && <span className="text-sm font-black whitespace-nowrap">{item.name}</span>}
+                        <item.icon size={20} className={`shrink-0 transition-transform duration-150 group-hover/item:scale-110 ${active ? 'text-accent-600 dark:text-accent-400' : 'opacity-60'}`} />
+                        {isSidebarHovered && <span className="text-sm font-semibold whitespace-nowrap">{item.name}</span>}
                       </Link>
                     );
                   })}
@@ -476,8 +478,8 @@ const MainLayout: React.FC = () => {
               {/* 工作台（浏览模式下） */}
               {mode !== 'create' && (
                 <>
-              <div className={`${isSidebarHovered ? 'mx-2 my-4' : 'mx-1 my-3'} border-t border-ink-100 dark:border-ink-700/50`} />
-                  <div className={isSidebarHovered ? 'px-2 pb-1 text-[10px] font-black text-ink-400 dark:text-ink-500 uppercase tracking-widest' : 'flex justify-center'}>
+                  <div className={`${isSidebarHovered ? 'mx-2 my-4' : 'mx-1 my-3'} border-t border-ink-100 dark:border-ink-700/50`} />
+                  <div className={isSidebarHovered ? 'px-2 pb-1 eyebrow text-ink-400 dark:text-ink-500' : 'flex justify-center'}>
                     {isSidebarHovered ? 'Workbench' : <Layout size={14} className="text-ink-400" />}
                   </div>
                   <div className="space-y-0.5">
@@ -487,7 +489,7 @@ const MainLayout: React.FC = () => {
                         <Link
                           key={item.name}
                           to={item.path}
-                          className={`flex items-center gap-3 rounded-xl transition-all duration-normal group/item
+                          className={`flex items-center gap-3 rounded-xl transition-all duration-200 group/item
                             ${isSidebarHovered ? 'px-3 py-2.5' : 'justify-center p-2.5'}
                             ${active
                               ? 'bg-accent-500 text-ink-50 shadow-md shadow-accent-500/20'
@@ -495,8 +497,8 @@ const MainLayout: React.FC = () => {
                             }`}
                           title={!isSidebarHovered ? item.name : undefined}
                         >
-                          <item.icon size={20} className={`shrink-0 transition-transform duration-fast group-hover/item:scale-110 ${active ? 'text-ink-50' : 'opacity-60'}`} />
-                          {isSidebarHovered && <span className="text-sm font-black whitespace-nowrap">{item.name}</span>}
+                          <item.icon size={20} className={`shrink-0 transition-transform duration-150 group-hover/item:scale-110 ${active ? 'text-ink-50' : 'opacity-60'}`} />
+                          {isSidebarHovered && <span className="text-sm font-semibold whitespace-nowrap">{item.name}</span>}
                         </Link>
                       );
                     })}
@@ -508,7 +510,7 @@ const MainLayout: React.FC = () => {
               {showAdmin && (
                 <>
                   <div className={`${isSidebarHovered ? 'mx-2 my-3' : 'mx-1 my-2'} border-t border-ink-100 dark:border-ink-700/50`} />
-                  <div className={isSidebarHovered ? 'px-2 pb-1 text-[10px] font-black text-ink-400 dark:text-ink-500 uppercase tracking-widest' : 'flex justify-center'}>
+                  <div className={isSidebarHovered ? 'px-2 pb-1 eyebrow text-ink-400 dark:text-ink-500' : 'flex justify-center'}>
                     {isSidebarHovered ? 'Admin' : <Shield size={14} className="text-ink-400" />}
                   </div>
                   <div className="space-y-0.5">
@@ -525,7 +527,7 @@ const MainLayout: React.FC = () => {
                         <Link
                           key={item.name}
                           to={item.path}
-                          className={`flex items-center gap-3 rounded-xl transition-all duration-normal group/item
+                          className={`flex items-center gap-3 rounded-xl transition-all duration-200 group/item
                             ${isSidebarHovered ? 'px-3 py-2.5' : 'justify-center p-2.5'}
                             ${active
                               ? 'bg-accent-600 text-ink-50 shadow-md shadow-accent-600/20'
@@ -533,8 +535,8 @@ const MainLayout: React.FC = () => {
                             }`}
                           title={!isSidebarHovered ? item.name : undefined}
                         >
-                          <item.icon size={20} className={`shrink-0 transition-transform duration-fast group-hover/item:scale-110 ${active ? 'text-ink-50' : 'opacity-60'}`} />
-                          {isSidebarHovered && <span className="text-sm font-black whitespace-nowrap">{item.name}</span>}
+                          <item.icon size={20} className={`shrink-0 transition-transform duration-150 group-hover/item:scale-110 ${active ? 'text-ink-50' : 'opacity-60'}`} />
+                          {isSidebarHovered && <span className="text-sm font-semibold whitespace-nowrap">{item.name}</span>}
                         </Link>
                       );
                     })}
@@ -548,8 +550,8 @@ const MainLayout: React.FC = () => {
               <div className={`${isSidebarHovered ? 'pt-4 mt-2 border-t border-ink-100 dark:border-ink-700/50' : 'pt-2'}`}>
                 <button 
                   onClick={() => logout()}
-                  className={`flex items-center gap-3 rounded-xl transition-all duration-instant
-                    ${isSidebarHovered ? 'px-3 py-2.5 w-full text-ink-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 font-black text-sm uppercase tracking-widest' : 'justify-center p-2.5 text-ink-400 hover:text-red-500'}
+                  className={`flex items-center gap-3 rounded-xl transition-all duration-150
+                    ${isSidebarHovered ? 'px-3 py-2.5 w-full text-ink-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 eyebrow text-sm' : 'justify-center p-2.5 text-ink-400 hover:text-red-500'}
                     `}
                   title={!isSidebarHovered ? '退出' : undefined}
                 >
@@ -562,7 +564,7 @@ const MainLayout: React.FC = () => {
         </aside>
 
         {/* ══════ 主内容区 (Main Scrollable) ══════ */}
-        <main className={`flex-1 p-4 lg:p-8 transition-all duration-slow ${isSidebarHovered ? 'lg:ml-64' : 'lg:ml-0'}`}>
+        <main className={`flex-1 p-4 lg:p-8 transition-all duration-300 ease-out-expo ${isSidebarHovered ? 'lg:ml-64' : 'lg:ml-0'}`}>
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname + location.search}
@@ -583,6 +585,12 @@ const MainLayout: React.FC = () => {
 
       {/* Mobile Navbar */}
       <MobileNavbar />
+
+      {/* Mobile Search Overlay */}
+      <MobileSearchOverlay
+        isOpen={isMobileSearchOpen}
+        onClose={() => setIsMobileSearchOpen(false)}
+      />
     </div>
   );
 };

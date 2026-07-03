@@ -1,13 +1,17 @@
-import React from 'react';
-import { ChevronRight, GitBranch, Sparkles, User, BookMarked, Route } from 'lucide-react';
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ChevronDown, GitBranch, Sparkles, User, BookMarked, Route, CheckCircle, Play, BookOpen, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { keepPreviousData } from '@tanstack/react-query';
 import { Chapter, Branch, Spinoff, branchService, spinoffService } from '../../api/storyService';
 import { characterService } from '../../api/characterService';
+import { wikiService } from '../../api/wikiService';
 import { useToast } from '../notifications/Toast';
 import { Skeleton } from './Skeleton';
 import { queryKeys } from '../../lib/queryKeys';
 import type { Character } from '../../api/types';
+import { useReadingContext, buildNodeUrl, type ReadingContextValue } from '../../hooks/useReadingContext';
+import { getNodeIcon, getNodeColor, getCategoryLabel } from '../../utils/nodeMeta';
 
 interface ContextPanelContentProps {
   storyId?: string;
@@ -16,7 +20,158 @@ interface ContextPanelContentProps {
   chapters?: Chapter[];
   branches?: Branch[];
   spinoffs?: Spinoff[];
+  /** 阅读上下文，由 ReadPage 注入以避免重复调用 useReadingContext */
+  readingCtx?: ReadingContextValue;
   onAddToBooklist: () => void;
+}
+
+/**
+ * 阅读上下文感知区
+ *
+ * 当阅读来自书单 / 阅读路径 / 轨迹时，在面板顶部显示来源、节点序列与进度，
+ * 让读者在侧栏即可上下章切换、查看已读状态，无需回到来源页。
+ * 无上下文时不渲染。
+ */
+function ReadingContextSection({ chapterId, ctx: injectedCtx }: { chapterId?: string; ctx?: ReadingContextValue }) {
+  // 优先使用注入的 ctx，避免重复调用 useReadingContext；无注入时回退自行调用
+  const fallbackCtx = useReadingContext(chapterId);
+  const ctx = injectedCtx ?? fallbackCtx;
+  if (!ctx.type || ctx.nodes.length === 0) return null;
+
+  const ctxLabel =
+    ctx.type === 'booklist' ? '书单' : ctx.type === 'trail' ? '阅读轨迹' : '阅读路径';
+
+  return (
+    <SectionCard title={ctxLabel} icon={<Route size={12} />}>
+      {/* 来源标题 + 进度 */}
+      {ctx.title && (
+        <p className="text-xs font-bold text-ink-700 dark:text-ink-200 truncate mb-1.5">
+          {ctx.title}
+        </p>
+      )}
+      {ctx.completionPercentage !== null && (
+        <div className="mb-2">
+          <div className="flex items-center justify-between text-[10px] text-ink-400 mb-1">
+            <span>进度</span>
+            <span>{ctx.completionPercentage}%</span>
+          </div>
+          <div className="w-full bg-ink-200 dark:bg-ink-600 rounded-full h-1 overflow-hidden">
+            <div
+              className="bg-accent-500 h-1 rounded-full transition-all duration-500"
+              style={{ width: `${ctx.completionPercentage}%` }}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 节点序列：当前高亮，已读打勾，可点击跳转（延续 ctx） */}
+      <div className="space-y-0.5 max-h-56 overflow-y-auto -mx-1 px-1">
+        {ctx.nodes.slice(0, 30).map((node, idx) => {
+          const Icon = getNodeIcon(node.category);
+          const isCurrent = idx === ctx.currentIndex;
+          const isDone =
+            ctx.type === 'trail'
+              ? idx < (ctx.raw as any)?.currentNodeIndex
+              : ctx.type === 'booklist'
+                ? (ctx.raw as any)?.completedItemIds?.includes(node.contentId)
+                : false;
+          const hasRichData = !!(node.introduction || node.note || node.estimatedMin);
+          const ctxToken = ctx.id && ctx.type ? `${ctx.type}:${ctx.id}` : null;
+          const href = buildNodeUrl(node.category, node.contentId, ctxToken);
+          const colorClass = getNodeColor(node.category);
+          const label = getCategoryLabel(node.category);
+          return (
+            <Link
+              key={node.contentId + idx}
+              to={href}
+              className={`flex items-start gap-1.5 px-2 py-1.5 rounded-lg text-xs transition-colors ${
+                isCurrent
+                  ? 'bg-accent-50 dark:bg-accent-500/15 text-accent-600 dark:text-accent-400 font-bold'
+                  : 'text-ink-600 dark:text-ink-300 hover:bg-ink-100 dark:hover:bg-ink-700/50'
+              }`}
+            >
+              {isDone ? (
+                <CheckCircle size={12} className="text-emerald-500 shrink-0 mt-0.5" />
+              ) : (
+                <span className="w-3 text-center text-[9px] font-bold text-ink-400 shrink-0 mt-0.5">
+                  {idx + 1}
+                </span>
+              )}
+              <div className="flex-1 min-w-0 space-y-0.5">
+                <div className="flex items-center gap-1">
+                  {hasRichData && (
+                    <span className={`inline-flex items-center gap-0.5 px-1 py-[1px] rounded text-[8px] font-bold border ${colorClass} leading-tight shrink-0`}>
+                      <Icon size={8} />
+                      {label}
+                    </span>
+                  )}
+                  <span className="truncate">{node.title}</span>
+                </div>
+                {(node.introduction || node.estimatedMin) && (
+                  <div className="flex items-center gap-1.5">
+                    {node.introduction && (
+                      <span className="text-[10px] text-ink-400 dark:text-ink-500 line-clamp-1 italic">
+                        {node.introduction}
+                      </span>
+                    )}
+                    {node.estimatedMin && (
+                      <span className="text-[9px] text-ink-300 dark:text-ink-500 shrink-0">
+                        {node.estimatedMin}分钟
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Link>
+          );
+        })}
+        {ctx.nodes.length > 30 && (
+          <p className="text-[10px] text-ink-400 text-center py-1">
+            还有 {ctx.nodes.length - 30} 个节点
+          </p>
+        )}
+      </div>
+
+      {/* 上下章快捷切换 */}
+      <div className="flex items-center gap-1.5 mt-2 pt-2 border-t border-ink-100 dark:border-ink-700">
+        <button
+          onClick={ctx.prev}
+          disabled={!ctx.hasPrev}
+          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-ink-100 dark:bg-ink-700 text-[11px] font-bold text-ink-600 dark:text-ink-300 hover:bg-ink-200 dark:hover:bg-ink-600 disabled:opacity-30 transition-colors"
+        >
+          上一章
+        </button>
+        {ctx.type === 'trail' && (
+          <button
+            onClick={() => ctx.advance().then(() => ctx.next())}
+            disabled={!ctx.hasNext}
+            className="flex items-center justify-center gap-1 px-2.5 py-1.5 rounded-lg bg-accent-500 text-white text-[11px] font-bold hover:bg-accent-600 disabled:opacity-40 transition-colors"
+            title="完成本节点并继续"
+          >
+            <Play size={10} /> 完成
+          </button>
+        )}
+        <button
+          onClick={ctx.next}
+          disabled={!ctx.hasNext}
+          className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-ink-100 dark:bg-ink-700 text-[11px] font-bold text-ink-600 dark:text-ink-300 hover:bg-ink-200 dark:hover:bg-ink-600 disabled:opacity-30 transition-colors"
+        >
+          下一章
+        </button>
+      </div>
+
+      {/* path 与 trail 的差异说明 */}
+      {ctx.type === 'path' && (
+        <p className="text-[10px] text-ink-400 dark:text-ink-500 mt-2 leading-relaxed">
+          阅读路径为导览型，可按顺序阅读但不记录进度。如需记录阅读进度，请
+          <Link to={ctx.exitPath ?? '#'} className="text-accent-500 hover:underline mx-0.5">
+            从路径详情页「开始阅读」
+          </Link>
+          生成阅读轨迹。
+        </p>
+      )}
+    </SectionCard>
+  );
 }
 
 function MiniTree({ chapters, currentChapterId }: { chapters: Chapter[]; currentChapterId?: string }) {
@@ -41,16 +196,21 @@ function MiniTree({ chapters, currentChapterId }: { chapters: Chapter[]; current
   );
 }
 
-function SectionCard({ title, icon, children, empty }: { title: string; icon: React.ReactNode; children: React.ReactNode; empty?: string }) {
+function SectionCard({ title, icon, children, empty, defaultOpen = true }: { title: string; icon: React.ReactNode; children: React.ReactNode; empty?: string; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="bg-ink-50/50 dark:bg-ink-700/30 rounded-xl p-3 space-y-2">
-      <h4 className="flex items-center gap-1.5 text-xs font-bold text-ink-500 dark:text-ink-400 uppercase tracking-wider">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center gap-1.5 text-xs font-bold text-ink-500 dark:text-ink-400 uppercase tracking-wider"
+      >
         {icon}
-        {title}
-      </h4>
-      {children || (
+        <span className="flex-1 text-left">{title}</span>
+        <ChevronDown size={12} className={`transition-transform duration-200 ${open ? '' : '-rotate-90'}`} />
+      </button>
+      {open && (children || (
         <p className="text-xs text-ink-400 dark:text-ink-500 text-center py-2">{empty || '暂无数据'}</p>
-      )}
+      ))}
     </div>
   );
 }
@@ -77,11 +237,37 @@ function SpinoffItem({ spinoff }: { spinoff: Spinoff }) {
   );
 }
 
-function CharacterItem({ character, onClick }: { character: Character; onClick?: () => void }) {
+function CharacterItem({ character }: { character: Character }) {
+  const navigate = useNavigate();
+  const { addToast } = useToast();
+  const [loading, setLoading] = useState(false);
+
+  // 点击角色：按名称查百科，命中跳详情页，否则提示
+  const handleClick = async () => {
+    if (loading) return;
+    setLoading(true);
+    try {
+      const results = await wikiService.lookup(character.name, 1);
+      if (results.length > 0) {
+        navigate(`/wiki/${results[0].id}`);
+      } else {
+        addToast('info', `暂无「${character.name}」的百科词条`);
+      }
+    } catch {
+      addToast('error', '查询百科失败');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <button onClick={onClick} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700/50 transition-colors text-left">
+    <button onClick={handleClick} disabled={loading} className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-ink-100 dark:hover:bg-ink-700/50 transition-colors text-left disabled:opacity-60">
       <div className="w-6 h-6 rounded-full bg-accent-100 dark:bg-accent-800/30 flex items-center justify-center shrink-0">
-        <User size={12} className="text-accent-500" />
+        {loading ? (
+          <Loader2 size={12} className="text-accent-500 animate-spin" />
+        ) : (
+          <User size={12} className="text-accent-500" />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-xs font-medium text-ink-700 dark:text-ink-300 truncate">{character.name}</p>
@@ -91,7 +277,7 @@ function CharacterItem({ character, onClick }: { character: Character; onClick?:
   );
 }
 
-const ContentPanelContent: React.FC<ContextPanelContentProps> = ({ storyId, chapterId, branchId, chapters, branches: propBranches, spinoffs: propSpinoffs, onAddToBooklist }) => {
+const ContentPanelContent: React.FC<ContextPanelContentProps> = ({ storyId, chapterId, branchId, chapters, branches: propBranches, spinoffs: propSpinoffs, readingCtx, onAddToBooklist }) => {
   const { addToast } = useToast();
 
   const shouldFetch = !!storyId;
@@ -143,8 +329,10 @@ const ContentPanelContent: React.FC<ContextPanelContentProps> = ({ storyId, chap
 
   return (
     <>
+      {/* 阅读上下文感知区：书单 / 路径 / 轨迹来源时显示节点序列与进度 */}
+      <ReadingContextSection chapterId={chapterId} ctx={readingCtx} />
       {chapters && chapters.length > 0 && (
-        <SectionCard title="章节导航" icon={<ChevronRight size={12} />}>
+        <SectionCard title="章节导航" icon={<BookOpen size={12} />}>
           <MiniTree chapters={chapters} currentChapterId={chapterId} />
         </SectionCard>
       )}
@@ -186,13 +374,7 @@ const ContentPanelContent: React.FC<ContextPanelContentProps> = ({ storyId, chap
           <p className="text-xs text-red-500">加载失败</p>
         ) : (
           Array.isArray(characters) && characters.length > 0 && characters.slice(0, 5).map((c: Character) => (
-            <CharacterItem
-              key={c.id}
-              character={c}
-              onClick={() => {
-                addToast('info', `对 ${c.name} 的 Wiki 链接尚未启用`);
-              }}
-            />
+            <CharacterItem key={c.id} character={c} />
           ))
         )}
       </SectionCard>

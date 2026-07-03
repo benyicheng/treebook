@@ -1,6 +1,5 @@
 import client from './client';
 import type { Spinoff } from './types';
-
 export type { Spinoff };
 
 export const spinoffService = {

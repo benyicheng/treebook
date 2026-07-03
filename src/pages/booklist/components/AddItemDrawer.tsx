@@ -4,7 +4,7 @@ import {
   BookOpen, Library, Calendar, GitBranch, Sparkles, FileText,
   Check, Search, type LucideIcon,
 } from 'lucide-react';
-import { Modal, DebouncedInput, EmptyState } from '../../../components/ui';
+import { Modal, DebouncedInput, EmptyState, Button, Textarea } from '../../../components/ui';
 import { chapterService, storyService, branchService, spinoffService } from '../../../api/storyService';
 import { storyEventService } from '../../../api/storyEventService';
 import { wikiService } from '../../../api/wikiService';
@@ -20,6 +20,8 @@ interface AddItemDrawerProps {
   onSubmit: (items: { targetType: AddItemType; targetId: string }[], notes: string) => Promise<void>;
   /** 打开"创建大事件"子流程 */
   onOpenCreateEvent?: () => void;
+  /** 默认选中的标签页 */
+  defaultTab?: AddItemType;
 }
 
 interface TabConfig {
@@ -54,9 +56,9 @@ const COLOR_MAP: Record<string, { selected: string; icon: string }> = {
  * 替换原 BooklistDetailPage 中 6 个重复的 SearchableSelectionModal。
  */
 const AddItemDrawer: React.FC<AddItemDrawerProps> = ({
-  isOpen, onClose, existingIds, onSubmit, onOpenCreateEvent,
+  isOpen, onClose, existingIds, onSubmit, onOpenCreateEvent, defaultTab = 'chapter',
 }) => {
-  const [activeTab, setActiveTab] = useState<AddItemType>('chapter');
+  const [activeTab, setActiveTab] = useState<AddItemType>(defaultTab);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [notes, setNotes] = useState('');
@@ -169,18 +171,16 @@ const AddItemDrawer: React.FC<AddItemDrawerProps> = ({
           {TABS.map(tab => {
             const Icon = tab.icon;
             return (
-              <button
+              <Button
                 key={tab.id}
+                variant={activeTab === tab.id ? 'primary' : 'ghost'}
+                size="md"
                 onClick={() => { setActiveTab(tab.id); setSearchQuery(''); setSelectedIds(new Set()); }}
-                className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-sm font-bold transition-all text-left ${
-                  activeTab === tab.id
-                    ? 'bg-accent-500 text-white shadow-sm'
-                    : 'text-ink-500 hover:bg-ink-100 dark:hover:bg-ink-600'
-                }`}
+                leftIcon={<Icon size={16} />}
+                className="flex-none justify-start text-left"
               >
-                <Icon size={16} />
                 {tab.label}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -190,16 +190,16 @@ const AddItemDrawer: React.FC<AddItemDrawerProps> = ({
           {TABS.map(tab => {
             const Icon = tab.icon;
             return (
-              <button
+              <Button
                 key={tab.id}
+                variant={activeTab === tab.id ? 'primary' : 'subtle'}
+                size="sm"
                 onClick={() => { setActiveTab(tab.id); setSearchQuery(''); setSelectedIds(new Set()); }}
-                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${
-                  activeTab === tab.id ? 'bg-accent-500 text-white' : 'bg-ink-100 dark:bg-ink-600 text-ink-500'
-                }`}
+                leftIcon={<Icon size={14} />}
+                className="flex-none whitespace-nowrap"
               >
-                <Icon size={14} />
                 {tab.label}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -236,9 +236,9 @@ const AddItemDrawer: React.FC<AddItemDrawerProps> = ({
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-xs text-ink-400">{selectedIds.size} 个已选</span>
                   {availableResults.length > 0 && (
-                    <button onClick={toggleAll} className="text-xs font-bold text-accent-600 hover:text-accent-700">
+                    <Button variant="ghost" size="sm" onClick={toggleAll} className="text-accent-600 hover:text-accent-700 h-auto py-0">
                       {allAvailableSelected ? '取消全选' : '全选'}
-                    </button>
+                    </Button>
                   )}
                 </div>
                 <div className="space-y-1">
@@ -279,20 +279,24 @@ const AddItemDrawer: React.FC<AddItemDrawerProps> = ({
           {/* 底部：统一点评 + 提交 */}
           {selectedIds.size > 0 && (
             <div className="space-y-3 border-t border-ink-100 dark:border-ink-600 pt-4">
-              <textarea
+              <Textarea
                 rows={2}
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 placeholder="批量添加导游点评（可选，应用到所有选中项）"
-                className="w-full px-4 py-3 rounded-xl border border-ink-100 dark:border-ink-600 bg-ink-50 dark:bg-ink-800 focus:ring-2 focus:ring-accent-400 outline-none resize-none text-sm"
+                className="resize-none text-sm"
               />
-              <button
+              <Button
+                variant="primary"
+                size="md"
+                fullWidth
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="w-full py-3 bg-accent-600 text-white rounded-xl font-black hover:bg-accent-700 disabled:opacity-50 transition-colors"
+                loading={isSubmitting}
+                className="py-3 bg-accent-600 hover:bg-accent-700"
               >
                 {isSubmitting ? '添加中...' : `添加 ${selectedIds.size} 个${tc.label}`}
-              </button>
+              </Button>
             </div>
           )}
         </div>

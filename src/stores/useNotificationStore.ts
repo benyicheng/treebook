@@ -7,6 +7,7 @@ interface NotificationState {
   notifications: NotificationItem[];
   isLoading: boolean;
   isOpen: boolean;
+  error: string | null;
 
   fetchUnreadCount: () => Promise<void>;
   fetchNotifications: (page?: number) => Promise<void>;
@@ -22,6 +23,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
   notifications: [],
   isLoading: false,
   isOpen: false,
+  error: null,
 
   fetchUnreadCount: async () => {
     if (!getToken()) return;
@@ -35,12 +37,12 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
 
   fetchNotifications: async (page = 1) => {
     if (!getToken()) return;
-    set({ isLoading: true });
+    set({ isLoading: true, error: null });
     try {
       const result = await notificationService.getNotifications(page, 20);
-      set({ notifications: result.items, isLoading: false });
+      set({ notifications: result.items, isLoading: false, error: null });
     } catch {
-      set({ isLoading: false });
+      set({ isLoading: false, error: '通知加载失败' });
     }
   },
 
@@ -54,7 +56,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
       unreadCount: Math.max(0, unreadCount - 1),
     });
     try {
-      await notificationService.markAsRead(id);
+      await notificationService.markRead(id);
     } catch {
       // 回滚
       get().fetchUnreadCount();
@@ -66,7 +68,7 @@ export const useNotificationStore = create<NotificationState>((set, get) => ({
     const prevUnread = get().unreadCount;
     set({ unreadCount: 0, notifications: get().notifications.map((n) => ({ ...n, isRead: true })) });
     try {
-      await notificationService.markAllAsRead();
+      await notificationService.markAllRead();
     } catch {
       set({ unreadCount: prevUnread });
       get().fetchUnreadCount();

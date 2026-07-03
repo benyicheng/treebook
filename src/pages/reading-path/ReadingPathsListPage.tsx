@@ -113,10 +113,10 @@ const ReadingPathsListPage: React.FC = () => {
 
       {/* Booklist Picker Modal */}
       {showBooklistPicker && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowBooklistPicker(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center scrim backdrop-blur-sm" onClick={() => setShowBooklistPicker(false)}>
           <div className="bg-white dark:bg-ink-800 rounded-2xl border border-ink-100 dark:border-ink-700 shadow-2xl w-full max-w-lg max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
             <div className="p-5 border-b border-ink-100 dark:border-ink-700">
-              <h3 className="text-lg font-black text-ink-800 dark:text-white">选择书单</h3>
+              <h3 className="text-lg font-bold text-ink-800 dark:text-white">选择书单</h3>
               <p className="text-sm text-ink-500 mt-1">从哪个书单创建阅读路径？</p>
             </div>
             <div className="p-2 overflow-y-auto max-h-[60vh]">
@@ -168,7 +168,7 @@ const ReadingPathsListPage: React.FC = () => {
       ) : paths.length === 0 ? (
         <div className="py-24 text-center">
           <Route size={64} className="mx-auto text-ink-200 dark:text-ink-600 mb-6" />
-          <p className="text-ink-500 font-black text-2xl">暂无阅读路径</p>
+          <p className="text-ink-500 font-bold text-2xl">暂无阅读路径</p>
           <p className="text-ink-400 mt-2 mb-6">还没有人创建阅读路径，来做第一个吧！</p>
           <button
             onClick={openCreate}
@@ -202,7 +202,7 @@ const ReadingPathsListPage: React.FC = () => {
                       {p.nodeCount} 个节点
                     </span>
                   </div>
-                  <h3 className="text-xl font-black text-ink-800 dark:text-white group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors line-clamp-1">
+                  <h3 className="text-xl font-bold text-ink-800 dark:text-white group-hover:text-accent-600 dark:group-hover:text-accent-400 transition-colors line-clamp-1">
                     {p.title}
                   </h3>
                   {p.description && (

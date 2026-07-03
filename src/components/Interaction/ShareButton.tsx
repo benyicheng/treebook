@@ -1,8 +1,10 @@
 import React, { useState, useCallback } from 'react';
 import { Share2, Link2, Check } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { interactionService, SharePlatform, TargetType } from '../../api/interactionService';
+import { useToast } from '../notifications/Toast';
 import Modal from '../ui/Modal';
+import { Textarea, Button } from '../ui';
 
 // 平台配置
 const PLATFORMS: { id: SharePlatform; name: string; icon: string; color: string }[] = [
@@ -52,6 +54,8 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
   const [customText, setCustomText] = useState('');
   const [selectedPlatform, setSelectedPlatform] = useState<SharePlatform | null>(null);
   const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [sharing, setSharing] = useState(false);
+  const { addToast } = useToast();
 
   const sizeClasses = {
     sm: { button: 'p-1.5', icon: 14, count: 'text-xs' },
@@ -63,9 +67,10 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
 
   const handleShare = useCallback(async (platform: SharePlatform) => {
     setSelectedPlatform(platform);
-    
+    setSharing(true);
+
     const shareText = customText || `推荐给你：${title}`;
-    
+
     const config = interactionService.generateShareConfig(
       platform,
       targetType,
@@ -80,7 +85,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
       setQrCodeUrl(generateQRCode(config.url));
       setIsWechatModalOpen(true);
       setIsModalOpen(false);
-      
+
       // 记录分享
       try {
         const result = await interactionService.recordShare(targetType, targetId, platform);
@@ -88,30 +93,44 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
         onShare?.(platform, result.shareCount);
       } catch (error) {
         console.error('Failed to record share:', error);
+        addToast('error', '分享记录失败，请稍后重试');
+      } finally {
+        setSharing(false);
       }
       return;
     }
 
-    const success = await interactionService.executeShare(config);
-    
-    if (success) {
-      try {
-        // 记录分享
-        const result = await interactionService.recordShare(targetType, targetId, platform);
-        setShareCount(result.shareCount);
-        onShare?.(platform, result.shareCount);
-        
-        if (platform === 'copy') {
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2002);
-        } else {
-          setIsModalOpen(false);
+    try {
+      const success = await interactionService.executeShare(config);
+
+      if (success) {
+        try {
+          // 记录分享
+          const result = await interactionService.recordShare(targetType, targetId, platform);
+          setShareCount(result.shareCount);
+          onShare?.(platform, result.shareCount);
+
+          if (platform === 'copy') {
+            setCopied(true);
+            addToast('success', '链接已复制到剪贴板');
+            setTimeout(() => setCopied(false), 2000);
+          } else {
+            setIsModalOpen(false);
+          }
+        } catch (error) {
+          console.error('Failed to record share:', error);
+          addToast('error', '分享记录失败，请稍后重试');
         }
-      } catch (error) {
-        console.error('Failed to record share:', error);
+      } else {
+        addToast('error', '分享失败，请稍后重试');
       }
+    } catch (error) {
+      console.error('Share failed:', error);
+      addToast('error', '分享失败，请稍后重试');
+    } finally {
+      setSharing(false);
     }
-  }, [customText, title, description, imageUrl, targetType, targetId, onShare]);
+  }, [customText, title, description, imageUrl, targetType, targetId, onShare, addToast]);
 
   const getSharePath = (type: TargetType) => {
     switch (type) {
@@ -179,12 +198,12 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
             <label className="text-sm font-bold text-ink-500 mb-2 block">
               分享文案 (可选)
             </label>
-            <textarea
+            <Textarea
               value={customText}
               onChange={(e) => setCustomText(e.target.value)}
               placeholder={`推荐给你：${title}`}
               rows={2}
-              className="w-full px-4 py-3 rounded-xl border border-ink-200 dark:border-ink-600 bg-ink-50 dark:bg-ink-700 focus:ring-2 focus:ring-accent-400 outline-none resize-none text-sm"
+              className="resize-none"
             />
           </div>
 
@@ -198,12 +217,23 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
                 <motion.button
                   key={platform.id}
                   onClick={() => handleShare(platform.id)}
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-ink-50 dark:hover:bg-ink-700 transition-colors"
+                  disabled={sharing}
+                  whileHover={sharing ? undefined : { scale: 1.05 }}
+                  whileTap={sharing ? undefined : { scale: 0.95 }}
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${
+                    sharing && selectedPlatform === platform.id
+                      ? 'bg-ink-50 dark:bg-ink-700 opacity-60'
+                      : 'hover:bg-ink-50 dark:hover:bg-ink-700'
+                  } ${sharing ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  <div className={`w-12 h-12 ${platform.color} rounded-2xl flex items-center justify-center text-2xl shadow-lg`}>
-                    {platform.icon}
+                  <div className={`relative w-12 h-12 ${platform.color} rounded-2xl flex items-center justify-center text-2xl shadow-lg`}>
+                    {sharing && selectedPlatform === platform.id ? (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : (
+                      platform.icon
+                    )}
                   </div>
                   <span className="text-xs font-medium text-ink-500 dark:text-ink-400">
                     {platform.name}
@@ -222,13 +252,10 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
               readOnly
               className="flex-1 bg-transparent text-sm text-ink-500 dark:text-ink-400 outline-none"
             />
-            <button
+            <Button
+              size="sm"
               onClick={() => handleShare('copy')}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                copied
-                  ? 'bg-green-500 text-white'
-                  : 'bg-accent-400 text-white hover:bg-accent-500'
-              }`}
+              className={copied ? 'bg-green-500 text-white' : ''}
             >
               {copied ? (
                 <span className="flex items-center gap-1">
@@ -238,7 +265,7 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
               ) : (
                 '复制'
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </Modal>
@@ -276,20 +303,16 @@ export const ShareButton: React.FC<ShareButtonProps> = ({
               readOnly
               className="flex-1 bg-transparent text-sm text-ink-500 dark:text-ink-400 outline-none"
             />
-            <button
+            <Button
+              size="sm"
               onClick={() => {
                 navigator.clipboard.writeText(shareUrl);
-                setCopied(true);
-                setTimeout(() => setCopied(false), 2000);
+                addToast('success', '链接已复制到剪贴板');
               }}
-              className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${
-                copied
-                  ? 'bg-green-500 text-white'
-                  : 'bg-green-500 text-white hover:bg-green-600'
-              }`}
+              className="bg-green-500 hover:bg-green-600"
             >
-              {copied ? '已复制' : '复制链接'}
-            </button>
+              复制链接
+            </Button>
           </div>
         </div>
       </Modal>

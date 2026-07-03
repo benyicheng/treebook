@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { BookOpen, Users, GitBranch, Flame, BookMarked, Route } from 'lucide-react';
 import { Story, Branch, Booklist } from '../../api/storyService';
 import { Skeleton } from '../ui/Skeleton';
+import EmptyState from '../ui/EmptyState';
 
 interface SiteStats {
   stories: number;
@@ -18,10 +19,13 @@ interface HomeSidebarProps {
   storiesLoading: boolean;
   hotBooklists: Booklist[];
   hotReadingPaths: any[];
+  booklistsLoading?: boolean;
+  readingPathsLoading?: boolean;
 }
 
 const HomeSidebar: React.FC<HomeSidebarProps> = ({
   stories, stats, newBranches, storiesLoading, hotBooklists, hotReadingPaths,
+  booklistsLoading = false, readingPathsLoading = false,
 }) => (
   <div className="lg:w-[32%] space-y-8">
     {/* Quick Stats */}
@@ -47,7 +51,7 @@ const HomeSidebar: React.FC<HomeSidebarProps> = ({
             group-hover:scale-110 transition-transform duration-300`}>
             <stat.icon size={15} className="text-white" />
           </div>
-          <div className="text-xl font-black text-ink-800 dark:text-white tabular-nums">
+          <div className="text-xl font-bold text-ink-800 dark:text-white tabular-nums">
             {stat.value || 0}
           </div>
           <div className="text-[10px] text-ink-400 font-bold uppercase tracking-widest mt-0.5">
@@ -67,7 +71,7 @@ const HomeSidebar: React.FC<HomeSidebarProps> = ({
         <div className="p-1.5 rounded-lg bg-gradient-to-br from-orange-400 to-red-500 shadow-sm">
           <Flame size={13} className="text-white" />
         </div>
-        <h3 className="text-sm font-black text-ink-800 dark:text-white flex-1 tracking-tight">热度排行榜</h3>
+        <h3 className="text-sm font-bold text-ink-800 dark:text-white flex-1 tracking-tight">热度排行榜</h3>
       </div>
       <div className="rounded-2xl border border-ink-100 dark:border-ink-700 
         bg-white/70 dark:bg-ink-700/30 backdrop-blur-sm p-4 shadow-sm">
@@ -91,7 +95,7 @@ const HomeSidebar: React.FC<HomeSidebarProps> = ({
                   hover:bg-gradient-to-r hover:from-ink-50 hover:to-transparent dark:hover:from-ink-700/30 dark:hover:to-transparent
                   -mx-2 px-2 rounded-xl transition-all duration-200"
               >
-                <span className={`w-7 h-7 flex items-center justify-center text-xs font-black rounded-xl shrink-0 transition-transform group-hover:scale-110 ${
+                <span className={`w-7 h-7 flex items-center justify-center text-xs font-semibold rounded-xl shrink-0 transition-transform group-hover:scale-110 ${
                   index === 0 ? 'bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-md shadow-orange-500/20' :
                   index === 1 ? 'bg-gradient-to-br from-ink-300 to-ink-400 text-white shadow-md' :
                   index === 2 ? 'bg-gradient-to-br from-amber-700 to-amber-800 text-white shadow-md' :
@@ -129,19 +133,26 @@ const HomeSidebar: React.FC<HomeSidebarProps> = ({
         <div className="p-1.5 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 shadow-sm">
           <BookMarked size={13} className="text-white" />
         </div>
-        <h3 className="text-sm font-black text-ink-800 dark:text-white flex-1 tracking-tight">精选书单</h3>
+        <h3 className="text-sm font-bold text-ink-800 dark:text-white flex-1 tracking-tight">精选书单</h3>
         <Link to="/booklist" className="text-xs font-bold text-accent-500 hover:text-accent-600 transition-colors">
           全部
         </Link>
       </div>
       <div className="space-y-3">
-        {hotBooklists.length === 0 ? (
+        {booklistsLoading && hotBooklists.length === 0 ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="rounded-2xl p-4 border border-ink-100 dark:border-ink-700 space-y-2 bg-white/50 dark:bg-ink-700/30">
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-3 w-1/2" />
             </div>
           ))
+        ) : hotBooklists.length === 0 ? (
+          <EmptyState
+            icon={BookMarked}
+            title="暂无精选书单"
+            description="编辑精选的书单即将上线"
+            compact
+          />
         ) : (
           hotBooklists.map((list, i) => (
             <motion.div
@@ -190,19 +201,26 @@ const HomeSidebar: React.FC<HomeSidebarProps> = ({
         <div className="p-1.5 rounded-lg bg-gradient-to-br from-indigo-400 to-accent-600 shadow-sm">
           <Route size={13} className="text-white" />
         </div>
-        <h3 className="text-sm font-black text-ink-800 dark:text-white flex-1 tracking-tight">阅读路径</h3>
-        <Link to="/reading-paths" className="text-xs font-bold text-accent-600 hover:text-accent-700 transition-colors">
+        <h3 className="text-sm font-bold text-ink-800 dark:text-white flex-1 tracking-tight">阅读路径</h3>
+        <Link to="/reading-paths" className="text-xs font-bold text-accent-500 hover:text-accent-600 transition-colors">
           全部
         </Link>
       </div>
       <div className="space-y-3">
-        {hotReadingPaths.length === 0 ? (
+        {readingPathsLoading && hotReadingPaths.length === 0 ? (
           Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="rounded-2xl p-4 border border-ink-100 dark:border-ink-700 space-y-2 bg-white/50 dark:bg-ink-700/30">
               <Skeleton className="h-4 w-3/4" />
               <Skeleton className="h-3 w-1/2" />
             </div>
           ))
+        ) : hotReadingPaths.length === 0 ? (
+          <EmptyState
+            icon={Route}
+            title="暂无阅读路径"
+            description="精选阅读路线即将上线"
+            compact
+          />
         ) : (
           hotReadingPaths.map((p, i) => (
             <motion.div

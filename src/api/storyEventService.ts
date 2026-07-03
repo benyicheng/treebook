@@ -1,111 +1,64 @@
 import client from './client';
-
-export interface StoryEvent {
-  id: string;
-  storyId: string;
-  title: string;
-  description?: string;
-  type: string;
-  importance: number;
-  color?: string;
-  sortOrder: number;
-  /** 故事内编年时间序号（in-universe 编年史）。null 表示未标注，UI 退化到 sortOrder 排序 */
-  storyTime?: number | null;
-  nodes: StoryEventNode[];
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface StoryEventNode {
-  id: string;
-  eventId: string;
-  targetType: 'chapter' | 'branch' | 'spinoff';
-  targetId: string;
-  sortOrder: number;
-  note?: string;
-}
-
-export interface EventComment {
-  id: string;
-  content: string;
-  authorId: string;
-  eventId: string;
-  createdAt: string;
-  author: {
-    username: string;
-    avatarUrl?: string;
-    role: string;
-  };
-}
+import type { StoryEvent, StoryEventNode, EventComment } from './types';
+export type { StoryEvent, StoryEventNode, EventComment };
 
 export const storyEventService = {
-  async search(query: string) {
-    const { data } = await client.get<StoryEvent[]>('/events', { params: { q: query } });
+  getByStory: async (storyId: string) => {
+    const { data } = await client.get<any>(`/events/story/${storyId}`);
     return data;
   },
 
-  async getByStory(storyId: string) {
-    const { data } = await client.get<StoryEvent[]>(`/events/story/${storyId}`);
+  /** 按关键词搜索事件（供添加到书单 / 关联节点用） */
+  search: async (q: string) => {
+    const { data } = await client.get<any>('/events', { params: { q } });
     return data;
   },
 
-  async getById(id: string) {
-    const { data } = await client.get<StoryEvent>(`/events/${id}`);
+  getById: async (id: string) => {
+    const { data } = await client.get<any>(`/events/${id}`);
     return data;
   },
 
-  async create(input: {
-    storyId: string;
-    title: string;
-    description?: string;
-    type?: string;
-    importance?: number;
-    color?: string;
-    sortOrder?: number;
-    nodes?: { targetType: string; targetId: string; sortOrder?: number; note?: string }[];
-  }) {
-    const { data } = await client.post<StoryEvent>('/events', input);
+  create: async (payload: Partial<StoryEvent>) => {
+    const { data } = await client.post<any>('/events', payload);
     return data;
   },
 
-  async update(id: string, input: Partial<StoryEvent>) {
-    const { data } = await client.put<StoryEvent>(`/events/${id}`, input);
+  update: async (id: string, payload: Partial<StoryEvent>) => {
+    const { data } = await client.put<any>(`/events/${id}`, payload);
     return data;
   },
 
-  async delete(id: string) {
-    const { data } = await client.delete(`/events/${id}`);
+  delete: async (id: string) => {
+    await client.delete(`/events/${id}`);
+  },
+
+  addNode: async (eventId: string, nodePayload: Partial<StoryEventNode>) => {
+    const { data } = await client.post<any>(`/events/${eventId}/nodes`, nodePayload);
     return data;
   },
 
-  async addNode(eventId: string, input: { targetType: string; targetId: string; sortOrder?: number; note?: string }) {
-    const { data } = await client.post(`/events/${eventId}/nodes`, input);
+  removeNode: async (eventId: string, nodeId: string) => {
+    await client.delete(`/events/${eventId}/nodes/${nodeId}`);
+  },
+
+  reorderNodes: async (eventId: string, nodeIds: string[]) => {
+    const { data } = await client.put<any>(`/events/${eventId}/nodes/reorder`, { nodeIds });
     return data;
   },
 
-  async removeNode(eventId: string, nodeId: string) {
-    const { data } = await client.delete(`/events/${eventId}/nodes/${nodeId}`);
-    return data;
-  },
-
-  async reorderNodes(eventId: string, nodeIds: string[]) {
-    const { data } = await client.put(`/events/${eventId}/nodes/reorder`, { nodeIds });
-    return data;
-  },
-
-  // ── Comments ──
-  async getComments(eventId: string) {
+  // ── 评论 ──
+  getComments: async (eventId: string): Promise<EventComment[]> => {
     const { data } = await client.get<EventComment[]>(`/events/${eventId}/comments`);
     return data;
   },
 
-  async createComment(eventId: string, content: string) {
-    const { data } = await client.post<EventComment>(`/events/${eventId}/comments`, { content });
+  createComment: async (eventId: string, content: string) => {
+    const { data } = await client.post<any>(`/events/${eventId}/comments`, { content });
     return data;
   },
 
-  async deleteComment(eventId: string, commentId: string) {
-    const { data } = await client.delete(`/events/${eventId}/comments/${commentId}`);
-    return data;
+  deleteComment: async (eventId: string, commentId: string) => {
+    await client.delete(`/events/${eventId}/comments/${commentId}`);
   },
 };

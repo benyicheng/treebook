@@ -20,6 +20,7 @@ import {
   type BranchComparisonTrack,
 } from '../../../api/eventConnectorService';
 import { useToast } from '../../../components/notifications';
+import { Button, IconButton } from '../../../components/ui';
 
 interface BranchCompareDrawerProps {
   isOpen: boolean;
@@ -138,7 +139,7 @@ const BranchCompareDrawer: React.FC<BranchCompareDrawerProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center pt-10 p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200"
+      className="scrim backdrop-blur-sm fixed inset-0 z-50 flex items-start justify-center pt-10 p-4 animate-in fade-in duration-200"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -158,13 +159,15 @@ const BranchCompareDrawer: React.FC<BranchCompareDrawerProps> = ({
               比较主线与各分支的走向，选择加入阅读路径
             </p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-ink-400 hover:text-ink-600 hover:bg-ink-100 dark:hover:bg-ink-600 transition-colors shrink-0"
+          <IconButton
+            variant="ghost"
+            size="sm"
             aria-label="关闭"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-ink-400 hover:text-ink-600 hover:bg-ink-100 dark:hover:bg-ink-600 shrink-0"
           >
             <X size={18} />
-          </button>
+          </IconButton>
         </div>
 
         {/* Body */}
@@ -221,14 +224,16 @@ const BranchCompareDrawer: React.FC<BranchCompareDrawerProps> = ({
               已选 {selectedBranchIds.size} 个分支
               {primaryBranchId ? '，主选已标记' : ''}
             </span>
-            <button
+            <Button
+              variant="primary"
+              size="md"
               onClick={handleFork}
               disabled={forking || selectedBranchIds.size < 2 || !primaryBranchId}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 text-white text-sm font-bold hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              leftIcon={forking ? <Loader2 size={14} className="animate-spin" /> : <GitBranch size={14} />}
+              className="bg-indigo-600 hover:bg-indigo-700"
             >
-              {forking ? <Loader2 size={14} className="animate-spin" /> : <GitBranch size={14} />}
               加入路径叉路
-            </button>
+            </Button>
           </div>
         )}
         {forkDone && (

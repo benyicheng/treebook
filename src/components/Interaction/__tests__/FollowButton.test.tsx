@@ -9,6 +9,12 @@ vi.mock('../../../stores/useAuthStore', () => ({
   useAuthStore: (...args: any[]) => mockUseAuthStore(...args),
 }));
 
+// Mock useToast
+const mockAddToast = vi.fn();
+vi.mock('../../notifications/Toast', () => ({
+  useToast: () => ({ addToast: mockAddToast }),
+}));
+
 // Mock useNavigate
 const mockNavigate = vi.fn();
 vi.mock('react-router-dom', async () => {
